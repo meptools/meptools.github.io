@@ -533,10 +533,10 @@ table.schtable .sch-off{opacity:.35}
       <li><b>Method:</b> Darcy-Weisbach with Colebrook-White friction factor; target head loss is solved with the Swamee-Jain explicit form, then the result is checked with Colebrook-White. Roughness 0.0007 ft (0.213 mm).</li>
       <li><b>Rectangular ducts:</b> converted to the equivalent round duct for the same friction and airflow (Huebscher, as in ASHRAE).</li>
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
-      <li><b>Converters:</b> 18 unit converters (flow, pressure, temperature, power, distance and more). The last From and To units are remembered.</li>
+      <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
       <li><b>Pipe Sizer:</b> pick the material, size, fluid and flow to get the pipe properties and the friction head loss (Darcy-Weisbach with Colebrook / Swamee-Jain). Pipe data: ASME B36.10 (steel), ASTM B88 (copper), ASTM D1785 (PVC/ABS).</li>
-      <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (3, 4 or 5 ft per 100 ft) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
-      <li><b>Pipe Slope:</b> enter the start IL and the distance from the previous point; each new point only needs its distance. Slope ratio (default 1:120) and direction (Up to Down / Down to Up) apply to the whole table.</li>
+      <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (quick select 3, 4 or 5 ft per 100 ft, or any typed value) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
+      <li><b>Manhole Schedule:</b> enter the IL of the first manhole, then the distance from the connected manhole for each next one. IL = previous IL − distance ÷ N − backdrop (Up to Down). Depth = CL − IL; manhole and cover sizes come from the standard table and can be changed. Print (A3 landscape) and Excel export.</li>
       <li><b>Rain Water Calci:</b> Q uses the correct Metric or IP formula; RWO is based on 272 m² (approximately 2,927.78 ft²) per outlet as a planning reference.</li>
       <li><b>Air:</b> standard air and four humid-air conditions (Metric and IP each have their own list).</li>
       <li><b>Head loss</b> is on the standard-air chart basis; <b>velocity pressure</b> and <b>Reynolds number</b> use the selected air.</li>
@@ -655,7 +655,7 @@ const FLUIDS = [
     ip: { label: '100°F Air at 23% RH and 1 atm', rho: 0.0698 * IPRHO, mu: 0.045707 * IPMU, shown: { rho: '0.0698', mu: '0.0457' } } },
   { id: 'rh11', cp: 1.00483,
     si: { label: '52°C Air at 11% RH and 1 atm', rho: 1.0708, mu: 0.070435 / 3600, shown: { rho: '1.0708', mu: '0.0705' } },
-    ip: { label: '125°F Air at 11% RH and 1 atm', rho: 0.06679 * IPRHO, mu: 0.0473 * IPMU, shown: { rho: '0.0669', mu: '0.0473' } } }
+    ip: { label: '125°F Air at 11% RH and 1 atm', rho: 0.06679 * IPRHO, mu: 0.0473 * IPMU, shown: { rho: '0.0668', mu: '0.0473' } } }
 ];
 
 /* ---------- units ---------- */
@@ -1406,13 +1406,20 @@ const PIPE = (function () {
       ['Fluid density', ip?fmt(r.rho,4)+' lb/ft³':fmt(toKGM3(r.rho),4)+' kg/m³'],
       ['Fluid viscosity', ip?fmt(r.mu,4)+' lb/ft·h':fmt(toMPas(r.mu),4)+' mPa·s'],
       ['Specific Heat', ip?fmt(r.cp,4)+' Btu/lb·°F':fmt(r.cp*4.1868,4)+' kJ/kg·K'],
-      ['Energy factor', ip?fmt(r.energyFactor,4)+' Btu/h·gpm·°F':fmt(r.energyFactor*0.0703,4)+' W/(L/s)·K'],
+      ['Energy factor', ip?fmt(r.energyFactor,4)+' Btu/h·gpm·°F':fmt(r.energyFactor*EF_SI,4)+' W/(L/s)·K'],
       ['Fluid velocity', ip?fmt(r.V,4)+' ft/s':fmt(toMS(r.V),4)+' m/s', true],
       ['Reynolds Number', fmt(r.Re,5)],
       ['Friction Factor', fmt(r.f,5)],
       ['Head Loss', ip?fmt(r.hf100,4)+' ft/100 ft':fmt(r.hf100,4)+' m/100 m', true],
       ['Elbow loss', ip?fmt(r.elbow,4)+' ft':fmt(r.elbow*0.3048,4)+' m']
     ].map(([k,v,big])=>`<div class="rl${big?' big':''}"><span>${k}</span><b class="${big?'blue':''}">${v}</b></div>`).join('');
+  }
+  // 1 Btu/h per (USgpm·°F)  =  0.29307107 W ÷ (0.0630901964 L/s × 5/9 K)  =  8.3613 W per (L/s·K)
+  const EF_SI = 0.29307107 / (0.0630901964 * 5 / 9);
+  function fluidLabel(f) {
+    if (S.units === 'ip' || !/^\d+°F Water$/.test(f.label)) return f.label;
+    const F = parseFloat(f.label), C = Math.round((F - 32) * 5 / 9 * 10) / 10;
+    return C + '°C Water';
   }
   
   function updateSizeOptions(){
@@ -1452,7 +1459,7 @@ const PIPE = (function () {
       '</div><p class="hint">Head loss is friction loss per 100 ft (or 100 m). Elbow loss is for one standard 90° elbow (K ≈ 0.9). Always verify against project standards.</p></div>' +
       '</div>';
     PMATERIALS.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label; $('#pz-type').appendChild(o); });
-    PFLUIDS.forEach(f => { const o = document.createElement('option'); o.value = f.id; o.textContent = f.label; $('#pz-fluid').appendChild(o); });
+    PFLUIDS.forEach(f => { const o = document.createElement('option'); o.value = f.id; o.textContent = fluidLabel(f); $('#pz-fluid').appendChild(o); });
     $('#pz-type').addEventListener('change', e => { P.material = e.target.value; draw(); });
     $('#pz-size').addEventListener('change', e => { P.size = e.target.value; draw(); });
     $('#pz-fluid').addEventListener('change', e => { P.fluid = e.target.value; draw(); });
@@ -1480,7 +1487,7 @@ const CHW = (function () {
     } catch (e) {}
   })();
   const LU = [
-    { in: 0.5,  mm: 12,  gpm: [1.54, 1.78, 2.00], fps: [1.63, 1.88, 2.11] },
+    { in: 0.5,  mm: 15,  gpm: [1.54, 1.78, 2.00], fps: [1.63, 1.88, 2.11] },
     { in: 0.75, mm: 20,  gpm: [3.32, 3.83, 4.31], fps: [2.00, 2.30, 2.59] },
     { in: 1,    mm: 25,  gpm: [6.37, 7.36, 8.28], fps: [2.36, 2.73, 3.07] },
     { in: 1.25, mm: 32,  gpm: [13.3, 15.4, 17.3], fps: [2.85, 3.30, 3.71] },
@@ -1518,21 +1525,23 @@ const CHW = (function () {
     return fps * (id * id) / 0.4085;
   }
   
-  /* Find pipe by design HL (equal friction) */
+  /* Capacity of one pipe at any head loss: exact table value at 3, 4 and 5 ft/100 ft; between and beyond them
+     the flow follows the table's own power law (log-log line through the two nearest columns). */
+  const HLS = [3, 4, 5];
+  function capAt(row, hl) {
+    const k = HLS.indexOf(hl); if (k >= 0) return row.gpm[k];
+    const j = hl < 4 ? 0 : 1, n = Math.log(row.gpm[j + 1] / row.gpm[j]) / Math.log(HLS[j + 1] / HLS[j]);
+    return row.gpm[j] * Math.pow(hl / HLS[j], n);
+  }
+
+  /* Find pipe by design HL (equal friction): smallest pipe whose capacity at that head loss is enough */
   function sizeByHL(gpm, hl) {
-    // Map continuous HL to nearest table column, then pick smallest pipe whose capacity >= gpm
-    // For simplicity and consistency with table: use 3/4/5 columns
-    let idx = 1; // default 4
-    if (hl <= 3.5) idx = 0;
-    else if (hl >= 4.5) idx = 2;
-  
     for (const row of LU) {
-      if (row.gpm[idx] >= gpm - 0.01) {
-        return { sizeIn: row.in, mm: row.mm, fps: fpsFromGpm(gpm, row.in), capacity: row.gpm[idx], over: false };
-      }
+      const cap = capAt(row, hl);
+      if (cap >= gpm - 0.01) return { sizeIn: row.in, mm: row.mm, fps: fpsFromGpm(gpm, row.in), capacity: cap, over: false };
     }
     const last = LU[LU.length - 1];
-    return { sizeIn: last.in, mm: last.mm, fps: fpsFromGpm(gpm, last.in), capacity: last.gpm[idx], over: true };
+    return { sizeIn: last.in, mm: last.mm, fps: fpsFromGpm(gpm, last.in), capacity: capAt(last, hl), over: true };
   }
   
   /* Find pipe by target velocity */
@@ -1622,12 +1631,10 @@ const CHW = (function () {
       $('#chw-flowOut').innerHTML = Number(gpm.toPrecision(4)) + ' <small>GPM</small>';
     }
   
-    // Capacity (at nearest table HL)
-    let capIdx = 1;
+    // Capacity of the selected pipe at the head loss in use
     const useHL = (C.manualHL != null && C.manualHL > 0) ? C.manualHL : C.hl;
-    if (useHL <= 3.5) capIdx = 0;
-    else if (useHL >= 4.5) capIdx = 2;
-    const capGpm = LU.find(r => r.in === res.sizeIn)?.gpm[capIdx] ?? res.capacity;
+    const selRow = LU.find(r => r.in === res.sizeIn);
+    const capGpm = selRow ? capAt(selRow, useHL) : res.capacity;
     if (S.units === 'si') {
       $('#chw-cap').innerHTML = Number((capGpm / GPM_PER_LS).toPrecision(4)) + ' <small>L/s</small>';
     } else {
@@ -1741,6 +1748,8 @@ const CHW = (function () {
 })();
 
 
+/* one text for the Linear Diffuser formula, used by the calculator and by Standards & References */
+const LINEAR_FX = 'Length (m) = [ (Airflow (L/s) × 2.1189 ÷ Velocity (fpm)) × 144 ÷ Number of slots ] ÷ [ Slot width (mm) ÷ 25.4 ] × 0.0254';
 /* ---------- 13 HVAC calculators (state is kept in S.hvac, units follow the whole app) ---------- */
 const HVAC = (function () {
   const DEFAULTS={
@@ -1757,6 +1766,11 @@ const HVAC = (function () {
     try {
       const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); const x = r && r.hvac; if (!x) return;
       if (x.refs && typeof x.refs === 'object') H.refs = { ...H.refs, ...x.refs };
+      // Gravity Louvers and Sand Trap use one design row (velocity in m/s, free area factor): keep only a valid first row
+      ['gravity', 'sand'].forEach(k => {
+        const a = H.refs[k], r0 = Array.isArray(a) && a[0];
+        H.refs[k] = r0 && Number.isFinite(+r0.velocity) && +r0.velocity > 0 && Number.isFinite(+r0.freeArea) && +r0.freeArea > 0 ? [{ velocity: +r0.velocity, freeArea: +r0.freeArea }] : clone(DEFAULTS[k]);
+      });
       if (x.saved && typeof x.saved === 'object') H.saved = x.saved;
       if (Number.isFinite(x.areas) && x.areas >= 1) H.areas = x.areas;
       if (Number.isFinite(x.dp) && x.dp >= 0 && x.dp <= 4) H.dp = x.dp;
@@ -1781,9 +1795,9 @@ const HVAC = (function () {
   function result(label, n, u) { return '<div class="rl"><span>' + label + '</span><span><b class="blue">' + n + '</b><i>' + (u || '') + '</i></span></div>'; }
   function refTable(key, headers, rows, kind) {
     const body = rows.map((r, i) => kind === 'louver'
-      ? '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="velocity" type="number" step="any" value="' + nice(fromMS(r.velocity)) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="freeArea" type="number" step="any" value="' + r.freeArea + '"></td><td><button type="button" class="hv-del" data-delref="' + key + '" data-i="' + i + '">Delete</button></td></tr>'
+      ? '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="velocity" type="number" step="any" value="' + nice(fromMS(r.velocity)) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="freeArea" type="number" step="any" value="' + r.freeArea + '"></td></tr>'
       : '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="0" type="number" step="any" value="' + nice(fromMM(r[0])) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="1" type="number" step="any" value="' + nice(fromLS(r[1])) + '"></td><td><button type="button" class="hv-del" data-delref="' + key + '" data-i="' + i + '">Delete</button></td></tr>').join('');
-    return '<details class="card reference"><summary>Reference table · Edit values</summary><div class="table-wrap"><table class="refedit"><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div><div class="btnrow"><button type="button" class="secondary" data-addref="' + key + '">Add row</button><button type="button" class="secondary" data-resetref="' + key + '">Restore Default</button></div></details>';
+    return '<details class="card reference"><summary>Reference table · Edit values</summary><div class="table-wrap"><table class="refedit"><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div><div class="btnrow">' + (kind === 'louver' ? '' : '<button type="button" class="secondary" data-addref="' + key + '">Add row</button>') + '<button type="button" class="secondary" data-resetref="' + key + '">Restore Default</button></div></details>';
   }
 
   function render() {
@@ -1818,7 +1832,7 @@ const HVAC = (function () {
     if (active === 'gravity' || active === 'sand') {
       const key = active;
       f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Width', 'width', lenU(), 'number', d.width ?? '');
-      ref = refTable(key, ['Design velocity (' + velU() + ')', 'Free area factor', ''], H.refs[key], 'louver');
+      ref = refTable(key, ['Design velocity (' + velU() + ')', 'Free area factor'], H.refs[key], 'louver');
     }
     if (active === 'ac') {
       const from = d.from || 'TON';
@@ -1865,7 +1879,7 @@ const HVAC = (function () {
     box.querySelectorAll('[data-acref]').forEach(el => el.addEventListener('change', () => { H.refs.ac[el.dataset.acref] = +el.value; persist(); calculate(); }));
     box.querySelectorAll('[data-addref]').forEach(b => b.onclick = () => {
       unit = S.units; const key = b.dataset.addref;
-      if (key === 'gravity' || key === 'sand') H.refs[key].push({ velocity: unit === 'si' ? 1 : 196.85, freeArea: 1 }); else H.refs[key].push([100, 0]);
+      if (key === 'gravity' || key === 'sand') H.refs[key].push({ velocity: 1, freeArea: 1 }); /* stored in m/s like every louver row */ else H.refs[key].push([100, 0]);
       persist(); render();
     });
     box.querySelectorAll('[data-delref]').forEach(b => b.onclick = () => { H.refs[b.dataset.delref].splice(+b.dataset.i, 1); persist(); render(); });
@@ -1880,7 +1894,7 @@ const HVAC = (function () {
   function calculate() {
     unit = S.units;
     const d = H.saved[active] || {}; let out = [], fm = '';
-    const num = k => Number(d[k]);
+    const num = k => (d[k] === undefined || d[k] === null || String(d[k]).trim() === '') ? NaN : Number(d[k]);   // an empty box is "no value", not 0
     if (active === 'ach') {
       let vol = NaN; const method = d.mode || 'volume';
       if (method === 'volume') vol = num('volume') * (unit === 'si' ? 1 : 0.0283168466);
@@ -1900,9 +1914,9 @@ const HVAC = (function () {
     }
     if (active === 'linear') {
       const q = toLS(num('flow')) * 2.1189, vel = num('velocity'), slots = num('slots'), slot = toMM(num('slotWidth'));
-      const length = ((((q / vel) * 144) / slots) * slot) / 1000;
+      const length = (((q / vel) * 144) / slots) / (slot / 25.4) * 0.0254;   // free area per slot (in²) ÷ slot width (in) = length (in), then to m
       out = [result('Required length', fmt(unit === 'si' ? length : length * 3.280839895), unit === 'si' ? 'm' : 'ft')];
-      fm = 'Length (m) = ((((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) × 144) ÷ Number of slots × Slot width (mm)) ÷ 1000.';
+      fm = LINEAR_FX + '.';
     }
     if (active === 'grill') {
       const q = toLS(num('flow')) * 2.1189, vel = num('velocity'), w = toMM(num('width')), h = ((q / vel) / 10.76391) / (w / 1000) * 1000;
@@ -1962,22 +1976,22 @@ const HVAC = (function () {
 /* ---------- Converters (unit converters plus pipe size, sheet gauge and electrical load, remembers the last From / To units) ---------- */
 const CONV = (function () {
   const CATS = [
-    { name: "Flow", icon: "<path d=\"M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z\"/>", color: "#1fa0e0", units: [["Centimeters³/hour",2.7778e-10],["Centimeters³/minute",1.6667e-08],["Centimeters³/second",1e-06],["Feet³/hour",7.86579e-06],["Feet³/minute",0.000471947],["Feet³/second",0.0283168],["Gallons (UK)/day",5.2616e-08],["Gallons (UK)/hour",1.2628e-06],["Gallons (UK)/minute",7.5768e-05],["Gallons (UK)/second",0.004546],["Gallons/day",4.3812e-08],["Gallons/hour",1.0515e-06],["Gallons/minute",6.309e-05],["Gallons/second",0.003785],["Liters/day",1.1574e-08],["Liters/hour",2.7778e-07],["Liters/minute",1.6667e-05],["Liters/second",0.001],["Meters³/day",1.1574e-05],["Meters³/hour",0.00027778],["Meters³/minute",0.016667],["Meters³/second",1],["Milliliters/hour",2.7778e-10],["Milliliters/minute",1.6667e-08],["Milliliters/second",1e-06],["Ounces (UK)/hour",7.892e-09],["Ounces (UK)/minute",4.735e-07],["Ounces (UK)/second",2.841e-05],["Ounces/hour",8.216e-09],["Ounces/minute",4.93e-07],["Ounces/second",2.957e-05],["Yards³/hour",0.0002123],["Yards³/minute",0.01274],["Yards³/second",0.764554]] },
-    { name: "Pressure", icon: "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v8m-4-4h8\"/>", color: "#2f6fe0", units: [["Atmospheres",101325],["Bars",100000],["Centimeters of Mercury",1333.22],["Dynes/Centimeter²",0.1],["Inches of Mercury",3386.38],["Kilograms/Centimeter²",98066.5],["Kilograms/Meter²",9.80665],["Kilopascals",1000],["Megapascals",1000000],["Microbars",0.1],["Millibars",100],["Millimeters of Mercury",133.322],["Pascals",1],["Pounds/Foot²",47.8802],["Pounds/Inch²",6894.75],["Tons/Foot²",95760.5],["Tons/Inch²",13789.5],["Torrs",133.322]] },
+    { name: "Flow", icon: "<path d=\"M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z\"/>", color: "#1fa0e0", units: [["Centimeters³/hour",2.777777778e-10],["Centimeters³/minute",1.666666667e-08],["Centimeters³/second",1e-06],["Feet³/hour",7.86579072e-06],["Feet³/minute",0.0004719474432],["Feet³/second",0.02831684659],["Gallons (UK)/day",5.261678241e-08],["Gallons (UK)/hour",1.262802778e-06],["Gallons (UK)/minute",7.576816667e-05],["Gallons (UK)/second",0.00454609],["Gallons/day",4.381263639e-08],["Gallons/hour",1.051503273e-06],["Gallons/minute",6.30901964e-05],["Gallons/second",0.003785411784],["Liters/day",1.157407407e-08],["Liters/hour",2.777777778e-07],["Liters/minute",1.666666667e-05],["Liters/second",0.001],["Meters³/day",1.157407407e-05],["Meters³/hour",0.0002777777778],["Meters³/minute",0.01666666667],["Meters³/second",1],["Milliliters/hour",2.777777778e-10],["Milliliters/minute",1.666666667e-08],["Milliliters/second",1e-06],["Ounces (UK)/hour",7.892517361e-09],["Ounces (UK)/minute",4.735510417e-07],["Ounces (UK)/second",2.84130625e-05],["Ounces/hour",8.214869323e-09],["Ounces/minute",4.928921594e-07],["Ounces/second",2.957352956e-05],["Yards³/hour",0.0002123763494],["Yards³/minute",0.01274258097],["Yards³/second",0.764554858]] },
+    { name: "Pressure", icon: "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v8m-4-4h8\"/>", color: "#2f6fe0", units: [["Atmospheres",101325],["Bars",100000],["Centimeters of Mercury",1333.22387],["Dynes/Centimeter²",0.1],["Inches of Mercury",3386.389],["Kilograms/Centimeter²",98066.5],["Kilograms/Meter²",9.80665],["Kilopascals",1000],["Megapascals",1000000],["Microbars",0.1],["Millibars",100],["Millimeters of Mercury",133.322387],["Pascals",1],["Pounds/Foot²",47.88025898],["Pounds/Inch²",6894.757293],["Tons/Foot²",95760.51796],["Tons/Inch²",13789514.59],["Torrs",133.3223684],["Inches of Water (in.WC)",249.08891],["Millimeters of Water (mm WC)",9.80665],["Feet of Water (ft head)",2989.06692],["Meters of Water (m head)",9806.65]] },
     { name: "Temperature", icon: "<path d=\"M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z\"/>", color: "#f2994a", units: [["Celsius",1],["Fahrenheit",1],["Kelvin",1]] },
-    { name: "Power", icon: "<path d=\"M13 2L3 14h9l-1 8 10-12h-9l1-8z\"/>", color: "#eb5757", units: [["BTU/hour",0.293071],["BTU/minute",17.5842],["BTU/second",1055.05],["Calories/second",4.184],["Horsepower",745.699],["Kilowatts",1000],["Megawatts",1000000],["Pound-feet/minute",0.0225969],["Pound-feet/second",1.3558],["Watts",1]] },
-    { name: "Energy", icon: "<path d=\"M12 2c0 0-4 4-4 8a4 4 0 0 0 8 0c0-4-4-8-4-8z\"/><path d=\"M12 10c0 0-2 2-2 4a2 2 0 0 0 4 0c0-2-2-4-2-4z\"/>", color: "#f2b22e", units: [["Joules",1],["BTU",1055.05],["Calories",4.184],["Kilocalories",4184],["Kilojoules",1000],["Kilowatt-hours",3600000],["Watt-hours",3600]] },
-    { name: "Distance", icon: "<path d=\"M2 12h20M4 10v4M8 10v4M12 10v4M16 10v4M20 10v4\"/>", color: "#8e6bff", units: [["Centimeters",0.01],["Decimeters",0.1],["Feet",0.3048],["Furlongs",201.168],["Hectometers",100],["Inches",0.0254],["Kilometers",1000],["Light-years",9460700000000000],["Meters",1],["Miles",1609.34],["Millimeters",0.001],["Nautical Miles",1852],["Parsecs",30857000000000000],["Yards",0.9144]] },
-    { name: "Area", icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M9 21V9\"/>", color: "#4f7fe8", units: [["Acres",4046.856],["Centimeters²",0.0001],["Feet²",0.09290304],["Hectares",10000],["Inches²",0.00064516],["Kilometers²",1000000],["Meters²",1],["Miles²",2589988],["Millimeters²",1e-06],["Yards²",0.836127]] },
-    { name: "Volume", icon: "<path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"/>", color: "#3a8fd8", units: [["Barrels",0.158987],["Barrels (oil)",0.158987],["Bushels",0.035239],["CCs",1e-06],["Cubic Centimeters",1e-06],["Cubic Feet",0.0283168],["Cubic Inches",1.6387e-05],["Cubic Meters",1],["Cubic Yards",0.764554],["Cups",0.0002365],["Gallons",0.003785],["Gallons (UK)",0.004546],["Liters",0.001],["Milliliters",1e-06],["Ounces",2.957e-05],["Ounces (UK)",2.841e-05],["Pecks",0.008809],["Pints",0.000473],["Pints (UK)",0.000568],["Quarts",0.000946],["Quarts (UK)",0.001136],["Tablespoons",1.478e-05],["Teaspoons",4.92e-06]] },
-    { name: "Mass", icon: "<path d=\"M12 2a3 3 0 0 0-3 3v2H5l-1 14h16l-1-14h-4V5a3 3 0 0 0-3-3z\"/>", color: "#7d8aa6", units: [["Carats",0.0002],["Grains",6.4798e-05],["Grams",0.001],["Kilograms",1],["Micrograms",1e-09],["Milligrams",1e-06],["Ounces",0.0283495],["Ounces [troy]",0.031103],["Pennyweights",0.001555],["Pounds",0.453592],["Pounds [troy]",0.373241],["Stones",6.35029],["Tons",907.184],["Tons [long]",1016.04],["Tons [metric]",1000]] },
-    { name: "Density", icon: "<path d=\"M12 2v20M4 12h16M4 6h16M4 18h16\"/>", color: "#e07a3f", units: [["Grams/Centimeter³",1000],["Grams/Meter³",0.001],["Kilograms/Meter³",1],["Milligrams/Meter³",1e-06],["Ounces/Gallon",7.48915],["Pounds/Foot³",16.01846],["Pounds/Inch³",27679.9],["Tons/Yard³",1328.93]] },
-    { name: "Speed", icon: "<path d=\"M12 2v4m0 12v4M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83\"/>", color: "#bb6bd9", units: [["Speed of light (c)",299792458],["Centimeters/hour",2.77e-06],["Centimeters/minute",0.0001666],["Centimeters/second",0.01],["Feet/hour",8.466e-05],["Feet/minute",0.00508],["Feet/second",0.3048],["Kilometers/hour",0.277777],["Kilometers/minute",16.6666],["Kilometers/second",1000],["Knots",0.514444],["Mach",340.29],["Meters/hour",0.0002777],["Meters/minute",0.016666],["Meters/second",1],["Miles/hour",0.44704],["Miles/minute",26.8224],["Miles/second",1609.34]] },
-    { name: "Force", icon: "<path d=\"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z\"/>", color: "#d9a92c", units: [["Dynes",1e-05],["Gram Force",0.00980665],["Joules/Centimeter",100],["Joules/Meter",1],["Kilogram Force",9.80665],["Kilonewtons",1000],["Millinewtons",0.001],["Newtons",1],["Ounce Force",0.278013],["Pound Force",4.44822]] },
+    { name: "Power", icon: "<path d=\"M13 2L3 14h9l-1 8 10-12h-9l1-8z\"/>", color: "#eb5757", units: [["BTU/hour",0.29307107],["BTU/minute",17.584264],["BTU/second",1055.05585],["Calories/second",4.184],["Horsepower",745.699872],["Kilowatts",1000],["Megawatts",1000000],["Pound-feet/minute",0.0225969658],["Pound-feet/second",1.355817948],["Watts",1]] },
+    { name: "Energy", icon: "<path d=\"M12 2c0 0-4 4-4 8a4 4 0 0 0 8 0c0-4-4-8-4-8z\"/><path d=\"M12 10c0 0-2 2-2 4a2 2 0 0 0 4 0c0-2-2-4-2-4z\"/>", color: "#f2b22e", units: [["Joules",1],["BTU",1055.05585],["Calories",4.184],["Kilocalories",4184],["Kilojoules",1000],["Kilowatt-hours",3600000],["Watt-hours",3600]] },
+    { name: "Distance", icon: "<path d=\"M2 12h20M4 10v4M8 10v4M12 10v4M16 10v4M20 10v4\"/>", color: "#8e6bff", units: [["Centimeters",0.01],["Decimeters",0.1],["Feet",0.3048],["Furlongs",201.168],["Hectometers",100],["Inches",0.0254],["Kilometers",1000],["Light-years",9460730473000000],["Meters",1],["Miles",1609.344],["Millimeters",0.001],["Nautical Miles",1852],["Parsecs",30856775810000000],["Yards",0.9144]] },
+    { name: "Area", icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M9 21V9\"/>", color: "#4f7fe8", units: [["Acres",4046.856422],["Centimeters²",0.0001],["Feet²",0.09290304],["Hectares",10000],["Inches²",0.00064516],["Kilometers²",1000000],["Meters²",1],["Miles²",2589988.11],["Millimeters²",1e-06],["Yards²",0.83612736]] },
+    { name: "Volume", icon: "<path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"/>", color: "#3a8fd8", units: [["Barrels (US fluid)",0.1192404712],["Barrels (oil)",0.1589872949],["Bushels",0.03523907017],["CCs",1e-06],["Cubic Centimeters",1e-06],["Cubic Feet",0.02831684659],["Cubic Inches",1.6387064e-05],["Cubic Meters",1],["Cubic Yards",0.764554858],["Cups",0.0002365882365],["Gallons",0.003785411784],["Gallons (UK)",0.00454609],["Liters",0.001],["Milliliters",1e-06],["Ounces",2.957352956e-05],["Ounces (UK)",2.84130625e-05],["Pecks",0.00880976754],["Pints",0.000473176473],["Pints (UK)",0.00056826125],["Quarts",0.000946352946],["Quarts (UK)",0.0011365225],["Tablespoons",1.478676478e-05],["Teaspoons",4.928921594e-06]] },
+    { name: "Mass", icon: "<path d=\"M12 2a3 3 0 0 0-3 3v2H5l-1 14h16l-1-14h-4V5a3 3 0 0 0-3-3z\"/>", color: "#7d8aa6", units: [["Carats",0.0002],["Grains",6.479891e-05],["Grams",0.001],["Kilograms",1],["Micrograms",1e-09],["Milligrams",1e-06],["Ounces",0.02834952313],["Ounces [troy]",0.0311034768],["Pennyweights",0.00155517384],["Pounds",0.45359237],["Pounds [troy]",0.3732417216],["Stones",6.35029318],["Tons",907.18474],["Tons [long]",1016.046909],["Tons [metric]",1000]] },
+    { name: "Density", icon: "<path d=\"M12 2v20M4 12h16M4 6h16M4 18h16\"/>", color: "#e07a3f", units: [["Grams/Centimeter³",1000],["Grams/Meter³",0.001],["Kilograms/Meter³",1],["Milligrams/Meter³",1e-06],["Ounces/Gallon",7.489151707],["Pounds/Foot³",16.01846337],["Pounds/Inch³",27679.90471],["Tons/Yard³",1186.552843]] },
+    { name: "Speed", icon: "<path d=\"M12 2v4m0 12v4M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83\"/>", color: "#bb6bd9", units: [["Speed of light (c)",299792458],["Centimeters/hour",2.777777778e-06],["Centimeters/minute",0.0001666666667],["Centimeters/second",0.01],["Feet/hour",8.466666667e-05],["Feet/minute",0.00508],["Feet/second",0.3048],["Kilometers/hour",0.2777777778],["Kilometers/minute",16.66666667],["Kilometers/second",1000],["Knots",0.5144444444],["Mach",340.29],["Meters/hour",0.0002777777778],["Meters/minute",0.01666666667],["Meters/second",1],["Miles/hour",0.44704],["Miles/minute",26.8224],["Miles/second",1609.344]] },
+    { name: "Force", icon: "<path d=\"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z\"/>", color: "#d9a92c", units: [["Dynes",1e-05],["Gram Force",0.00980665],["Joules/Centimeter",100],["Joules/Meter",1],["Kilogram Force",9.80665],["Kilonewtons",1000],["Millinewtons",0.001],["Newtons",1],["Ounce Force",0.278013851],["Pound Force",4.448221615]] },
     { name: "Time", icon: "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/>", color: "#56b8e8", units: [["Centuries",3153600000],["Days",86400],["Decades",315360000],["Fortnights",1209600],["Hours",3600],["Leap years",31622400],["Millennia",31536000000],["Milliseconds",0.001],["Minutes",60],["Months [30 days]",2592000],["Nanoseconds",1e-09],["Seconds",1],["Weeks",604800],["Years",31536000],["Microseconds",1e-06]] },
-    { name: "Angle", icon: "<path d=\"M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z\"/><path d=\"M12 12l4-4\"/>", color: "#e0586c", units: [["Circles",6.283185],["Degrees",0.01745329],["Grads",0.01570796],["Minutes",0.000290888],["Octants",0.7853981],["Quadrants",1.570796],["Radians",1],["Revolutions",6.283185],["Seconds",4.848e-06],["Sextants",1.047197],["Turns",6.283185]] },
-    { name: "Acceleration", icon: "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", color: "#5b6cf0", units: [["Centimeters/sec²",0.01],["Feet/sec²",0.3048],["Free fall [g]",9.80665],["Inches/sec²",0.0254],["Kilometers/hour-second",0.2777778],["Miles/hour-minute",0.007456],["Miles/hour-second",0.44704],["Meters/sec²",1]] },
-    { name: "Light", icon: "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41\"/>", color: "#f2a03d", units: [["Flames",3.426259],["Foot-candles",10.7639],["Lux",1],["Meter-candles",1]] },
+    { name: "Angle", icon: "<path d=\"M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z\"/><path d=\"M12 12l4-4\"/>", color: "#e0586c", units: [["Circles",6.283185307],["Degrees",0.01745329252],["Grads",0.01570796327],["Minutes",0.0002908882087],["Octants",0.7853981634],["Quadrants",1.570796327],["Radians",1],["Revolutions",6.283185307],["Seconds",4.848136811e-06],["Sextants",1.047197551],["Turns",6.283185307]] },
+    { name: "Acceleration", icon: "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", color: "#5b6cf0", units: [["Centimeters/sec²",0.01],["Feet/sec²",0.3048],["Free fall [g]",9.80665],["Inches/sec²",0.0254],["Kilometers/hour-second",0.2777777778],["Miles/hour-minute",0.007450666667],["Miles/hour-second",0.44704],["Meters/sec²",1]] },
+    { name: "Light", icon: "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41\"/>", color: "#f2a03d", units: [["Flames",43.05564167],["Foot-candles",10.76391042],["Lux",1],["Meter-candles",1]] },
     { name: "Data Storage", icon: "<rect x=\"2\" y=\"2\" width=\"20\" height=\"8\" rx=\"2\"/><rect x=\"2\" y=\"14\" width=\"20\" height=\"8\" rx=\"2\"/><path d=\"M6 6h.01M6 18h.01\"/>", color: "#6b7a99", units: [["Bits",1],["Bytes",8],["Kilobytes (KB)",8000],["Megabytes (MB)",8000000],["Gigabytes (GB)",8000000000],["Terabytes (TB)",8000000000000]] },
     { name: "Cooling Capacity", icon: "<path d=\"M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07\"/>", color: "#2f9fd8", units: [["Kilowatts",1000],["Watts",1],["Tons of Refrigeration (TR)",3516.8528],["BTU/hour",0.29307107],["MBH (1000 BTU/hour)",293.07107],["Kilocalories/hour",1.163]] },
     { name: "Heat Transfer (U-value)", icon: "<path d=\"M4 4v16M20 4v16M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4\"/>", color: "#e0703f", units: [["Watts/Meter²-Kelvin",1],["BTU/hour-Foot²-°F",5.678263],["Kilocalories/hour-Meter²-°C",1.163]] },
@@ -1997,14 +2011,22 @@ const CONV = (function () {
     'Thermal Conductivity': ['Watts/Meter-Kelvin', 'BTU-inch/hour-Foot²-°F'], 'Thermal Resistance (R-value)': ['Meter²-Kelvin/Watt', 'Foot²-hour-°F/BTU'],
     'Air Flow per Area': ['Liters/second per Meter²', 'CFM per Foot²']
   };
-  const V = S.cv = { sel: {} };
+  const EL = { type: 'kW', val: '', phase: '3', volts: '400', pf: '0.85', eff: '0.9' };
+  const V = S.cv = { sel: {}, el: EL };
   (function loadSaved() {
     try {
       const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); const x = r && r.cv; if (!x) return;
       if (x.sel && typeof x.sel === 'object') CATS.forEach(c => {
         const p = x.sel[c.name];
-        if (Array.isArray(c.units) && Array.isArray(p) && p.length === 2 && c.units.some(u => u[0] === p[0]) && c.units.some(u => u[0] === p[1])) V.sel[c.name] = [p[0], p[1]];
+        if (!Array.isArray(p)) return;
+        if (Array.isArray(c.units)) { if (p.length === 2 && c.units.some(u => u[0] === p[0]) && c.units.some(u => u[0] === p[1])) V.sel[c.name] = [p[0], p[1]]; }
+        else if (p.length === 3 && typeof p[0] === 'string' && typeof p[1] === 'string' && Number.isInteger(p[2]) && p[2] >= 0) V.sel[c.name] = [p[0], p[1], p[2]];   // Pipe Size, Sheet Gauge: checked again when the tool opens
       });
+      if (x.el && typeof x.el === 'object') {
+        ['val', 'volts', 'pf', 'eff'].forEach(k => { if (typeof x.el[k] === 'string') EL[k] = x.el[k]; });
+        if (['kW', 'kVA', 'HP', 'Amps'].indexOf(x.el.type) >= 0) EL.type = x.el.type;
+        if (x.el.phase === '1' || x.el.phase === '3') EL.phase = x.el.phase;
+      }
     } catch (e) {}
   })();
   const SWAP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>';
@@ -2098,7 +2120,6 @@ const CONV = (function () {
   }
 
   /* Electrical Load: kW / kVA / HP / Amps for a motor or load. */
-  const EL = { type: 'kW', val: '', phase: '3', volts: '400', pf: '0.85', eff: '0.9' };
   function mountElec(view) {
     view.innerHTML =
       '<div class="tool-cv"><div class="card"><div class="cv-split2">' +
@@ -2118,6 +2139,7 @@ const CONV = (function () {
     $('#el-phase').value = EL.phase; $('#el-volts').value = EL.volts; $('#el-pf').value = EL.pf; $('#el-eff').value = EL.eff; $('#el-type').value = EL.type; $('#el-val').value = EL.val;
     function calc() {
       EL.phase = $('#el-phase').value; EL.volts = $('#el-volts').value; EL.pf = $('#el-pf').value; EL.eff = $('#el-eff').value; EL.type = $('#el-type').value; EL.val = $('#el-val').value;
+      save();
       const v = parseFloat(EL.val), V_ = parseFloat(EL.volts), pf = parseFloat(EL.pf), ef = parseFloat(EL.eff), k = EL.phase === '3' ? Math.sqrt(3) : 1;
       const ids = ['#el-kw', '#el-kva', '#el-hp', '#el-a'];
       const blank = () => ids.forEach(i => { $(i).value = ''; });
@@ -2196,7 +2218,7 @@ const LIB = (function () {
     const si = isSI();
     return card('Air Change / Hour', fx('Required airflow', si ? 'Q (L/s) = Room volume (m³) × ACH ÷ 3.6' : 'Q (CFM) = Room volume (ft³) × ACH ÷ 60')) +
       card('Diffuser and valve quantity', fx('Quantity', 'Qty = ROUNDUP( Total airflow ÷ Standard flow per unit )') + note('Standard flow per unit comes from the size tables.')) +
-      card('Linear Diffuser', fx('Required length', 'Length (m) = ((((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) × 144) ÷ Number of slots × Slot width (mm)) ÷ 1000')) +
+      card('Linear Diffuser', fx('Required length', LINEAR_FX)) +
       card('Grill Size', fx('Required height', 'Height (mm) = (((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) ÷ 10.76391) ÷ (Width (mm) ÷ 1000) × 1000')) +
       card('Gravity Louvers and Sand Trap', fx('Required height', 'Height (mm) = [Airflow (L/s) × 1000] ÷ [Design velocity (m/s) × Free area factor × Width (mm)]')) +
       card('AC capacity', fx('Conversion', 'TON = Input capacity ÷ unit factor,  Converted = TON × target unit factor') + fx('Electrical power', 'kW = Cooling capacity (kW) ÷ COP,  or  kW = BTU/h ÷ EER ÷ 1000')) +
@@ -2207,10 +2229,11 @@ const LIB = (function () {
 
   /* ----- Plumbing ----- */
   const drainage = () => {
-    const si = isSI(), u = si ? 'mm' : 'in';
+    const si = isSI(), u = si ? 'm' : 'ft';
     return manholeSection(S.units) + note(si ? '' : 'Inch values are converted from the metric standard sizes and are approximate.') +
-      card('Pipe Slope', fx('Invert level, going down', 'IL = Previous IL − Distance ÷ N') + fx('Invert level, going up', 'IL = Previous IL + Distance ÷ N') +
-        note('Slope is written 1 : N (for example 1 : 100 is 1 %). IL and Distance are in ' + u + '.'));
+      card('Manhole Schedule (pipe slope)', fx('Invert level, Up to Down', 'IL = Previous IL − Distance ÷ N − Backdrop') + fx('Invert level, Down to Up', 'IL = Previous IL + Distance ÷ N + Backdrop') +
+        fx('Depth', 'Depth = Cover Level (CL) − Invert Level (IL)') +
+        note('Slope is written 1 : N (for example 1 : 100 is 1 %). Levels, distance, backdrop and depth are in ' + u + '; manhole and cover sizes are in mm.'));
   };
   const rain = () => {
     const si = isSI();
@@ -2285,7 +2308,7 @@ const CATEGORIES = [
       { id: 'pipe-sizer', label: 'Pipe Sizer', icon: ICON.pipe, actions: ACTIONS, printTitle: 'Pipe sizing',
         mount: PIPE.mount, onUnits: (from, to) => PIPE.convert(from, to), onClear: () => PIPE.clear(), refresh: () => render() },
       // DRSW.convert changes the units of both Pipe Slope and Rain Water Calci, so only one of them carries onUnits.
-      { id: 'pipe-slope', label: 'Pipe Slope', icon: ICON.slope, actions: ACTIONS.concat(['excel']), printTitle: 'Pipe slope', onExcel: () => { if (!DRSW.exportSlope()) { const st = $('#ps-status'); if (st) { st.className = 'status'; st.textContent = 'Add at least one manhole (and keep one column ticked) to export.'; } } },
+      { id: 'pipe-slope', label: 'Manhole Schedule', icon: ICON.slope, actions: ACTIONS.concat(['excel']), printTitle: 'Manhole Schedule', onExcel: () => { if (!DRSW.exportSlope()) { const st = $('#ps-status'); if (st) { st.className = 'status'; st.textContent = 'Add at least one manhole (and keep one column ticked) to export.'; } } },
         mount: DRSW.mountSlope, onUnits: (from, to) => DRSW.convert(from, to), onClear: () => DRSW.clearSlope(), refresh: () => render() },
       { id: 'rw-calci', label: 'Rain Water Calci', icon: ICON.rw, actions: ACTIONS, printTitle: 'Rain water',
         mount: DRSW.mountRain, onClear: () => DRSW.clearRain(), refresh: () => render() },
@@ -2610,8 +2633,8 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 const RELEASES = [
   { v: VERSION, date: '10 Nov 2026', items: [
     ['New', '13 HVAC calculators: Air Change / Hour, diffuser quantities, grill size, louvers, sand trap and more'],
-    ['New', 'Converters with 18 unit converters (flow, pressure, temperature and more)'],
-    ['New', 'Plumbing calculators: Pipe Sizer, Pipe Slope, Rain Water Calci and Chilled Water Calci'],
+    ['New', 'Converters: 22 unit converters (flow, pressure, temperature and more) plus Pipe Size, Sheet Gauge and Electrical Load'],
+    ['New', 'Plumbing calculators: Pipe Sizer, Manhole Schedule, Rain Water Calci and Chilled Water Calci'],
     ['New', 'Home page with six sections'],
     ['New', 'Path line at the top (Home › HVAC › ...). Tap any name to go back'],
     ['New', 'Logo and signature on every page. Tap them to go home'],
@@ -2626,6 +2649,13 @@ const RELEASES = [
     ['New', 'New converters: Cooling Capacity, U-value, Thermal Conductivity, R-value, Air Flow per Area, Pipe Size, Sheet Gauge and Electrical Load'],
     ['Better', 'Currency converter removed'],
     ['Better', 'Calculator pages are centred on wide screens, and the home page has a hint line like the other pages'],
+    ['Fixed', 'Linear Diffuser: required length now divides by the slot width (a narrower slot gives a longer diffuser)'],
+    ['Fixed', 'Pipe Sizer: Metric energy factor (about 4,180 W per L/s·K for water); Metric mode shows water temperatures in °C'],
+    ['Fixed', 'Chilled Water Calci: a typed head loss (for example 2 or 6 ft/100 ft) now sizes at that exact head loss; 1/2" pipe shows DN 15'],
+    ['Fixed', 'Gravity Louvers and Sand Trap: one design row (the one the calculation uses); an empty box shows "—" instead of 0 in the HVAC calculators'],
+    ['Fixed', 'Converters: exact conversion factors everywhere (Tons/Inch², Tons/Yard³, Flames and more); Pipe Size, Sheet Gauge and Electrical Load remember the last values'],
+    ['New', 'Pressure converter: in.WC, mm WC, ft of water and m of water'],
+    ['Better', 'Pipe Slope renamed Manhole Schedule; About, Standards & References and app description updated'],
     ['New', 'This What\u2019s New box after every update']
   ] }
 ];
