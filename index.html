@@ -14,7 +14,7 @@
 <link rel="preload" as="font" type="font/woff2" href="./fonts/outfit-latin-600-normal.woff2" crossorigin>
 <link rel="icon" type="image/png" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<script>try{if(!localStorage.getItem('meptools.v1')&&localStorage.getItem('mepsizer.v1')){localStorage.setItem('meptools.v1',localStorage.getItem('mepsizer.v1'));}localStorage.removeItem('mepsizer.v1');}catch(e){}try{var _t=JSON.parse(localStorage.getItem('meptools.v1')||'null');if(_t&&(_t.theme==='light'||_t.theme==='dark'))document.documentElement.setAttribute('data-theme',_t.theme);}catch(e){}</script>
+<script>try{var _t=JSON.parse(localStorage.getItem('meptools.v1')||'null');if(_t&&(_t.theme==='light'||_t.theme==='dark'))document.documentElement.setAttribute('data-theme',_t.theme);}catch(e){}</script>
 <style>
 :root{
   color-scheme:light dark;
@@ -310,7 +310,7 @@ table.schtable .sch-off{opacity:.35}
 .sheet button.alt{background:var(--chip);color:var(--ink);margin-top:0}
 .printhead{display:none}
 @media print{
-  header.top,nav.tabs,.status,.hint,footer.ft,.overlay,.btnrow,td.del,.authority-card,.ref-btn,.tool-chw .note,.crumb{display:none!important}
+  header.top,nav.tabs,.status,.hint,footer.ft,.overlay,.btnrow,td.del,.authority-card,.ref-btn,.tool-chw .note,.crumb,.float-row{display:none!important}
   html,body{background:#fff;color:#000}
   body::before,.brand{display:none!important}
   .card{border:1px solid #999;break-inside:avoid}
@@ -538,7 +538,7 @@ table.schtable .sch-off{opacity:.35}
       <li><b>Pipe Sizer:</b> pick the material, size, fluid and flow to get the pipe properties and the friction head loss (Darcy-Weisbach with Colebrook / Swamee-Jain). Pipe data: ASME B36.10 (steel), ASTM B88 (copper), ASTM D1785 (PVC/ABS).</li>
       <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (quick select 3, 4 or 5 ft per 100 ft, or any typed value) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
       <li><b>Manhole Schedule:</b> enter the IL of the first manhole, then the distance from the connected manhole for each next one. IL = previous IL − distance ÷ N − backdrop (Up to Down). Depth = CL − IL; manhole and cover sizes come from the standard table and can be changed. Print (A3 landscape) and Excel export.</li>
-      <li><b>Rain Water Calci:</b> Q uses the correct Metric or IP formula; RWO is based on 272 m² (approximately 2,927.78 ft²) per outlet as a planning reference.</li>
+      <li><b>Rain Water Calci:</b> Q uses the correct Metric or IP formula; RWO uses 1 outlet per 272 m² (approximately 2,927.78 ft²) as a planning reference.</li>
       <li><b>Air:</b> standard air and four humid-air conditions (Metric and IP each have their own list).</li>
       <li><b>Head loss</b> is on the standard-air chart basis; <b>velocity pressure</b> and <b>Reynolds number</b> use the selected air.</li>
     </ul>
@@ -684,7 +684,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.10';
+const VERSION = 'v2026.11.11';
 
 /* ---------- state ---------- */
 const STORE_KEY = 'meptools.v1';
@@ -929,7 +929,7 @@ function mountSlope(view) {
       '<div class="status" id="ps-status" role="status"></div>' +
       '<div class="res" style="margin-top:8px">' + rl('ps-prev', 'Prev IL', 'blue') + rl('ps-calc', 'Calc IL', 'green big') + rl('ps-depth', 'Depth', 'red') + '</div>' +
     '</section>' +
-    '<section class="card tablecard sch"><h2 class="sch-title" id="ps-heading"></h2><div class="sch-wrap" id="ps-tablewrap"></div>' +
+    '<section class="card tablecard sch"><h2 class="sch-title" id="ps-heading"></h2><div class="sch-wrap" id="ps-tablewrap"></div><div class="status noprint" id="ps-warn" role="status"></div>' +
       '<p class="hint noprint">Tap a row to edit it. Untick a column to leave it out of the print. Sizes are in mm.</p></section>' +
     manholeSection('si') + '</div>';
   $('#ps-title').value = t.title; $('#ps-sys').value = t.sys; $('#ps-ratio').value = t.ratio; $('#ps-dir').value = t.dir;
@@ -966,6 +966,9 @@ function renderSlopTable() {
   const wrap = $('#ps-tablewrap'); if (!wrap) return;
   const t = D.slope, U = slopeU(), rows = calcRows();
   const head = $('#ps-heading'); if (head) head.textContent = (t.title || '').trim() || 'Manhole Schedule';
+  // an empty Cover Level counts as 0, so the depth can come out below zero: say which manholes need a CL
+  const bad = rows.filter(x => x.depth !== null && x.depth < 0).map(x => x.r.point), warn = $('#ps-warn');
+  if (warn) warn.textContent = bad.length ? 'CL empty or below IL at ' + bad.join(', ') + ': depth not valid. Tap the row to enter the Cover Level.' : '';
   if (!rows.length) { wrap.innerHTML = '<div class="empty">No manholes yet. Add the first manhole above.</div>'; return; }
   const unitOf = { dist: U, cl: U, bd: U, il: U, depth: U, mh: 'mm', cover: 'mm' };
   let h = '<table class="schtable"><thead><tr>' + COLS.map(c => '<th class="' + (t.cols[c[0]] ? '' : 'sch-off') + '"><label class="cc"><input type="checkbox" data-col="' + c[0] + '"' + (t.cols[c[0]] ? ' checked' : '') + ' aria-label="Print ' + c[1] + '"></label>' + c[1] + (unitOf[c[0]] ? '<small>' + unitOf[c[0]] + '</small>' : '') + '</th>').join('') + '</tr></thead><tbody>';
@@ -1751,7 +1754,7 @@ const CHW = (function () {
         '<div class="chw-status empty" id="chw-status">Enter a flow rate to see results</div>' +
       '</div>' +
       '<button type="button" class="ref-btn" id="chw-btnRef">Pipe Capacity Reference Table ▸</button>' +
-      '<p class="note">Based on Schedule 40 steel pipe. Equal-friction method (ASHRAE practice). Edit Velocity or Head Loss in the result card to explore alternatives. Always verify against project standards.</p>' +
+      '<p class="note">Schedule 40 steel pipe.Equal-friction method (ASHRAE practice). Edit Velocity or Head Loss in the result card to explore alternatives. Always verify against project standards.</p>' +
       '</div>';
     $('#chw-flow').addEventListener('input', e => {
       const v = parseFloat(e.target.value); C.flow = isFinite(v) ? v : 0;
@@ -1845,6 +1848,7 @@ const HVAC = (function () {
   function render() {
     unit = S.units;
     const box = $('#hv-calc'); if (!box) return;
+    const refWasOpen = !!(box.querySelector('details.reference') || {}).open;   // a table being edited stays open
     const d = H.saved[active] || {};
     let f = '', ref = '';
     if (active === 'ach') {
@@ -1898,6 +1902,7 @@ const HVAC = (function () {
       + '<div class="row"><label class="lbl">Decimal places</label><select id="hv-dp" style="grid-column:span 2">' + [0, 1, 2, 3, 4].map(n => '<option ' + (n === H.dp ? 'selected' : '') + '>' + n + '</option>').join('') + '</select></div></section>'
       + '<section class="card res" id="hv-results"></section>'
       + '<details class="card formula"><summary>Calculation formula</summary><div class="formula-body" id="hv-formula">Enter valid inputs to see the calculation.</div></details>' + ref;
+    if (refWasOpen) { const r = box.querySelector('details.reference'); if (r) r.open = true; }
     $('#hv-dp').addEventListener('change', e => { H.dp = +e.target.value; persist(); calculate(); });
     box.querySelectorAll('[data-k]').forEach(el => el.addEventListener('input', () => {
       const obj = H.saved[active] || {};
@@ -1915,7 +1920,13 @@ const HVAC = (function () {
       const arr = H.refs[el.dataset.ref], i = +el.dataset.i;
       if (el.dataset.f === 'velocity') arr[i].velocity = unit === 'si' ? +el.value : +el.value * .00508;
       else if (el.dataset.f === 'freeArea') arr[i].freeArea = +el.value;
-      else arr[i][+el.dataset.f] = +el.dataset.f === 0 ? toMM(+el.value) : toLS(+el.value);
+      else if (+el.dataset.f === 0) {
+        // a size changed: the chosen size follows it, and the Size list is drawn again
+        const old = arr[i][0], d = H.saved[el.dataset.ref]; arr[i][0] = toMM(+el.value);
+        if (d && String(d.size) === String(old)) d.size = String(arr[i][0]);
+        persist(); render(); return;
+      }
+      else arr[i][1] = toLS(+el.value);
       persist(); calculate();
     }));
     box.querySelectorAll('[data-acref]').forEach(el => el.addEventListener('change', () => { H.refs.ac[el.dataset.acref] = +el.value; persist(); calculate(); }));
@@ -1924,8 +1935,10 @@ const HVAC = (function () {
       if (key === 'gravity' || key === 'sand') H.refs[key].push({ velocity: 1, freeArea: 1 }); /* stored in m/s like every louver row */ else H.refs[key].push([100, 0]);
       persist(); render();
     });
-    box.querySelectorAll('[data-delref]').forEach(b => b.onclick = () => { H.refs[b.dataset.delref].splice(+b.dataset.i, 1); persist(); render(); });
-    box.querySelectorAll('[data-resetref]').forEach(b => b.onclick = () => { H.refs[b.dataset.resetref] = clone(DEFAULTS[b.dataset.resetref]); persist(); render(); });
+    // a deleted or restored row that was the chosen size: choose the first size of the table (or Custom when it is empty)
+    const fixSize = key => { const d = H.saved[key], arr = H.refs[key]; if (!d || d.size === 'custom' || !Array.isArray(arr)) return; if (!arr.some(x => String(x[0]) === String(d.size))) d.size = arr.length ? String(arr[0][0]) : 'custom'; };
+    box.querySelectorAll('[data-delref]').forEach(b => b.onclick = () => { const key = b.dataset.delref; H.refs[key].splice(+b.dataset.i, 1); fixSize(key); persist(); render(); });
+    box.querySelectorAll('[data-resetref]').forEach(b => b.onclick = () => { const key = b.dataset.resetref; H.refs[key] = clone(DEFAULTS[key]); fixSize(key); persist(); render(); });
     if (active === 'area') {
       $('#add-area').onclick = () => { const obj = H.saved.area || {}; obj.areas = obj.areas || []; obj.areas.push(''); H.saved.area = obj; H.areas = obj.areas.length; persist(); render(); };
       $('#remove-area').onclick = () => { const obj = H.saved.area || {}; obj.areas = obj.areas || Array.from({ length: H.areas }, () => ''); if (obj.areas.length > 1) obj.areas.pop(); H.areas = obj.areas.length; H.saved.area = obj; persist(); render(); };
@@ -2157,7 +2170,8 @@ const CONV = (function () {
     const list = () => GAUGES.find(x => x[0] === from.value)[1];
     function fill(keepLabel) { inp.innerHTML = list().map((r, i) => '<option value="' + i + '">' + r[0] + '</option>').join(''); const k = list().findIndex(r => r[0] === keepLabel); inp.value = String(k >= 0 ? k : 0); }
     function calc() { const r = list()[+inp.value]; V.sel[name] = [from.value, to.value, +inp.value]; save(); out.value = to.value === 'Millimeters' ? String(Number(r[1].toFixed(3))) : String(Number((r[1] / 25.4).toFixed(4))); }
-    from.addEventListener('change', () => { fill(list()[+inp.value] ? list()[+inp.value][0] : ''); calc(); });
+    let shown = from.value;   // the standard the number list belongs to, so a switch keeps the same gauge number
+    from.addEventListener('change', () => { const old = GAUGES.find(x => x[0] === shown)[1][+inp.value]; shown = from.value; fill(old ? old[0] : ''); calc(); });
     to.addEventListener('change', calc); inp.addEventListener('change', calc);
     inp.innerHTML = list().map((r, i) => '<option value="' + i + '">' + r[0] + '</option>').join(''); inp.value = String(Math.max(0, Math.min(list().length - 1, +p[2] || 0))); calc();
     $('#cv-swap').addEventListener('click', () => { to.value = to.value === 'Millimeters' ? 'Inches' : 'Millimeters'; calc(); });
@@ -2707,7 +2721,15 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
-  { v: VERSION, date: '10 Nov 2026', items: [
+  { v: VERSION, date: '11 Nov 2026', items: [
+    ['Fixed', 'Sheet Gauge: changing the gauge standard keeps the same gauge number (for example GI 16 to SWG 16)'],
+    ['Fixed', 'HVAC reference tables: editing, deleting or restoring the chosen size now updates the Size list and the result, and the table stays open'],
+    ['Fixed', 'Standards & References: the Metric / IP button is no longer printed'],
+    ['New', 'Manhole Schedule: a warning shows which manholes have an empty Cover Level (depth below zero)'],
+    ['Better', 'App icons are saved for offline use from the first install'],
+    ['Better', 'Small text updates in About and Chilled Water Calci']
+  ] },
+  { v: 'v2026.11.10', date: '10 Nov 2026', items: [
     ['New', '13 HVAC calculators: Air Change / Hour, diffuser quantities, grill size, louvers, sand trap and more'],
     ['New', 'Converters: 22 unit converters (flow, pressure, temperature and more) plus Pipe Size, Sheet Gauge and Electrical Load'],
     ['New', 'Plumbing calculators: Pipe Sizer, Manhole Schedule, Rain Water Calci and Chilled Water Calci'],

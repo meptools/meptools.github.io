@@ -1,8 +1,8 @@
-const CACHE = 'meptools-v2026.11.10';
+const CACHE = 'meptools-v2026.11.11';
 const OFFLINE_PAGE = './';
 // The page is required; the other files are best-effort so a missing icon can never stop the install.
 const EXTRA_PRECACHE = [
-  './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './sscr.png',
+  './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png', './sscr.png',
   './fonts/outfit-latin-600-normal.woff2', './fonts/inter-latin-400-normal.woff2',
   './fonts/inter-latin-500-normal.woff2', './fonts/great-vibes-latin-400-normal.woff2'
 ];
