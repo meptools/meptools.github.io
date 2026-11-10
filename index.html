@@ -50,6 +50,7 @@ header.top h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px;white-
 .menu.empty{visibility:hidden}
 .menu button{flex:1 1 0;max-width:200px;min-height:36px;white-space:nowrap;background:rgba(255,255,255,.12);color:var(--head-ink);border:0;border-radius:8px;padding:8px 6px;font-size:13.5px;font-weight:600;cursor:pointer}
 .menu button:active{background:rgba(255,255,255,.25)}
+.menu button.arm{background:#d32f2f;color:#fff}
 nav.tabs{display:flex;gap:6px;margin:0 0 8px;flex-wrap:wrap}
 nav.tabs button{flex:0 0 auto;background:var(--chip);color:var(--ink);border:0;border-radius:999px;padding:8px 16px;font-size:14.5px;font-weight:600;cursor:pointer}
 nav.tabs button.on{background:var(--accent);color:var(--accent-ink)}
@@ -584,6 +585,7 @@ const ENG = (function () {
     return { A: A, V: V, Re: Re, f: f, Hv: Hv, Hf: Hf };
   }
 
+  const ERR_D = 'No result: the duct would be outside 5 mm to 20 m (0.2 in to 787 in) diameter. Check the inputs.';
   function bisect(g, lo, hi) {
     let glo = g(lo), ghi = g(hi);
     if (!isFinite(glo) || !isFinite(ghi) || glo * ghi > 0) return null;
@@ -604,7 +606,7 @@ const ENG = (function () {
     if (has('flow') && has('hf')) {
       Q = inp.flow; Hf = inp.hf;
       D = bisect(d => state(Q, d, fl, true).Hf - Hf, 0.005, 20);
-      if (D === null) return { err: 'Friction not converged' };
+      if (D === null) return { err: ERR_D };
       V = Q / area(D);
     } else if (has('flow') && has('v')) {
       Q = inp.flow; V = inp.v; D = Math.sqrt(4 * Q / (Math.PI * V));
@@ -618,12 +620,12 @@ const ENG = (function () {
     } else if (has('hf') && has('v')) {
       V = inp.v; Hf = inp.hf;
       D = bisect(d => state(V * area(d), d, fl, true).Hf - Hf, 0.005, 20);
-      if (D === null) return { err: 'Friction not converged' };
+      if (D === null) return { err: ERR_D };
       Q = V * area(D);
     } else if (has('hf') && has('d')) {
       D = inp.d; Hf = inp.hf;
       V = bisect(v => state(v * area(D), D, fl, true).Hf - Hf, 1e-4, 300);
-      if (V === null) return { err: 'Friction not converged' };
+      if (V === null) return { err: 'No result: the velocity would be above 300 m/s (59,000 fpm). Check the inputs.' };
       Q = V * area(D);
     } else {
       return { err: 'Select two inputs' };
@@ -717,6 +719,35 @@ function fluid() {
   return { id: f.id, label: u.label, rho: u.rho, mu: u.mu, cp: f.cp, shown: u.shown };
 }
 function fmtInt(x) { return isFinite(x) ? Math.round(x).toLocaleString('en-US') : ''; }
+
+/* ---------- history (phone back button) and pop-up sheets ----------
+   HIST mirrors the browser history entries this page made (HI = the current one). A pop-up sheet adds one entry,
+   so the phone's back button closes the sheet first; the header Back and the path line always go one level up. */
+let HIST = [{ cat: null, tool: null }], HI = 0;
+const sameNav = (a, b) => (a.cat || null) === (b.cat || null) && (a.tool || null) === (b.tool || null);
+function pushHist(st) {
+  HIST.length = HI + 1; HIST.push(st); HI++;
+  try { history.pushState({ cat: st.cat || null, tool: st.tool || null, i: HI, ov: !!st.ov }, ''); } catch (e) {}
+}
+let sheetOpen = null;
+const SHEET_HIDE = {};   // extra work to do when a sheet closes: { sheet id: function }
+function openSheet(id) {
+  const el = document.getElementById(id); if (!el) return;
+  const had = !!sheetOpen;
+  if (sheetOpen && sheetOpen !== id) { const o = document.getElementById(sheetOpen); if (o) o.classList.remove('open'); if (SHEET_HIDE[sheetOpen]) SHEET_HIDE[sheetOpen](); }
+  el.classList.add('open'); sheetOpen = id;
+  if (!had) pushHist({ cat: NAV.cat, tool: NAV.tool, ov: true });
+}
+function hideSheetNow(id) {
+  const el = document.getElementById(id); if (el) el.classList.remove('open');
+  if (sheetOpen === id) sheetOpen = null;
+  if (SHEET_HIDE[id]) SHEET_HIDE[id]();
+}
+function closeSheet(id) {
+  const ownEntry = sheetOpen === id && HIST[HI] && HIST[HI].ov;
+  hideSheetNow(id);
+  if (ownEntry) { try { history.back(); } catch (e) {} }   // remove the sheet's history entry; the page stays as it is
+}
 
 /*DRSW_ENGINE_START*/
 /* Manhole standard sizes: one table, used by Pipe Slope and by Standards & References. */
@@ -840,7 +871,11 @@ const compactPt = p => String(p || '').replace(/-/g, '');
 const REM_QUICK = ['VENT PROVIDED', 'BACKDROP', 'VENT & BACKDROP'];
 function stdRow(depth) {
   let i = 0;
-  if (depth !== null && Number.isFinite(depth)) { const mm = toMmLvl(depth); i = mm <= 1300 ? 0 : mm <= 1700 ? 1 : mm <= 2500 ? 2 : 3; }   // 4000 mm and deeper use the last row
+  if (depth !== null && Number.isFinite(depth)) {
+    // use the depth exactly as shown (3 decimals), so 100.4 − 99.1 = 1.3000000000000114 counts as 1.300 and not as "more than 1300 mm"
+    const mm = Math.round(toMmLvl(Number(depth.toFixed(3))) * 1e6) / 1e6;
+    i = mm <= 1300 ? 0 : mm <= 1700 ? 1 : mm <= 2500 ? 2 : 3;   // 4000 mm and deeper use the last row
+  }
   return MANHOLE[i];
 }
 const sizeTxt = x => !x ? '' : x[0] === 'sq' ? x[1] + ' X ' + x[2] : 'Ø' + x[1];
@@ -1009,7 +1044,10 @@ function clearSlopInputs() {
       '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
       '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
-    const sname = xe(title.replace(/[\[\]:*?\/\\]/g, ' ').trim().slice(0, 31) || 'Schedule');
+    // Excel sheet names: no [ ] : * ? / \, at most 31 characters, no apostrophe at the start or end, not "History"
+    let sn = title.replace(/[\[\]:*?\/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31).replace(/^'+|'+$/g, '').trim();
+    if (!sn) sn = 'Schedule'; else if (sn.toLowerCase() === 'history') sn = 'History 1';
+    const sname = xe(sn);
     return zipStore([
       ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
       ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
@@ -1043,7 +1081,7 @@ function openEdit(i) {
     point: r.point, ref: r.ref, from: r.from, dist: r.dist === null ? '' : String(r.dist), cl: r.cl === null ? '' : String(r.cl), bd: r.bd === null ? '' : String(r.bd), il: r.ilIn === null ? '' : String(r.ilIn), rem: r.rem,
     mh: { man: !!r.mh, sh: (x.mh || ['sq'])[0], a: String((x.mh || [0, 600])[1]), b: String((x.mh || [0, 600, 600])[2] || (x.mh || [0, 600])[1]) },
     cv: { man: !!r.cv, sh: x.cover[0], a: String(x.cover[1]), b: String(x.cover[2] || x.cover[1]) } } };
-  drawEdit(); $('#ps-edit').classList.add('open');
+  drawEdit(); openSheet('ps-edit');
 }
 function sizeEditor(key, label) {
   const o = ED.d[key];
@@ -1072,7 +1110,8 @@ function drawEdit() {
     '<button type="button" class="alt" id="ps-edit-del">' + (ED.del ? 'Tap again to delete' : 'Delete this row') + '</button>' +
     '<button type="button" class="alt" id="ps-edit-cancel">Cancel</button>';
 }
-function closeEdit() { ED = null; $('#ps-edit').classList.remove('open'); }
+function closeEdit() { ED = null; closeSheet('ps-edit'); }
+SHEET_HIDE['ps-edit'] = () => { ED = null; };   // phone back closes the edit sheet without saving
 function saveEdit() {
   const d = ED.d, rows = D.slope.rows, r = rows[ED.i], st = $('#ps-edit-status'); st.className = 'status'; st.textContent = '';
   const n = k => { const x = parseNum(d[k]); return Number.isFinite(x) ? x : null; };
@@ -1240,7 +1279,7 @@ function convert(from, to) {
   $('#view').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'ps-dist') { e.preventDefault(); addSlopRow(); } });
   function clearSlope() { const o = D.slope, n = defaultsSlope(); n.title = o.title; n.sys = o.sys; n.ratio = o.ratio; n.dir = o.dir; n.cols = o.cols; D.slope = n; render(); save(); }
   function clearRain() { D.rain = defaultsRain(); render(); save(); }
-  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope };
+  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope, slopeRows: () => D.slope.rows.length };
 })();
 
 
@@ -1734,11 +1773,11 @@ const CHW = (function () {
       else { C.manualHL = v; C.manualVel = null; if (v === 3 || v === 4 || v === 5) C.hl = v; }
       draw(true);
     });
-    $('#chw-btnRef').addEventListener('click', () => { buildRefTable(); $('#chw-ref').classList.add('open'); });
+    $('#chw-btnRef').addEventListener('click', () => { buildRefTable(); openSheet('chw-ref'); });
     draw();
   }
-  $('#chw-ref-close').addEventListener('click', () => $('#chw-ref').classList.remove('open'));
-  $('#chw-ref').addEventListener('click', e => { if (e.target.id === 'chw-ref') $('#chw-ref').classList.remove('open'); });
+  $('#chw-ref-close').addEventListener('click', () => closeSheet('chw-ref'));
+  $('#chw-ref').addEventListener('click', e => { if (e.target.id === 'chw-ref') closeSheet('chw-ref'); });
   function convert(from, to) {
     if (from === 'si' && to === 'ip') C.flow = C.flow * GPM_PER_LS; else if (from === 'ip' && to === 'si') C.flow = C.flow / GPM_PER_LS;
     C.flow = Number(C.flow.toPrecision(6));        // manualVel is kept in ft/s, so it needs no conversion
@@ -1758,7 +1797,7 @@ const HVAC = (function () {
  perforated:[[150,69.8475624145],[225,104.2994006324],[300,130.2562650432],[375,188.7771957148],[450,256.2650431828],[525,294.007],[600,330.345]],
  disc:[[80,18.8777195715],[100,28.3165793572],[125,37.755439143],[160,58.9928736609],[200,70.791448393],[250,109.0188305253],[315,167.0678182076],[355,219.9254330077],[400,250.1297843221],[450,428.5242342723],[500,530.9358629478],[600,707.9144839303]],
  circular:[[160,50.0235960359],[200,77.8669183577],[250,109.0136857008],[315,167.0599339311],[355,219.9150542709],[400,250.1179801793]],
- gravity:[{velocity:2,freeArea:.66}], sand:[{velocity:1.5,freeArea:.33}], ac:{TON:1,BTU:12000,CFM:400,'L/S':188,kW:3.517}
+ gravity:[{velocity:2,freeArea:.66}], sand:[{velocity:1.5,freeArea:.33}], ac:{TON:1,BTU:12000,CFM:400,'L/S':188.78,kW:3.517}
 };
   const clone = x => JSON.parse(JSON.stringify(x));
   const H = S.hvac = { refs: clone(DEFAULTS), saved: {}, areas: 3, dp: 2 };
@@ -1766,6 +1805,9 @@ const HVAC = (function () {
     try {
       const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); const x = r && r.hvac; if (!x) return;
       if (x.refs && typeof x.refs === 'object') H.refs = { ...H.refs, ...x.refs };
+      // the old default 188 L/s per TON was rounded (400 CFM = 188.78 L/s); a table still holding exactly 188 gets the corrected value
+      if (H.refs.ac && typeof H.refs.ac === 'object' && H.refs.ac['L/S'] === 188) H.refs.ac['L/S'] = 188.78;
+      if (!H.refs.ac || typeof H.refs.ac !== 'object') H.refs.ac = clone(DEFAULTS.ac);
       // Gravity Louvers and Sand Trap use one design row (velocity in m/s, free area factor): keep only a valid first row
       ['gravity', 'sand'].forEach(k => {
         const a = H.refs[k], r0 = Array.isArray(a) && a[0];
@@ -1931,7 +1973,9 @@ const HVAC = (function () {
     if (active === 'ac') {
       const unitIn = d.from || 'TON', factor = H.refs.ac[unitIn], ton = num('value') / factor;
       out = Object.entries(H.refs.ac).map(([u, k]) => result(u, fmt(ton * k), ''));
-      const power = d.rating === 'COP' ? (ton * 3.517) / num('cop') : (ton * 12000 / Math.max(num('eer'), 1e-9) / 1000);
+      // cooling capacity from the same (editable) table: kW per TON for COP, BTU/h per TON for EER
+      const kwPerTon = Number.isFinite(H.refs.ac.kW) && H.refs.ac.kW > 0 ? H.refs.ac.kW : 3.517, btuPerTon = Number.isFinite(H.refs.ac.BTU) && H.refs.ac.BTU > 0 ? H.refs.ac.BTU : 12000;
+      const power = d.rating === 'COP' ? (ton * kwPerTon) / num('cop') : (ton * btuPerTon / num('eer') / 1000);
       out.push(result('Electrical power', fmt(power), 'kW'));
       fm = 'Equivalent TON = Input capacity ÷ selected unit factor. Converted capacity = TON × target unit factor. Electrical power (kW) = Cooling capacity (kW) ÷ COP. For EER: BTU/h ÷ EER ÷ 1000.';
     }
@@ -2309,7 +2353,8 @@ const CATEGORIES = [
         mount: PIPE.mount, onUnits: (from, to) => PIPE.convert(from, to), onClear: () => PIPE.clear(), refresh: () => render() },
       // DRSW.convert changes the units of both Pipe Slope and Rain Water Calci, so only one of them carries onUnits.
       { id: 'pipe-slope', label: 'Manhole Schedule', icon: ICON.slope, actions: ACTIONS.concat(['excel']), printTitle: 'Manhole Schedule', onExcel: () => { if (!DRSW.exportSlope()) { const st = $('#ps-status'); if (st) { st.className = 'status'; st.textContent = 'Add at least one manhole (and keep one column ticked) to export.'; } } },
-        mount: DRSW.mountSlope, onUnits: (from, to) => DRSW.convert(from, to), onClear: () => DRSW.clearSlope(), refresh: () => render() },
+        mount: DRSW.mountSlope, onUnits: (from, to) => DRSW.convert(from, to), onClear: () => DRSW.clearSlope(), refresh: () => render(),
+        confirmClear: () => DRSW.slopeRows() > 0 },   // the whole table would be lost: ask with a second tap first
       { id: 'rw-calci', label: 'Rain Water Calci', icon: ICON.rw, actions: ACTIONS, printTitle: 'Rain water',
         mount: DRSW.mountRain, onClear: () => DRSW.clearRain(), refresh: () => render() },
       { id: 'chw-calci', label: 'Chilled Water Calci', icon: ICON.chw, actions: ACTIONS, printTitle: 'Chilled water',
@@ -2349,6 +2394,7 @@ function categoryHTML(c) {
   return h + '</div>';
 }
 function updateActions() {
+  disarmClear();
   const t = currentTool(), bar = $('#tool-actions');
   const show = t && t.actions && activeMode(t).mount ? t.actions : [];
   bar.hidden = false; bar.classList.toggle('empty', show.length === 0);
@@ -2384,29 +2430,49 @@ function render() {
 function go(cat, tool, push) {
   NAV.cat = cat || null; NAV.tool = tool || null;
   if (tool) { const t = currentTool(); if (t) S.mode = toolModes(t)[0].id; }
-  if (push !== false) { try { history.pushState({ cat: NAV.cat, tool: NAV.tool }, ''); } catch (e) {} }
+  if (push !== false) pushHist({ cat: NAV.cat, tool: NAV.tool });
   render();
   try { window.scrollTo(0, 0); } catch (e) {}
 }
+// Go to a page that is up the tree (Back, path line, logo): step back through the history if that page is in it,
+// so the phone's back button never brings back a page that was left; otherwise open it as a new page.
+let navWait = 0;   // set while a history step is on its way; cleared by popstate
+function nav(cat, tool) {
+  const tgt = { cat: cat || null, tool: tool || null };
+  if (sameNav(tgt, NAV) || navWait) return;
+  for (let k = HI - 1; k >= 0; k--) {
+    if (!HIST[k].ov && sameNav(HIST[k], tgt)) {
+      const tok = navWait = Date.now();
+      try { history.go(k - HI); } catch (e) { navWait = 0; break; }
+      setTimeout(() => { if (navWait === tok) { navWait = 0; go(tgt.cat, tgt.tool); } }, 700);   // only if the browser never moved
+      return;
+    }
+  }
+  go(tgt.cat, tgt.tool);
+}
 window.addEventListener('popstate', e => {
-  const st = e.state || {};
-  NAV.cat = st.cat || null; NAV.tool = st.tool || null;
+  navWait = 0;
+  const st = e.state || {}, tgt = { cat: st.cat || null, tool: st.tool || null };
+  if (sheetOpen) hideSheetNow(sheetOpen);                      // phone back with a sheet open: just close the sheet
+  if (typeof st.i === 'number' && HIST[st.i] && sameNav(HIST[st.i], tgt)) HI = st.i;
+  else { HIST = [tgt]; HI = 0; try { history.replaceState({ cat: tgt.cat, tool: tgt.tool, i: 0 }, ''); } catch (x) {} }
+  if (sameNav(tgt, NAV)) return;                               // same page (a sheet entry was removed): keep the page as it is
+  NAV.cat = findCat(tgt.cat) ? tgt.cat : null; NAV.tool = NAV.cat ? tgt.tool : null;
+  if (NAV.tool && !currentTool()) NAV.tool = null;
   render();
+  try { window.scrollTo(0, 0); } catch (x) {}
 });
-try { history.replaceState({ cat: null, tool: null }, ''); } catch (e) {}
+try { history.replaceState({ cat: null, tool: null, i: 0 }, ''); } catch (e) {}
 $('#view').addEventListener('click', e => {
   if (e.target.closest('#float-units')) { $('#m-units').click(); return; }
   const c = e.target.closest('[data-cat]'); if (c) { go(c.dataset.cat, null); return; }
   const t = e.target.closest('[data-tool]'); if (t) go(NAV.cat, t.dataset.tool);
 });
-$('#m-back').addEventListener('click', () => {
-  if (NAV.tool) { go(NAV.cat, null, false); try { history.back(); } catch (e) {} return; }
-  go(null, null, false); try { history.back(); } catch (e) {}
-});
-function goHome() { if (NAV.cat) go(null, null); }
+$('#m-back').addEventListener('click', () => { if (NAV.tool) nav(NAV.cat, null); else nav(null, null); });   // always one level up
+function goHome() { if (NAV.cat) nav(null, null); }
 $('#crumb').addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (!b) return;
-  if (b.dataset.go === 'home') goHome(); else go(NAV.cat, null);
+  if (b.dataset.go === 'home') goHome(); else nav(NAV.cat, null);
 });
 $('#brand').addEventListener('click', goHome);
 $('#brand').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); } });
@@ -2625,7 +2691,17 @@ $('#m-units').addEventListener('click', () => {
   if (t && t.refresh) t.refresh();
   save();
 });
-$('#m-clear').addEventListener('click', () => { const t = currentTool(); if (t && t.onClear) t.onClear(); });
+/* Clear: a tool with a table (Manhole Schedule) asks for a second tap within 4 seconds before everything is removed */
+let clearArmed = null;
+function disarmClear() { if (clearArmed) { clearTimeout(clearArmed); clearArmed = null; } const b = $('#m-clear'); b.textContent = 'Clear'; b.classList.remove('arm'); }
+$('#m-clear').addEventListener('click', () => {
+  const t = currentTool(); if (!t || !t.onClear) return;
+  if (t.confirmClear && t.confirmClear() && !clearArmed) {
+    const b = $('#m-clear'); b.textContent = 'Tap again'; b.classList.add('arm');
+    clearArmed = setTimeout(disarmClear, 4000); return;
+  }
+  disarmClear(); t.onClear();
+});
 $('#m-print').addEventListener('click', () => { try { window.print(); } catch (e) {} });
 $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t && t.onExcel) t.onExcel(); });
 
@@ -2656,6 +2732,11 @@ const RELEASES = [
     ['Fixed', 'Converters: exact conversion factors everywhere (Tons/Inch², Tons/Yard³, Flames and more); Pipe Size, Sheet Gauge and Electrical Load remember the last values'],
     ['New', 'Pressure converter: in.WC, mm WC, ft of water and m of water'],
     ['Better', 'Pipe Slope renamed Manhole Schedule; About, Standards & References and app description updated'],
+    ['Fixed', 'Manhole Schedule: a depth of exactly 1.300, 1.700 or 2.500 m now gets the right manhole size'],
+    ['Better', 'Manhole Schedule: Clear asks for a second tap before the whole table is removed; Excel export works with any title'],
+    ['Fixed', 'Back button always goes one level up, and the phone back button closes an open window first'],
+    ['Fixed', 'AC Capacity Converter: 1 TON = 188.78 L/s, and the electrical power uses the kW and BTU values of the table'],
+    ['Better', 'Duct Sizer: a clear message when the inputs give no result'],
     ['New', 'This What\u2019s New box after every update']
   ] }
 ];
@@ -2668,12 +2749,13 @@ function openWhatsNew() {
   $('#wn-list').innerHTML = wnItems(r);
   $('#wn-old').hidden = old.length === 0;
   $('#wn-old-body').innerHTML = old.map(o => '<h3>' + o.v + ' · ' + o.date + '</h3><ul class="wn-list">' + wnItems(o) + '</ul>').join('');
-  $('#whatsnew').classList.add('open');
+  openSheet('whatsnew');
 }
-function closeWhatsNew() { $('#whatsnew').classList.remove('open'); S.seen = VERSION; save(); }
+function closeWhatsNew() { closeSheet('whatsnew'); }
+SHEET_HIDE.whatsnew = () => { S.seen = VERSION; save(); };   // closed in any way (button, outside tap, phone back) = seen
 $('#wn-ok').addEventListener('click', closeWhatsNew);
 $('#whatsnew').addEventListener('click', e => { if (e.target.id === 'whatsnew') closeWhatsNew(); });
-$('#open-whatsnew').addEventListener('click', () => { $('#settings').classList.remove('open'); openWhatsNew(); });
+$('#open-whatsnew').addEventListener('click', () => openWhatsNew());   // the Settings sheet is swapped for What's New
 let wnShown = false;
 function maybeShowWhatsNew() { if (!WN_PENDING || wnShown) return; wnShown = true; openWhatsNew(); }
 document.addEventListener('meptools-splash-done', () => setTimeout(maybeShowWhatsNew, 350));
@@ -2686,18 +2768,18 @@ function applyTheme() {
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', dark ? '#120d2b' : '#cdd9f3');
   $$('[data-theme-opt]').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === S.theme));
 }
-$('#m-settings').addEventListener('click', () => { $('#settings').classList.add('open'); });
-$('#settings-close').addEventListener('click', () => { $('#settings').classList.remove('open'); });
-$('#settings').addEventListener('click', e => { if (e.target.id === 'settings') $('#settings').classList.remove('open'); });
+$('#m-settings').addEventListener('click', () => openSheet('settings'));
+$('#settings-close').addEventListener('click', () => closeSheet('settings'));
+$('#settings').addEventListener('click', e => { if (e.target.id === 'settings') closeSheet('settings'); });
 $('#theme-seg').addEventListener('click', e => {
   const b = e.target.closest('[data-theme-opt]'); if (!b) return;
   S.theme = b.dataset.themeOpt; applyTheme(); save();
 });
 try { const mq = window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener && mq.addListener(applyTheme)); } catch (e) {}
 applyTheme();
-$('#m-about').addEventListener('click', () => { $('#about').classList.add('open'); });
-$('#about-close').addEventListener('click', () => { $('#about').classList.remove('open'); });
-$('#about').addEventListener('click', e => { if (e.target.id === 'about') $('#about').classList.remove('open'); });
+$('#m-about').addEventListener('click', () => openSheet('about'));
+$('#about-close').addEventListener('click', () => closeSheet('about'));
+$('#about').addEventListener('click', e => { if (e.target.id === 'about') closeSheet('about'); });
 $('#ver').textContent = 'Version: ' + VERSION;
 $('#about-ver').textContent = 'Version ' + VERSION;
 
