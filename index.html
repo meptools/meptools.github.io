@@ -255,6 +255,13 @@ table.auth-table .shape-ci{display:inline-block;width:10px;height:10px;backgroun
 .tool-x table.x2t td:not(:last-child){white-space:nowrap}
 .tool-x table.x2t th{color:var(--ink2);font-weight:700;font-size:12px}
 .tool-x table.x2t tr.hi td{background:var(--chip);color:var(--blue);font-weight:700}
+.x2db{display:grid;grid-template-columns:minmax(0,1fr) 84px 76px;gap:8px;align-items:center;margin:7px 0}
+.x2db.x2dbh{margin:0 0 2px}.x2db.x2dbh span{font-size:12px;font-weight:700;color:var(--ink2)}.x2db.x2dbh span+span{text-align:center}
+.x2db input{width:100%;min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px}
+.x2db input.num{text-align:right}
+.x2db input.num::-webkit-inner-spin-button{display:none}
+#x-sch table.x2t td,#x-sch table.x2t th{white-space:nowrap}
+.x2db input:focus{outline:2px solid var(--accent);outline-offset:0}
 .x2grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:9px}
 .x2sym{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 2px 10px;min-height:86px;justify-content:center;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit}
 .x2sym b{font-size:30px;line-height:1.15;font-weight:600}
@@ -570,7 +577,7 @@ table.schtable .sch-off{opacity:.35}
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
       <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
       <li><b>New HVAC and Plumbing tools:</b> AC Flow by Area (1 m² = 15.75 L/s, editable), Flow Rebalance (Old → New) and Sprinkler Pipe Size (½" and 1" sprinklers).</li>
-      <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, and DB Load with Diversity factor.</li>
+      <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, ECC Size, Conduit Size, Voltage Drop (4 % check) and DB Load with Diversity (each DB with its own name and diversity factor, Amp and cable size per DB and for the total, Excel export).</li>
       <li><b>Misc:</b> Percentage (reverse %, add / less %), Car Average, Paper Size &amp; Scale, TV Size (16:9) and Symbols (Alt codes; tap a symbol to copy it).</li>
       <li><b>Pipe Sizer:</b> pick the material, size, fluid and flow to get the pipe properties and the friction head loss (Darcy-Weisbach with Colebrook / Swamee-Jain). Pipe data: ASME B36.10 (steel), ASTM B88 (copper), ASTM D1785 (PVC/ABS).</li>
       <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (quick select 3, 4 or 5 ft per 100 ft, or any typed value) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
@@ -721,7 +728,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11.6';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.11.9';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -1336,7 +1343,7 @@ function convert(from, to) {
   $('#view').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'ps-dist') { e.preventDefault(); addSlopRow(); } });
   function clearSlope() { const o = D.slope, n = defaultsSlope(); n.title = o.title; n.sys = o.sys; n.ratio = o.ratio; n.dir = o.dir; n.cols = o.cols; D.slope = n; render(); save(); }
   function clearRain() { D.rain = defaultsRain(); render(); save(); }
-  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope, slopeRows: () => D.slope.rows.length };
+  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope, slopeRows: () => D.slope.rows.length, buildXlsx: buildXlsx };
 })();
 
 
@@ -2297,21 +2304,32 @@ const X2 = (function () {
   const DEF = () => ({
     amp: { kw: '', v3: '400', v1: '230', pf: '0.8' },
     cable: { kw: '' },
-    db: { loads: ['', '', ''], df: '0.85' },
+    db: { rows: [{ name: '', kw: '', df: '0.85' }, { name: '', kw: '', df: '0.85' }, { name: '', kw: '', df: '0.85' }], v: '400', pf: '0.8' },
     pct: { total: '', p: '', val: '', p2: '' },
     car: { start: '', end: '', ltr: '' },
     paper: { from: 'A0', to: 'A1' },
     tv: { d: '' },
     acarea: { u: 'mm²', areas: ['', '', ''], k: '15.75' },     // k is always L/s per m²
     rebal: { mOld: '', mNew: '', br: ['', '', ''] },
-    spk: { type: '1/2', qty: '' }
+    spk: { type: '1/2', qty: '' },
+    ecc: { s: '16' },
+    cond: { size: '2.5', n: '' },
+    vd: { ph: '3', size: '16', runs: '1', len: '', by: 'Amp', load: '', v3: '400', v1: '230', pf: '0.8', lim: '4' }
   });
   const X = S.x2 = DEF();
   (function loadSaved() {
     try {
       const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); const x = r && r.x2; if (!x || typeof x !== 'object') return;
+      const xd = x.db;
+      if (xd && typeof xd === 'object') {
+        const str = v => typeof v === 'string' ? v : '';
+        if (Array.isArray(xd.rows) && xd.rows.length) X.db.rows = xd.rows.map(r => ({ name: str(r && r.name), kw: str(r && r.kw), df: str(r && r.df) }));
+        else if (Array.isArray(xd.loads) && xd.loads.length) X.db.rows = xd.loads.map(v => ({ name: '', kw: str(v), df: typeof xd.df === 'string' ? xd.df : '0.85' }));
+        if (typeof xd.v === 'string') X.db.v = xd.v;
+        if (typeof xd.pf === 'string') X.db.pf = xd.pf;
+      }
       Object.keys(X).forEach(k => {
-        if (!x[k] || typeof x[k] !== 'object') return;
+        if (k === 'db' || !x[k] || typeof x[k] !== 'object') return;
         Object.keys(X[k]).forEach(f => {
           const v = x[k][f];
           if (Array.isArray(X[k][f])) { if (Array.isArray(v) && v.length) X[k][f] = v.map(s => typeof s === 'string' ? s : ''); }
@@ -2363,7 +2381,12 @@ const X2 = (function () {
     [30, '21 - 30', '63', '4C × 16 mm² + 1C × 16 mm²'], [40, '31 - 40', '80', '4C × 25 mm² + 1C × 16 mm²'], [50, '41 - 50', '100', '4C × 35 mm² + 1C × 16 mm²'],
     [60, '51 - 60', '125', '4C × 50 mm² + 1C × 25 mm²'], [80, '61 - 80', '160', '4C × 70 mm² + 1C × 35 mm²'], [100, '81 - 100', '200', '4C × 95 mm² + 1C × 50 mm²'],
     [120, '101 - 120', '225', '4C × 120 mm² + 1C × 70 mm²'], [125, '121 - 125', '250', '4C × 150 mm² + 1C × 70 mm²'], [150, '126 - 150', '300', '4C × 185 mm² + 1C × 95 mm²'],
-    [175, '151 - 175', '350', '4C × 240 mm² + 1C × 120 mm²'], [200, '176 - 200', '400', '4C × 300 mm² + 1C × 150 mm²']
+    [175, '151 - 175', '350', '4C × 240 mm² + 1C × 120 mm²'], [200, '176 - 200', '400', '4C × 300 mm² + 1C × 150 mm²'],
+    // above 200 kW: parallel cables (MCCB and cable selection table)
+    [250, '201 - 250', '500', '2 × 4C × 150 mm² + 2 × 1C × 70 mm²'], [350, '251 - 350', '630', '2 × 4C × 185 mm² + 2 × 1C × 95 mm²'],
+    [400, '351 - 400', '800', '2 × 4C × 300 mm² + 2 × 1C × 150 mm²'], [500, '401 - 500', '1000', '3 × 4C × 240 mm² + 3 × 1C × 120 mm²'],
+    [600, '501 - 600', '1200', '3 × 4C × 300 mm² + 3 × 1C × 150 mm²'], [800, '601 - 800', '1600', '8 × 4C × 630 mm² + 4 × 1C × 150 mm²'],
+    [1000, '801 - 1000', '2000', '12 × 4C × 630 mm² + 5 × 1C × 150 mm²'], [1200, '1001 - 1200', '2500', '12 × 4C × 630 mm² + 6 × 1C × 150 mm²']
   ];
   function cable(view) {
     const d = X.cable;
@@ -2373,33 +2396,67 @@ const X2 = (function () {
       const kw = n(d.kw); let i = -1;
       if (kw > 0) i = kw < 10 ? 0 : RATING.findIndex((r, k) => k > 0 && kw <= r[0]);
       $('#x-res').innerHTML = !(kw > 0) ? '<span class="hint">Enter the load to see the rating.</span>'
-        : i < 0 ? '<div class="rl big"><span>Rating</span><span><b class="red">Above 200 kW (not in table)</b></span></div>'
+        : i < 0 ? '<div class="rl big"><span>Rating</span><span><b class="red">Above 1200 kW (not in table)</b></span></div>'
         : rl('Amp (TP)', RATING[i][2], 'A', 'big') + rl('Cable size', RATING[i][3], '', 'big');
       $('#x-tbl').innerHTML = tbl(['kW', 'Amp (TP)', 'Cable size'], RATING.map(r => [r[1], r[2], r[3]]), i);
     });
   }
 
-  /* ----- Electrical: DB load with diversity factor ----- */
+  /* ----- Electrical: DB load schedule (each DB has its own diversity factor) ----- */
+  const ratingOf = kw => !(kw > 0) ? -1 : kw < 10 ? 0 : RATING.findIndex((r, k) => k > 0 && kw <= r[0]);
+  function dbCalc() {
+    const d = X.db, V = n(d.v), pf = n(d.pf), ok = V > 0 && pf > 0 && pf <= 1;
+    const amp = kw => ok && kw >= 0 ? kw * 1000 / (Math.sqrt(3) * V * pf) : NaN;
+    const rows = d.rows.map((r, i) => {
+      const kw = n(r.kw), df = n(r.df), has = kw > 0, dk = has && df > 0 ? kw * df : NaN, ri = ratingOf(dk);
+      return { i: i, name: (r.name || '').trim() || 'DB ' + (i + 1), kw: has ? kw : NaN, df: df, dk: dk, a: amp(dk), cable: ri >= 0 ? RATING[ri][3] : (dk > 1200 ? 'Above 1200 kW' : '—'), has: has };
+    }).filter(r => r.has);
+    const tk = rows.reduce((t, r) => t + r.kw, 0), td = rows.reduce((t, r) => t + (Number.isFinite(r.dk) ? r.dk : 0), 0), ti = ratingOf(td);
+    return { rows: rows, tk: tk, td: td, ta: amp(td), tamp: ti >= 0 ? RATING[ti][2] : '', tcable: ti >= 0 ? RATING[ti][3] : (td > 1200 ? 'Above 1200 kW (not in table)' : '—'), ok: ok, badDf: rows.some(r => !(r.df > 0)) };
+  }
   function db(view) {
     const d = X.db;
     const draw = () => {
       view.innerHTML = '<div class="tool-x">' +
-        card("DB's load", d.loads.map((v, i) => field('DB ' + (i + 1), 'L' + i, 'kW', v)).join('') +
-          '<div class="btnrow"><button type="button" class="secondary" id="x-add">+ Add DB</button><button type="button" class="secondary" id="x-del">− Delete Last DB</button></div>' +
-          field('Diversity factor', 'df', 'DF', d.df)) +
-        '<section class="card res" id="x-res"></section>' + formula('Total = Sum of all DB loads.<br>Total @DF = Total × Diversity factor.') + '</div>';
-      view.querySelectorAll('[data-x]').forEach(el => el.addEventListener('input', () => {
-        const k = el.dataset.x; if (k[0] === 'L') d.loads[+k.slice(1)] = el.value; else d.df = el.value; save(); calc();
-      }));
-      $('#x-add').onclick = () => { d.loads.push(''); save(); draw(); };
-      $('#x-del').onclick = () => { if (d.loads.length > 1) { d.loads.pop(); save(); draw(); } };
+        card("DB's load", '<div class="x2db x2dbh"><span>DB name</span><span>Load (kW)</span><span>DF</span></div>' +
+          d.rows.map((r, i) => '<div class="x2db"><input type="text" class="txt" data-r="' + i + '" data-f="name" placeholder="DB ' + (i + 1) + '" value="' + esc(r.name) + '" autocomplete="off" aria-label="DB ' + (i + 1) + ' name">' +
+            '<input type="number" step="any" inputmode="decimal" class="num" data-r="' + i + '" data-f="kw" value="' + esc(r.kw) + '" aria-label="DB ' + (i + 1) + ' load kW">' +
+            '<input type="number" step="any" inputmode="decimal" class="num" data-r="' + i + '" data-f="df" value="' + esc(r.df) + '" aria-label="DB ' + (i + 1) + ' diversity factor"></div>').join('') +
+          '<div class="btnrow"><button type="button" class="secondary" id="x-add">+ Add DB</button><button type="button" class="secondary" id="x-del">− Delete Last DB</button></div>') +
+        card('Supply (3 phase)', field('Voltage', 'v', 'V', d.v) + field('Power factor', 'pf', 'PF', d.pf)) +
+        '<section class="card res" id="x-res"></section>' +
+        '<section class="card" id="x-sch"><h2 class="section-title">DB load schedule</h2><div id="x-tbl"></div></section>' +
+        formula('Load @DF (kW) = Load (kW) × DF of that DB.<br>Total @DF = Sum of all Load @DF.<br>Amp = kW @DF × 1000 ÷ (√3 × Voltage × PF).<br>Cable size from the Electrical Rating table (by kW @DF).') + '</div>';
+      view.querySelectorAll('[data-r]').forEach(el => el.addEventListener('input', () => { d.rows[+el.dataset.r][el.dataset.f] = el.value; save(); calc(); }));
+      view.querySelectorAll('[data-x]').forEach(el => el.addEventListener('input', () => { d[el.dataset.x] = el.value; save(); calc(); }));
+      $('#x-add').onclick = () => { const last = d.rows[d.rows.length - 1]; d.rows.push({ name: '', kw: '', df: last && last.df ? last.df : '0.85' }); save(); draw(); };
+      $('#x-del').onclick = () => { if (d.rows.length > 1) { d.rows.pop(); save(); draw(); } };
       calc();
     };
     const calc = () => {
-      const tot = d.loads.reduce((s, v) => s + (n(v) > 0 ? n(v) : 0), 0), df = n(d.df), has = d.loads.some(v => n(v) > 0);
-      $('#x-res').innerHTML = rl('Total load', has ? f2(tot) : '—', 'kW', 'big') + rl('Total @DF' + (df > 0 ? ' (' + df + ')' : ''), has && df > 0 ? f2(tot * df) : '—', 'kW', 'big');
+      const c = dbCalc(), has = c.rows.length > 0;
+      $('#x-res').innerHTML = rl('Total load', has ? f2(c.tk) : '—', 'kW') + rl('Total @DF', has ? f2(c.td) : '—', 'kW', 'big') + rl('Total Amp (@DF)', has ? f2(c.ta) : '—', 'A', 'big') +
+        rl('Main cable size', has ? c.tcable : '—', '') + (has && c.tamp ? rl('Amp rating (TP)', c.tamp, 'A') : '') +
+        (!c.ok ? '<p class="hint red">Voltage must be more than 0 and power factor between 0 and 1.</p>' : '') + (c.badDf ? '<p class="hint red">Every DB needs a DF more than 0.</p>' : '');
+      $('#x-tbl').innerHTML = has ? tbl(['DB', 'Load (kW)', 'DF', 'Load @DF (kW)', 'Amp', 'Cable size'],
+        c.rows.map(r => [esc(r.name), f2(r.kw), Number.isFinite(r.df) ? String(r.df) : '—', f2(r.dk), f2(r.a), r.cable])
+          .concat([['<b>Total</b>', '<b>' + f2(c.tk) + '</b>', '', '<b>' + f2(c.td) + '</b>', '<b>' + f2(c.ta) + '</b>', '<b>' + c.tcable + '</b>']])) : '<span class="hint">Enter the DB loads to see the schedule.</span>';
     };
     draw();
+  }
+  /* Excel (.xlsx) of the DB load schedule */
+  function dbExcel() {
+    const c = dbCalc(); if (!c.rows.length || !DRSW.buildXlsx) return false;
+    const r3 = x => Number.isFinite(x) ? Number(x.toFixed(3)) : null, title = 'DB Load Schedule';
+    const rows = c.rows.map(r => [r.name, r3(r.kw), Number.isFinite(r.df) ? r.df : null, r3(r.dk), r3(r.a), r.cable])
+      .concat([['Total', r3(c.tk), null, r3(c.td), r3(c.ta), c.tcable]]);
+    const blob = DRSW.buildXlsx(title, ['DB', 'Load\n(kW)', 'DF', 'Load @DF\n(kW)', 'Amp\n(A)', 'Cable size'], [18, 12, 9, 14, 12, 30], rows);
+    const name = title + '.xlsx', file = typeof File === 'function' ? new File([blob], name, { type: blob.type }) : null;
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    if (file && coarse && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: title }).catch(() => {}); return true; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return true;
   }
 
   /* ----- Misc: Percentage ----- */
@@ -2582,6 +2639,71 @@ const X2 = (function () {
       $('#x-tbl').innerHTML = tbl(['Pipe ' + (si ? '(mm)' : '(inch)'), '½" sprinkler (max)', '1" sprinkler (max)'], SPK.map(r => [size(r), spkMax(r, 2), spkMax(r, 3)]), i);
     });
   }
+
+  /* ----- Electrical: Earth continuity conductor (DEWA Appendix 9) ----- */
+  const STD_MM2 = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500, 630];
+  const upStd = x => STD_MM2.find(v => v >= x - 1e-9);
+  function eccOf(S) {
+    const e = S <= 16 ? S : S <= 35 ? 16 : S / 2;
+    const b = S <= 16 ? Math.max(S / 2, 6) : S <= 35 ? 10 : Math.min(S / 4, 25);
+    return { e: e, es: upStd(e), b: b, bs: upStd(b) };
+  }
+  function ecc(view) {
+    const d = X.ecc;
+    view.innerHTML = '<div class="tool-x">' + card('Input', sel('Phase / neutral conductor (S)', 's', STD_MM2.map(String), d.s).replace('<select', '<select aria-label="Phase conductor mm²"') + '<p class="hint">Size in mm² (copper).</p>') +
+      '<section class="card res" id="x-res"></section>' +
+      formula('ECC (G/Y PVC copper): S ≤ 16 → S;  16 < S ≤ 35 → 16;  S > 35 → S ÷ 2.<br>Equipotential bonding: S ≤ 16 → S ÷ 2 (not less than 6);  16 < S ≤ 35 → 10;  S > 35 → S ÷ 4 (need not exceed 25).<br>The result is taken up to the next standard size.') + '</div>';
+    bind(view, 'ecc', () => {
+      const S = n(d.s), r = eccOf(S), t = (x, st) => Math.abs(x - st) < 1e-9 ? '' : '<p class="hint">Calculated ' + num2(x) + ' mm², next standard size used.</p>';
+      $('#x-res').innerHTML = S > 0 ? rl('Earth continuity conductor (ECC)', st2(r.es), 'mm²', 'big') + t(r.e, r.es) +
+        rl('Equipotential bonding conductor', st2(r.bs), 'mm²', 'big') + t(r.b, r.bs) : '';
+    });
+  }
+  const num2 = x => String(Number(x.toFixed(2))), st2 = x => x === undefined ? '—' : String(x);
+
+  /* ----- Electrical: Conduit size (DEWA Appendix 12) ----- */
+  const CONDUIT = [[1.5, 7, 12, 0], [2.5, 5, 9, 12], [4, 3, 6, 9], [6, 0, 5, 8], [10, 0, 3, 6], [16, 0, 0, 4], [25, 0, 0, 3]];   // [mm², max in 20 mm, 25 mm, 32 mm conduit]
+  function cond(view) {
+    const d = X.cond;
+    view.innerHTML = '<div class="tool-x">' + card('Input', sel('Wire size (mm²)', 'size', CONDUIT.map(r => String(r[0])), d.size) + field('No. of wires', 'n', 'Nos.', d.n)) +
+      '<section class="card res" id="x-res"></section><details class="card x2more"><summary>Wires in conduit table</summary><div id="x-tbl" style="margin-top:10px"></div></details>' +
+      formula('The smallest conduit (20, 25 or 32 mm) whose maximum number of wires is not less than the wires to be drawn. Single-core PVC insulated copper wires.') + '</div>';
+    bind(view, 'cond', () => {
+      const q = n(d.n), ri = CONDUIT.findIndex(r => String(r[0]) === String(d.size)), r = CONDUIT[ri], ok = q > 0 && Number.isInteger(q);
+      const k = ok && r ? [1, 2, 3].find(c => r[c] >= q) : undefined;
+      $('#x-res').innerHTML = !Number.isFinite(q) ? '<span class="hint">Enter the number of wires.</span>' : !ok ? '<p class="hint red">Enter a whole number of wires (1 or more).</p>'
+        : k ? rl('Conduit size', ['', '20', '25', '32'][k], 'mm', 'big') + rl('Max. wires in it', String(r[k]), 'Nos.')
+        : '<div class="rl big"><span>Conduit size</span><span><b class="red">Above 32 mm: use trunking or more conduits</b></span></div>';
+      const c = v => v ? String(v) : '—';
+      $('#x-tbl').innerHTML = tbl(['Wire (mm²)', '20 mm', '25 mm', '32 mm'], CONDUIT.map(r => [r[0], c(r[1]), c(r[2]), c(r[3])]), ri);
+    });
+  }
+
+  /* ----- Electrical: Voltage drop (BS 7671 Table 4E4B, armoured XLPE multicore copper, mV/A/m) ----- */
+  const VDT = [[1.5, 31, 27], [2.5, 19, 16], [4, 12, 10], [6, 7.9, 6.8], [10, 4.7, 4.0], [16, 2.9, 2.5], [25, 1.90, 1.65], [35, 1.35, 1.15], [50, 1.00, 0.87], [70, 0.69, 0.60],
+    [95, 0.52, 0.45], [120, 0.42, 0.37], [150, 0.35, 0.30], [185, 0.29, 0.26], [240, 0.24, 0.21], [300, 0.21, 0.185], [400, 0.190, 0.165]];   // [mm², 2-core 1 phase, 3/4-core 3 phase]
+  function vd(view) {
+    const d = X.vd, si = S.units !== 'ip', lu = si ? 'm' : 'ft';
+    view.innerHTML = '<div class="tool-x">' +
+      card('Cable', sel('Phase', 'ph', ['3', '1'], d.ph).replace('>3<', '>3 Phase (3/4 core)<').replace('>1<', '>1 Phase (2 core)<') +
+        sel('Cable size (mm²)', 'size', VDT.map(r => String(r[0])), d.size) + field('Parallel runs', 'runs', 'Nos.', d.runs) + field('Length (one way)', 'len', lu, d.len)) +
+      card('Load', sel('Load in', 'by', ['Amp', 'kW'], d.by) + field('Load', 'load', d.by === 'kW' ? 'kW' : 'A', d.load) +
+        field(d.ph === '1' ? 'Voltage (1 phase)' : 'Voltage (3 phase)', d.ph === '1' ? 'v1' : 'v3', 'V', d.ph === '1' ? d.v1 : d.v3) + field('Power factor', 'pf', 'PF', d.pf) + field('Allowed drop', 'lim', '%', d.lim)) +
+      '<section class="card res" id="x-res"></section>' +
+      formula('Volt drop (V) = mV/A/m × Current (A) × Length (m) ÷ 1000 ÷ Parallel runs.<br>Volt drop (%) = Volt drop ÷ Voltage × 100. DEWA limit: 4 % from the point of supply.<br>Current from kW: 3 phase = kW × 1000 ÷ (√3 × V × PF), 1 phase = kW × 1000 ÷ (V × PF).<br>mV/A/m: BS 7671 Table 4E4B, armoured XLPE multicore copper cable (90 °C).') + '</div>';
+    const s = view.querySelector('[data-x="ph"]'); s.options[0].value = '3'; s.options[1].value = '1'; s.value = d.ph;
+    view.querySelectorAll('[data-x="by"],[data-x="ph"]').forEach(el => el.addEventListener('change', () => { X.vd[el.dataset.x] = el.value; save(); vd(view); }));
+    bind(view, 'vd', () => {
+      const r = VDT.find(x => String(x[0]) === String(d.size)), three = d.ph !== '1', mv = r ? (three ? r[2] : r[1]) : NaN;
+      const V = n(three ? d.v3 : d.v1), pf = n(d.pf), runs = n(d.runs), L = n(d.len) * (si ? 1 : 0.3048), ld = n(d.load), lim = n(d.lim);
+      const I = d.by === 'kW' ? (V > 0 && pf > 0 && pf <= 1 ? ld * 1000 / ((three ? Math.sqrt(3) : 1) * V * pf) : NaN) : ld;
+      const ok = I > 0 && L > 0 && runs >= 1 && V > 0, vdv = ok ? mv * I * L / 1000 / runs : NaN, pc = vdv / V * 100;
+      $('#x-res').innerHTML = (d.by === 'kW' ? rl('Current', f2(I), 'A') : '') + rl('mV/A/m', String(mv), '') +
+        rl('Volt drop', ok ? f2(vdv) : '—', 'V', 'big') + rl('Volt drop', ok ? f2(pc) : '—', '%', 'big') +
+        (ok && lim > 0 ? (pc <= lim ? '<div class="rl big"><span>Check</span><span><b class="green">OK (within ' + lim + ' %)</b></span></div>' : '<div class="rl big"><span>Check</span><span><b class="red">Not OK (above ' + lim + ' %): use a bigger cable</b></span></div>') : '') +
+        (Number.isFinite(runs) && !(runs >= 1) ? '<p class="hint red">Parallel runs must be 1 or more.</p>' : '');
+    });
+  }
   /* Metric <-> IP: Car Average keeps the typed values in step (km <-> mile, litre <-> US gallon) */
   function convert(from, to) {
     if (from === to) return;
@@ -2594,11 +2716,12 @@ const X2 = (function () {
     const fromM2 = X.acarea.u === 'mm²' ? 1e-6 : 1;
     X.acarea.areas = X.acarea.areas.map(v => to === 'ip' ? cv(v, fromM2 * 10.7639104167) : cv(v, 1 / 10.7639104167 * 1e6));
     X.acarea.u = to === 'ip' ? 'ft²' : 'mm²';
+    X.vd.len = cv(X.vd.len, to === 'ip' ? 1 / 0.3048 : 0.3048);
   }
-  const MOUNT = { acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
+  const MOUNT = { ecc: ecc, cond: cond, vd: vd, acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { X[id] = d[id]; save(); } }
-  return { mount: mount, clear: clear, convert: convert, data: { SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
+  return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
 })();
 
 /* ---------- categories and tools (add new tools here) ----------
@@ -2695,6 +2818,45 @@ const LIB = (function () {
   const elCable = () => CABLE.map(c => card(c[0] + ' cable', table(['Size (mm²)', 'Overall dia (mm)'], c[1].map(r => [r[0], String(r[1])])))).join('') +
     note('re = round solid, rm = round stranded, rmc = round stranded compacted, sm = sector-shaped stranded conductor.');
 
+
+  /* ----- DEWA Regulations for Electrical Installations (2017) ----- */
+  const DW1 = [['2.5', '2.5', '10/15', '10/15'], ['4', '4', '20', '20'], ['6', '6', '25', '25'], ['6', '10', '30', '30'], ['10', '16', '40', '40'], ['16', '25', '50', '50'], ['25', '25', '60', '60'],
+    ['35', '50', '80', '80'], ['—', '70', '100', '100'], ['—', '95', '125', '125'], ['—', '120', '150/160', '150/160']];
+  const DW2 = [['2.5', '10/15'], ['4', '20'], ['6', '30'], ['10', '40'], ['16', '50'], ['25', '60'], ['35', '80'], ['50', '100'], ['70', '125'], ['95', '160'], ['120', '180'], ['150', '200'], ['185', '250'], ['240', '300'], ['300', '350'], ['400', '400']];
+  const DW3 = [['10', '50'], ['16', '60'], ['25', '80'], ['35', '100'], ['50', '125'], ['70', '160'], ['95', '200'], ['120', '225'], ['150', '250'], ['185', '300'], ['240', '350'], ['300', '400']];
+  const dwNote = note('Max. MCB/MCCB rating = max. load current. For general purpose, normal situations. Check diversity, fault level, laying conditions, voltage drop and correction factors for each case.');
+  const elDewaCables = () => card('Table 1: Single core PVC, non-armoured, in concealed conduit', table(['1 phase, 2 × 1C (mm²)', '3 phase, 3/4 × 1C (mm²)', 'Max. MCB/MCCB (A)', 'Max. load (A)'], DW1)) +
+    card('Table 2: Multicore armoured PVC (PVC/SWA/PVC)', table(['Cable size (mm²)', 'Max. MCB/MCCB and load (A)'], DW2)) +
+    card('Table 3: Multicore armoured XLPE', table(['Cable size (mm²)', 'Max. MCB/MCCB and load (A)'], DW3)) + dwNote;
+  const ELCB = [['13A switched socket outlets', '30'], ['Water heaters / Coolers / Dish washer', '30'], ['Refrigerator / Washing machine and similar', '30'], ['Domestic water pumps', '30'], ['Jacuzzi pumps', '10'],
+    ['Under water lighting', '10'], ['15A switched socket outlets (general purpose)', '30'], ['General lighting', '30/100'], ['Flood lighting', '100/300'], ['Window / Split type AC', '100'], ['Fan coil / AHU / VAV', '100'],
+    ['Package type AC unit', '100/300'], ['Chiller', '100-500-1000'], ['Irrigation pump', '100'], ['Electric cooker', '100'], ['Industrial machine', '100/300'], ['Elevators / Escalators / Hoist', '300/500'], ['Neon sign', '300']];
+  const elEarth = () => card('Earth continuity conductor (ECC) and bonding', table(['Phase / neutral (S, mm²)', 'Min. ECC (mm²)', 'Min. bonding (mm²)'], [['S ≤ 16', 'S', 'S ÷ 2 (not less than 6)'], ['16 < S ≤ 35', '16', '10'], ['S > 35', 'S ÷ 2', 'S ÷ 4 (need not exceed 25)']]) +
+      note('ECC: green / yellow PVC insulated copper. Used by Electrical › ECC Size.')) +
+    card('Earth leakage protection (ELCB / RCCB)', table(['Circuit / equipment', 'Operating current (mA)'], ELCB) +
+      note('Grouping of lighting, socket and single-phase circuits under one ELCB/RCCB is permitted. Fire and drainage pumps, smoke extract fans etc. may use earth leakage detection with alarm instead of tripping.'));
+  const elWiring = () => {
+    const D = X2.data, c = v => v ? String(v) : '—';
+    return card('Cable core colours', table(['Function', 'Colour'], [['Earth (ECC)', 'Green and Yellow'], ['Neutral (N)', 'Black'], ['Phase, 1 phase', 'Red (or R / Y / B)'], ['Phase, 3 phase', 'Red (R), Yellow (Y), Blue (B)'],
+        ['Flexible: Live', 'Brown'], ['Flexible: Neutral', 'Blue'], ['Flexible: Earth', 'Green and Yellow']])) +
+      card('Spacing of supports (cm)', table(['Item', 'Horizontal', 'Vertical'], [['Trunking, steel', '150', '180'], ['Trunking, rigid PVC', '100', '120'], ['Conduit, steel', '120', '150'], ['Conduit, rigid PVC', '100', '120'],
+        ['Armoured cable, dia. 2 – 4 cm', '35', '60'], ['Armoured cable, dia. over 4 cm', '60', '80']])) +
+      card('Wires in conduit (max. number)', table(['Wire (mm²)', '20 mm', '25 mm', '32 mm'], D.CONDUIT.map(r => [r[0], c(r[1]), c(r[2]), c(r[3])])) + note('Used by Electrical › Conduit Size.')) +
+      card('Trunking and cable tray fill', table(['Item', 'Rule'], [['Trunking (single core cables)', 'Space factor max. 40 %'], ['Cable tray, single core cables', 'Total cable area max. 50 % of tray area'],
+        ['Cable tray, multicore cables', 'Sum of cable diameters max. 60 % of tray width, single layer']]) + note('Apply the correction factor to the current rating for the number of circuits.'));
+  };
+  const elDesign = () => card('Design conditions (Dubai)', table(['Item', 'Value'], [['Max. ambient temperature (shade)', '48 °C'], ['Min. ambient temperature', '2.8 °C'], ['Max. average over 24 hours', '37.8 °C'],
+        ['Ground temperature', '40 °C'], ['Soil thermal resistivity (0.9 m depth)', '2.0 °C·m/W'], ['Relative humidity', '100 % (max.)'], ['Max. voltage drop', '4 % of nominal voltage'],
+        ['Power factor', '0.9 lagging to 1 (0.95 recommended)']])) +
+    card('Max. demand on feeder (residential / commercial)', table(['DEWA feeder / transformer', 'Max. demand'], [['60 A feeder', '30 kW'], ['100 A feeder', '50 kW'], ['125 A feeder', '60 kW'], ['160 A feeder', '80 kW'],
+        ['200 A feeder', '100 kW'], ['300 A feeder', '150 kW'], ['400 A feeder', '200 kW'], ['1000 kVA transformer', '800 kW'], ['1500 kVA transformer', '1200 kW']]) +
+      note('Motor / AC loads (each motor up to 100 kW): 1500 kVA transformer 950 kW, 1000 kVA transformer 650 kW connected load.')) +
+    card('Assumed loads (lighting and small power)', table(['Point / circuit', 'Load'], [['Lighting / fan point (fixture not selected)', '100 W min.'], ['Fluorescent lamp', '1.8 × lamp watts'],
+        ['Lighting / fan circuit', 'Max. 2000 W, 2.5 mm², 16 A'], ['13 A socket outlet (general, not kitchen)', '200 W min. per point'], ['13 A socket circuit', '13 A demand'],
+        ['15 A socket, commercial / industrial', '1000 W'], ['15 A socket, residential', '500 W'], ['Radial circuit, 20 A', 'Max. 5 sockets (13 A)'], ['Ring circuit, 30 A', 'Max. 10 sockets (13 A)'], ['Twin socket', 'Counts as 2 points']]));
+  const elVD = () => card('Voltage drop, armoured XLPE copper cable (mV/A/m)', table(['Cable (mm²)', '2 core, 1 phase', '3/4 core, 3 phase'], X2.data.VDT.map(r => [r[0], r[1], r[2]])) +
+    fx('Volt drop', 'VD (V) = mV/A/m × I (A) × L (m) ÷ 1000') + note('BS 7671 Table 4E4B (90 °C conductor). DEWA limit 4 %. Used by Electrical › Voltage Drop.'));
+
   /* ----- Misc ----- */
   const miscPaper = () => {
     const si = isSI(), P = X2.data.PAPER, names = P.map(p => p[0]), rows = [];
@@ -2768,7 +2930,8 @@ const LIB = (function () {
 
   const m = (id, label, fn) => ({ id: id, label: label, mount: wrap(fn) });
   return {
-    electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable)],
+    electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable), m('dewa', 'DEWA Cables', elDewaCables), m('earth', 'Earthing & ELCB', elEarth),
+      m('wiring', 'Wiring & Supports', elWiring), m('vd', 'Voltage Drop', elVD), m('design', 'DEWA Design Data', elDesign)],
     misc: [m('paper', 'Paper Size', miscPaper), m('tv', 'TV Size', miscTV), m('si', 'SI Units', miscSI), m('alt', 'Alt Codes', miscAlt)],
     hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex)],
     plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', () => chw() + chwExtra()), m('pipe', 'Pipe Data', plumbPipe), m('fire', 'Fire Fighting', fire)]
@@ -2839,7 +3002,10 @@ const CATEGORIES = [
   { id: 'electrical', label: 'Electrical', color: '#f5a623', icon: ICON.electrical, min: 4, tools: [
       { id: 'el-amp', label: 'kW to Amp', icon: svg('<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'), actions: ['clear', 'print'], printTitle: 'kW to Amp', mount: X2.mount('amp'), onClear: () => { X2.clear('amp'); render(); } },
       { id: 'el-cable', label: 'Cable Size by kW', icon: svg('<path d="M4 20c0-6 4-6 8-6s8 0 8-6"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="6" r="2"/>'), actions: ['clear', 'print'], printTitle: 'Cable size by kW', mount: X2.mount('cable'), onClear: () => { X2.clear('cable'); render(); } },
-      { id: 'el-db', label: 'DB Load with Diversity', icon: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'), actions: ['clear', 'print'], printTitle: 'DB load with diversity', mount: X2.mount('db'), onClear: () => { X2.clear('db'); render(); } } ] },
+      { id: 'el-db', label: 'DB Load with Diversity', icon: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'), actions: ['clear', 'print', 'excel'], printTitle: 'DB load schedule', onExcel: () => { if (!X2.dbExcel()) X2.toast('Enter the DB loads first'); }, mount: X2.mount('db'), onClear: () => { X2.clear('db'); render(); } } ,
+      { id: 'el-ecc', label: 'ECC Size', icon: svg('<path d="M12 3v10M6 13h12M8 17h8M10 21h4"/>'), actions: ['clear', 'print'], printTitle: 'Earth continuity conductor size', mount: X2.mount('ecc'), onClear: () => { X2.clear('ecc'); render(); } },
+      { id: 'el-cond', label: 'Conduit Size', icon: svg('<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="10" r="1.6"/><circle cx="12" cy="15" r="1.6"/>'), actions: ['clear', 'print'], printTitle: 'Conduit size', mount: X2.mount('cond'), onClear: () => { X2.clear('cond'); render(); } },
+      { id: 'el-vd', label: 'Voltage Drop', icon: svg('<path d="M3 6h7l4 12h7"/><path d="M17 14l4 4-4 4" transform="translate(0 -4)"/>'), actions: ACTIONS, printTitle: 'Voltage drop', mount: X2.mount('vd'), onClear: () => { X2.clear('vd'); render(); }, refresh: () => render() } ] },
   { id: 'convertors', label: 'Converters', color: '#8e6bff', icon: ICON.convertors, min: 4, cols: 3, tools: CONV.cats.map(c => ({
       id: 'cv-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), label: c.name, icon: svg(c.icon), color: c.color,
       actions: ['clear'], printTitle: c.name, mount: CONV.mount(c.name), onClear: () => CONV.clear(c.name) })) },
@@ -3193,6 +3359,16 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '11 Nov 2026', items: [
+    ['New', 'Electrical: ECC Size, Conduit Size and Voltage Drop (with the 4 % check)'],
+    ['New', 'Standards & References, Electrical: DEWA cable selection tables, earthing and ELCB, wiring colours and supports, voltage drop table and DEWA design data']
+  ] },
+  { v: 'v2026.11.11.8', date: '11 Nov 2026', items: [
+    ['Better', 'Electrical Rating table now goes up to 1200 kW (2500 A) with parallel cables and earth conductors; used by Cable Size by kW, DB Load with Diversity and Standards & References']
+  ] },
+  { v: 'v2026.11.11.7', date: '11 Nov 2026', items: [
+    ['Better', 'DB Load with Diversity: each DB has its own name and DF; Amp and cable size for every DB and for the total; schedule table; export to Excel (.xlsx)']
+  ] },
+  { v: 'v2026.11.11.6', date: '11 Nov 2026', items: [
     ['New', 'Standards & References, HVAC: Design Data (duct velocities, velocity constants, typical duct head loss, AC thumb rules) and Flex Duct capacity'],
     ['New', 'Standards & References, Plumbing: Pipe Data (steel pipe schedules, water supply / drainage sizes, insulation thickness); Chilled Water adds the CHW pump flow chart and thumb rule'],
     ['Better', 'Footer and About show the version as the release date (v2026.11.11)']
