@@ -609,7 +609,7 @@ table.schtable .sch-off{opacity:.35}
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
       <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
       <li><b>New HVAC and Plumbing tools:</b> AC Flow by Area (1 m² = 15.75 L/s, editable), Flow Rebalance (Old → New) and Sprinkler Pipe Size (½" and 1" sprinklers).</li>
-      <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, ECC Size, Conduit Size, Voltage Drop (4 % check) and DB Load with Diversity (each DB with its own name and diversity factor, Amp and cable size per DB and for the total, Excel export).</li>
+      <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, Cable Gland Size (BICC and PG), ECC Size, Conduit Size, Voltage Drop (4 % check) and DB Load with Diversity (each DB with its own name and diversity factor, Amp and cable size per DB and for the total, Excel export).</li>
       <li><b>Misc:</b> Percentage (reverse %, add / less %), Car Average, Paper Size &amp; Scale, TV Size (16:9) and Symbols (Alt codes; tap a symbol to copy it).</li>
       <li><b>Pipe Sizer:</b> pick the material, size, fluid and flow to get the pipe properties and the friction head loss (Darcy-Weisbach with Colebrook / Swamee-Jain). Pipe data: ASME B36.10 (steel), ASTM B88 (copper), ASTM D1785 (PVC/ABS).</li>
       <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (quick select 3, 4 or 5 ft per 100 ft, or any typed value) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
@@ -760,7 +760,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11.11';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.11.12';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -2335,7 +2335,8 @@ const CONV = (function () {
 const X2 = (function () {
   const DEF = () => ({
     amp: { kw: '', v3: '400', v1: '230', pf: '0.8' },
-    cable: { kw: '' },
+    cable: { kw: '', tb: 'rating' },
+    gland: { size: '16', cores: '4', dia: '' },
     db: { rows: [{ name: '', kw: '', df: '0.85' }, { name: '', kw: '', df: '0.85' }, { name: '', kw: '', df: '0.85' }], v: '400', pf: '0.8' },
     pct: { total: '', p: '', val: '', p2: '' },
     car: { start: '', end: '', ltr: '' },
@@ -2420,17 +2421,76 @@ const X2 = (function () {
     [600, '501 - 600', '1200', '3 × 4C × 300 mm² + 3 × 1C × 150 mm²'], [800, '601 - 800', '1600', '8 × 4C × 630 mm² + 4 × 1C × 150 mm²'],
     [1000, '801 - 1000', '2000', '12 × 4C × 630 mm² + 5 × 1C × 150 mm²'], [1200, '1001 - 1200', '2500', '12 × 4C × 630 mm² + 6 × 1C × 150 mm²']
   ];
+  /* Multi-core armoured XLPE insulated copper cable: [S/N, kW from, kW to, max. load A, MCB/MCCB A, cable] */
+  const XLPE = [[1, null, null, 10, 10, '4C × 1.5 mm²'], [2, null, null, 15, 15, '4C × 2.5 mm²'], [3, 5, 10, 20, 20, '4C × 4 mm²'], [4, 10, 15, 30, 32, '4C × 6 mm²'], [5, 15, 20, 40, 40, '4C × 10 mm²'],
+    [6, 20, 30, 60, 63, '4C × 16 mm²'], [7, 30, 40, 80, 80, '4C × 25 mm²'], [8, 40, 50, 100, 100, '4C × 35 mm²'], [9, 50, 60, 125, 125, '4C × 50 mm²'], [10, 60, 75, 150, 160, '4C × 70 mm²'],
+    [11, 75, 100, 200, 200, '4C × 95 mm²'], [12, 100, 113, 225, 225, '4C × 120 mm²'], [13, 113, 125, 250, 250, '4C × 150 mm²'], [14, 125, 150, 300, 300, '4C × 185 mm²'], [15, 150, 175, 350, 350, '4C × 240 mm²'],
+    [16, 175, 200, 400, 400, '4C × 300 mm²'], [17, 200, 225, 450, 450, '2 × 4C × 120 mm²'], [18, 225, 250, 500, 500, '2 × 4C × 150 mm²'], [19, 250, 300, 600, 630, '2 × 4C × 185 mm²'],
+    [20, 300, 400, 800, 800, '2 × 4C × 300 mm²'], [21, 400, 500, 1000, 1000, '3 × 4C × 240 mm²']];
+  const xlpeOf = kw => {   // by the kW range; below 5 kW by the load current (3 phase, 400 V, PF 0.8)
+    if (!(kw > 0)) return -1;
+    if (kw < 5) { const a = kw * 1000 / (Math.sqrt(3) * 400 * 0.8); return a <= 10 ? 0 : a <= 15 ? 1 : 2; }
+    return XLPE.findIndex(r => r[2] !== null && kw <= r[2] + 1e-9);
+  };
+  const xlpeKw = r => r[1] === null ? '—' : r[1] + ' to ' + r[2];
   function cable(view) {
-    const d = X.cable;
-    view.innerHTML = '<div class="tool-x">' + card('Input', field('Load', 'kw', 'kW', d.kw)) +
-      '<section class="card res" id="x-res"></section><details class="card x2more"><summary>Electrical Rating table</summary><div id="x-tbl" style="margin-top:10px"></div></details></div>';
+    const d = X.cable, isX = d.tb === 'xlpe';
+    view.innerHTML = '<div class="tool-x">' + card('Input', sel('Table', 'tb', ['rating', 'xlpe'], d.tb).replace('>rating<', '>Electrical Rating<').replace('>xlpe<', '>Multi-core armoured XLPE<') + field('Load', 'kw', 'kW', d.kw)) +
+      '<section class="card res" id="x-res"></section><details class="card x2more"><summary>' + (isX ? 'Multi-core armoured XLPE table' : 'Electrical Rating table') + '</summary><div id="x-tbl" style="margin-top:10px"></div></details></div>';
+    const s = view.querySelector('[data-x="tb"]'); s.options[0].value = 'rating'; s.options[1].value = 'xlpe'; s.value = isX ? 'xlpe' : 'rating';
+    s.addEventListener('change', () => { X.cable.tb = s.value; save(); cable(view); });
     bind(view, 'cable', () => {
-      const kw = n(d.kw); let i = -1;
+      const kw = n(d.kw);
+      if (isX) {
+        const i = xlpeOf(kw);
+        $('#x-res').innerHTML = !(kw > 0) ? '<span class="hint">Enter the load to see the rating.</span>'
+          : i < 0 ? '<div class="rl big"><span>Rating</span><span><b class="red">Above 500 kW (not in table)</b></span></div>'
+          : rl('Max. load current', String(XLPE[i][3]), 'A') + rl('MCB / MCCB rating', String(XLPE[i][4]), 'A', 'big') + rl('Cable size', XLPE[i][5], '', 'big') +
+            (kw < 5 ? '<p class="hint">Below 5 kW the row is taken by the load current (3 phase, 400 V, PF 0.8).</p>' : '');
+        $('#x-tbl').innerHTML = tbl(['S/N', 'Load (kW)', 'Max. load (A)', 'MCB/MCCB (A)', 'Cable size'], XLPE.map(r => [r[0], xlpeKw(r), r[3], r[4], r[5]]), i);
+        return;
+      }
+      let i = -1;
       if (kw > 0) i = kw < 10 ? 0 : RATING.findIndex((r, k) => k > 0 && kw <= r[0]);
       $('#x-res').innerHTML = !(kw > 0) ? '<span class="hint">Enter the load to see the rating.</span>'
         : i < 0 ? '<div class="rl big"><span>Rating</span><span><b class="red">Above 1200 kW (not in table)</b></span></div>'
         : rl('Amp (TP)', RATING[i][2], 'A', 'big') + rl('Cable size', RATING[i][3], '', 'big');
       $('#x-tbl').innerHTML = tbl(['kW', 'Amp (TP)', 'Cable size'], RATING.map(r => [r[1], r[2], r[3]]), i);
+    });
+  }
+
+  /* ----- Electrical: Cable gland size ----- */
+  const PG = [['PG7', 3, 6.5, 12.5, 11.28], ['PG9', 4, 8, 15.5, 13.86], ['PG11', 5, 10, 18.6, 17.26], ['PG13.5', 6, 12, 20.4, 19.06], ['PG16', 10, 14, 22.5, 21.16],
+    ['PG21', 13, 18, 28.3, 26.78], ['PG29', 18, 25, 37.0, 35.48], ['PG36', 22, 32, 47.0, 45.48], ['PG42', 30, 38, 54.0, 52.48], ['PG48', 34, 44, 59.3, 57.78]];
+  const BICC_CORES = ['1', '2', '3', '4', '5', '7', '10', '12', '19', '27', '37', '48'];
+  const BICC = {   // cable size (mm²): gland size for 1 (single core), 2, 3, 4, 5, 7, 10, 12, 19, 27, 37, 48 cores; '' = not listed
+    '1.5': ['', '20/16', '20/16', '20S', '20S', '20', '20', '25', '25', '32', '32', '32'], '2.5': ['', '20S', '20S', '20S', '20', '20', '25', '25', '25', '32', '32', '40'],
+    '4': ['', '20S', '20', '20', '20', '25', '25', '32', '32', '40', '40', '50'], '6': ['', '20', '20', '20', '20'], '10': ['', '20', '20', '25', '25'], '16': ['', '25', '25', '25', '25'],
+    '25': ['', '25', '32', '32', '32'], '35': ['', '32', '32', '32', '40'], '50': ['25', '32', '32', '40', '50'], '70': ['25', '32', '32', '40', '50'], '95': ['25', '32', '40', '50S', ''],
+    '120': ['32', '40', '50S', '50', ''], '150': ['32', '50S', '50', '50', ''], '185': ['32', '50', '50', '63S', ''], '240': ['40', '50', '63S', '63', ''], '300': ['40', '63S', '63', '75S', ''],
+    '400': ['50S', '63', '75S', '75', '']
+  };
+  const BICC_SIZES = Object.keys(BICC);
+  const glandTxt = g => !g ? '' : g === '20/16' ? '20/16 mm' : /S$/.test(g) ? g.replace('S', '') + ' mm small (S)' : g + ' mm';
+  function gland(view) {
+    const d = X.gland;
+    view.innerHTML = '<div class="tool-x">' +
+      card('By cable size and cores', sel('Cable size (mm²)', 'size', BICC_SIZES, d.size) + sel('No. of cores', 'cores', BICC_CORES, d.cores).replace('>1<', '>1 (single core)<') + '<div class="res" id="x-r1"></div>') +
+      card('By cable outer diameter (PG gland)', field('Cable outer diameter', 'dia', 'mm', d.dia) + '<div class="res" id="x-r2"></div>') +
+      '<details class="card x2more"><summary>Gland selection chart (BICC)</summary><div id="x-t1" style="margin-top:10px"></div></details>' +
+      '<details class="card x2more"><summary>PG cable gland size chart</summary><div id="x-t2" style="margin-top:10px"></div></details>' +
+      formula('By size and cores: gland size from the BICC gland selection chart (cables to BS 5467 and BS 7889). S = small (shroud / reduced bore) version of that size.<br>By diameter: the PG glands whose cable range covers the cable outer diameter.<br>The chart is a guide only: always check the actual cable diameter with the cable data sheet.') + '</div>';
+    const cs = view.querySelector('[data-x="cores"]'); cs.options[0].value = '1'; cs.value = d.cores;
+    bind(view, 'gland', () => {
+      const ci = BICC_CORES.indexOf(String(d.cores)), row = BICC[String(d.size)] || [], g = ci >= 0 ? row[ci] : '';
+      $('#x-r1').innerHTML = g ? rl('Gland size', glandTxt(g), '', 'big') : '<div class="rl big"><span>Gland size</span><span><b class="red">Not in the chart</b></span></div>';
+      const dia = n(d.dia), fit = dia > 0 ? PG.filter(r => dia >= r[1] - 1e-9 && dia <= r[2] + 1e-9) : [];
+      $('#x-r2').innerHTML = !(dia > 0) ? '<span class="hint">Enter the cable outer diameter (see Standards & References › Electrical › Cable Sizes).</span>'
+        : fit.length ? rl('PG gland', fit.map(r => r[0]).join(' or '), '', 'big') + fit.map(r => rl(r[0] + ' cable range', r[1] + ' – ' + r[2], 'mm')).join('')
+        : '<div class="rl big"><span>PG gland</span><span><b class="red">' + (dia > 44 ? 'Above PG48 (44 mm): use a metric gland' : 'Below PG7 (3 mm)') + '</b></span></div>';
+      const bi = BICC_SIZES.indexOf(String(d.size));
+      $('#x-t1').innerHTML = tbl(['Cable (mm²)'].concat(BICC_CORES.map(c => c === '1' ? 'Single' : c + 'C')), BICC_SIZES.map(k => [k].concat(BICC_CORES.map((c, j) => BICC[k][j] || '—'))), bi);
+      $('#x-t2').innerHTML = tbl(['PG size', 'Cable dia. (mm)', 'Thread O.D. (mm)', 'Gland inner dia. (mm)'], PG.map(r => [r[0], r[1] + ' – ' + r[2], r[3].toFixed(1), r[4].toFixed(2)]), fit.length ? PG.indexOf(fit[0]) : -1);
     });
   }
 
@@ -2750,10 +2810,10 @@ const X2 = (function () {
     X.acarea.u = to === 'ip' ? 'ft²' : 'mm²';
     X.vd.len = cv(X.vd.len, to === 'ip' ? 1 / 0.3048 : 0.3048);
   }
-  const MOUNT = { ecc: ecc, cond: cond, vd: vd, acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
+  const MOUNT = { gland: gland, ecc: ecc, cond: cond, vd: vd, acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { X[id] = d[id]; save(); } }
-  return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
+  return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { XLPE: XLPE, xlpeKw: xlpeKw, PG: PG, BICC: BICC, BICC_CORES: BICC_CORES, STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
 })();
 
 /* ---------- Duct Sizer › Advanced (engineer level; separate from Basic, its own state in S.adv, all values kept in SI) ---------- */
@@ -3199,6 +3259,13 @@ const LIB = (function () {
     card('Assumed loads (lighting and small power)', table(['Point / circuit', 'Load'], [['Lighting / fan point (fixture not selected)', '100 W min.'], ['Fluorescent lamp', '1.8 × lamp watts'],
         ['Lighting / fan circuit', 'Max. 2000 W, 2.5 mm², 16 A'], ['13 A socket outlet (general, not kitchen)', '200 W min. per point'], ['13 A socket circuit', '13 A demand'],
         ['15 A socket, commercial / industrial', '1000 W'], ['15 A socket, residential', '500 W'], ['Radial circuit, 20 A', 'Max. 5 sockets (13 A)'], ['Ring circuit, 30 A', 'Max. 10 sockets (13 A)'], ['Twin socket', 'Counts as 2 points']]));
+  const elXlpe = () => { const D = X2.data;
+    return card('Multi-core armoured XLPE insulated, copper conductor', table(['S/N', 'Max. load (kW)', 'Max. load current (A)', 'Max. MCB/MCCB (A)', 'Cable size (1 No. in normal situation)'], D.XLPE.map(r => [r[0], D.xlpeKw(r), r[3], r[4], r[5]])) +
+      note('Used by Electrical › Cable Size by kW (Table: Multi-core armoured XLPE).')); };
+  const elGlands = () => { const D = X2.data, sizes = Object.keys(D.BICC);
+    return card('Gland selection chart (BICC)', table(['Cable (mm²)'].concat(D.BICC_CORES.map(c => c === '1' ? 'Single core' : c + ' core')), sizes.map(k => [k].concat(D.BICC_CORES.map((c, j) => D.BICC[k][j] || '—')))) +
+        note('Gland size in mm; S = small version. Guide only, for cables to BS 5467 and BS 7889: use the actual cable diameter for the final selection.')) +
+      card('PG cable gland size chart', table(['PG size', 'Cable dia. (mm)', 'Thread O.D. (mm)', 'Gland inner dia. (mm)'], D.PG.map(r => [r[0], r[1] + ' – ' + r[2], r[3].toFixed(1), r[4].toFixed(2)])) + note('Used by Electrical › Cable Gland Size.')); };
   const elVD = () => card('Voltage drop, armoured XLPE copper cable (mV/A/m)', table(['Cable (mm²)', '2 core, 1 phase', '3/4 core, 3 phase'], X2.data.VDT.map(r => [r[0], r[1], r[2]])) +
     fx('Volt drop', 'VD (V) = mV/A/m × I (A) × L (m) ÷ 1000') + note('BS 7671 Table 4E4B (90 °C conductor). DEWA limit 4 %. Used by Electrical › Voltage Drop.'));
 
@@ -3276,7 +3343,7 @@ const LIB = (function () {
   const m = (id, label, fn) => ({ id: id, label: label, mount: wrap(fn) });
   return {
     electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable), m('dewa', 'DEWA Cables', elDewaCables), m('earth', 'Earthing & ELCB', elEarth),
-      m('wiring', 'Wiring & Supports', elWiring), m('vd', 'Voltage Drop', elVD), m('design', 'DEWA Design Data', elDesign)],
+      m('wiring', 'Wiring & Supports', elWiring), m('vd', 'Voltage Drop', elVD), m('design', 'DEWA Design Data', elDesign), m('xlpe', 'XLPE Load Table', elXlpe), m('glands', 'Cable Glands', elGlands)],
     misc: [m('paper', 'Paper Size', miscPaper), m('tv', 'TV Size', miscTV), m('si', 'SI Units', miscSI), m('alt', 'Alt Codes', miscAlt)],
     hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex)],
     plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', () => chw() + chwExtra()), m('pipe', 'Pipe Data', plumbPipe), m('fire', 'Fire Fighting', fire)]
@@ -3350,6 +3417,7 @@ const CATEGORIES = [
       { id: 'el-amp', label: 'kW to Amp', icon: svg('<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'), actions: ['clear', 'print'], printTitle: 'kW to Amp', mount: X2.mount('amp'), onClear: () => { X2.clear('amp'); render(); } },
       { id: 'el-cable', label: 'Cable Size by kW', icon: svg('<path d="M4 20c0-6 4-6 8-6s8 0 8-6"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="6" r="2"/>'), actions: ['clear', 'print'], printTitle: 'Cable size by kW', mount: X2.mount('cable'), onClear: () => { X2.clear('cable'); render(); } },
       { id: 'el-db', label: 'DB Load with Diversity', icon: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'), actions: ['clear', 'print', 'excel'], printTitle: 'DB load schedule', onExcel: () => { if (!X2.dbExcel()) X2.toast('Enter the DB loads first'); }, mount: X2.mount('db'), onClear: () => { X2.clear('db'); render(); } } ,
+      { id: 'el-gland', label: 'Cable Gland Size', icon: svg('<path d="M8 3h8v4H8zM6 7h12v4H6zM9 11h6v10H9z"/>'), actions: ['clear', 'print'], printTitle: 'Cable gland size', mount: X2.mount('gland'), onClear: () => { X2.clear('gland'); render(); } },
       { id: 'el-ecc', label: 'ECC Size', icon: svg('<path d="M12 3v10M6 13h12M8 17h8M10 21h4"/>'), actions: ['clear', 'print'], printTitle: 'Earth continuity conductor size', mount: X2.mount('ecc'), onClear: () => { X2.clear('ecc'); render(); } },
       { id: 'el-cond', label: 'Conduit Size', icon: svg('<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="10" r="1.6"/><circle cx="12" cy="15" r="1.6"/>'), actions: ['clear', 'print'], printTitle: 'Conduit size', mount: X2.mount('cond'), onClear: () => { X2.clear('cond'); render(); } },
       { id: 'el-vd', label: 'Voltage Drop', icon: svg('<path d="M3 6h7l4 12h7"/><path d="M17 14l4 4-4 4" transform="translate(0 -4)"/>'), actions: ACTIONS, printTitle: 'Voltage drop', mount: X2.mount('vd'), onClear: () => { X2.clear('vd'); render(); }, refresh: () => render() } ] },
@@ -3392,7 +3460,8 @@ const SEARCH = (function () {
     'hv-rebal': 'rebalance old new main branch ratio flow percentage',
     'pipe-sizer': 'pipe size velocity friction head loss water', 'pipe-slope': 'manhole schedule drainage invert level il slope cover', 'rw-calci': 'rain water rwo outlet ipc storm',
     'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
-    'el-amp': 'kw amp ampere current 3 phase 1 phase', 'el-cable': 'cable size kw amp breaker mccb rating', 'el-db': 'db distribution board load diversity df amp cable schedule excel',
+    'el-amp': 'kw amp ampere current 3 phase 1 phase', 'el-cable': 'cable size kw amp breaker mccb mcb rating xlpe', 'el-db': 'db distribution board load diversity df amp cable schedule excel',
+    'el-gland': 'gland pg bicc cable diameter cores', 'lib-electrical/glands': 'gland pg bicc', 'lib-electrical/xlpe': 'xlpe cable kw mcb mccb breaker',
     'el-ecc': 'ecc earth earthing bonding conductor', 'el-cond': 'conduit wires', 'el-vd': 'voltage drop vd volt cable length',
     'ms-pct': 'percentage percent reverse add less vat', 'ms-car': 'car average fuel km mileage mpg', 'ms-paper': 'paper size scale a0 a1 a2 a3 a4 a5', 'ms-tv': 'tv television screen size inch',
     'ms-sym': 'symbol symbols alt code diameter degree square',
@@ -3805,6 +3874,11 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '11 Nov 2026', items: [
+    ['New', 'Electrical: Cable Gland Size (by cable size and cores from the BICC chart, or by cable diameter for PG glands)'],
+    ['Better', 'Cable Size by kW: choose the table, Electrical Rating or Multi-core armoured XLPE (with MCB/MCCB rating)'],
+    ['New', 'Standards & References, Electrical: XLPE Load Table and Cable Glands (BICC and PG charts)']
+  ] },
+  { v: 'v2026.11.11.11', date: '11 Nov 2026', items: [
     ['New', 'Search: tap the search button at the top of any page and type a tool name or a word (amp, cfm, sprinkler, manhole …)'],
     ['Better', 'Tools are in A–Z order in every category (Duct Sizer stays first in HVAC); Standards & References tabs are A–Z too'],
     ['Better', 'Bigger tiles and icons']
