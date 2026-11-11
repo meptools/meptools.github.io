@@ -103,7 +103,7 @@ footer.ft{display:flex;justify-content:space-between;color:var(--ink2);font-size
 /* ---------- home page, category pages, header rows ---------- */
 [hidden]{display:none!important}
 .hrow{display:flex;align-items:center;gap:8px}
-.hrow h1{flex:1;min-width:0}
+.hrow h1{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hbtns{display:flex;gap:6px;flex:0 0 auto}
 .hbtns button{background:rgba(255,255,255,.12);color:var(--head-ink);border:0;border-radius:8px;padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .hbtns button:active,.back:active{background:rgba(255,255,255,.25)}
@@ -141,6 +141,11 @@ footer.ft{display:flex;justify-content:space-between;color:var(--ink2);font-size
 
 /* ---------- Pipe Slope and Rain Water Calci ---------- */
 .row .lbl{font-weight:600;font-size:15px;min-width:0}
+.row.rw-ref-row{grid-template-columns:minmax(0,1fr) 104px auto}
+.row .rw-ref-u{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.rw-mini{flex:0 0 auto;width:30px;height:30px;padding:0;display:inline-grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer}
+.rw-mini.on{border-color:var(--accent);color:var(--accent)}
+#rw-rwo-area[readonly]{opacity:.75;cursor:default}
 .row .lbl small{display:block;font-weight:400;color:var(--ink2);font-size:11.5px;line-height:1.1}
 input.txt{width:100%;font:inherit;font-size:16px;padding:8px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:0}
 input.txt:focus{outline:2px solid var(--accent)}
@@ -237,6 +242,35 @@ table.auth-table .shape-ci{display:inline-block;width:10px;height:10px;backgroun
 .tool-hv table.refedit input{width:100%;min-width:0;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:14px}
 .tool-hv .hv-del{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer}
 .tool-hv #area-list{margin-top:2px}
+/* ---------- Electrical and Misc tools ---------- */
+.tool-x .section-title{font-size:13px;font-weight:700;margin:0 0 10px;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px}
+.tool-x details.card summary{font-weight:700;cursor:pointer;font-size:14.5px}
+.tool-x .formula-body{color:var(--ink2);padding-top:10px;line-height:1.6;font-size:13.5px}
+.tool-x .table-wrap{overflow-x:auto}
+.tool-x .res .rl b{overflow-wrap:anywhere;text-align:right}
+.tool-x .res:empty{display:none}
+.tool-x p.red{color:var(--red);margin-top:6px}
+.tool-x table.x2t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tool-x table.x2t th,.tool-x table.x2t td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+.tool-x table.x2t td:not(:last-child){white-space:nowrap}
+.tool-x table.x2t th{color:var(--ink2);font-weight:700;font-size:12px}
+.tool-x table.x2t tr.hi td{background:var(--chip);color:var(--blue);font-weight:700}
+.x2grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:9px}
+.x2sym{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 2px 10px;min-height:86px;justify-content:center;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit}
+.x2sym b{font-size:30px;line-height:1.15;font-weight:600}
+.x2sym small{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.2px}
+.tool-x details.x2more summary{color:var(--blue)}
+.x2sym.ok{border-color:var(--accent);background:var(--chip)}
+#x2toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1d2a52;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:99}
+#x2toast.on{opacity:1;transform:translate(-50%,0)}
+@media print{.x2sym{border-color:#999}#x2toast{display:none}}
+.tool-hv table.hv-at{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tool-hv table.hv-at th,.tool-hv table.hv-at td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;font-size:15px}
+.tool-hv table.hv-at th:first-child,.tool-hv table.hv-at td:first-child{text-align:left}
+.tool-hv table.hv-at th{color:var(--ink2);font-weight:700;font-size:12px}
+.tool-hv table.hv-at tbody td:not(:first-child){color:var(--blue);font-weight:700}
+.tool-hv table.hv-at tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--line)}
+.tool-hv table.hv-at .hint{text-align:left;font-weight:400;color:var(--ink2)}
 /* ---------- Converters ---------- */
 .tool-cv .cv-f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink2);font-weight:600;min-width:0}
 .tool-cv select,.tool-cv input.num,.tool-cv input.txt{width:100%;min-width:0;font:inherit;font-weight:600;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
@@ -501,7 +535,7 @@ table.schtable .sch-off{opacity:.35}
 <div class="overlay" id="chw-ref" role="dialog" aria-modal="true" aria-label="Pipe Capacity Reference">
   <div class="sheet">
     <h2>Pipe Capacity Reference</h2>
-    <p style="margin:0 0 8px;font-size:13.5px;color:var(--ink2)">Schedule 40 steel · Max flow at given head loss (ft/100ft)</p>
+    <p id="chw-refSub" style="margin:0 0 8px;font-size:13.5px;color:var(--ink2)">Schedule 40 steel · Max flow at given head loss (ft/100ft)</p>
     <div style="overflow-x:auto">
       <table class="reftable">
         <thead><tr><th>Size</th><th>MM</th><th class="hl-head">@ 3</th><th class="hl-head">@ 4</th><th class="hl-head">@ 5</th></tr></thead>
@@ -535,6 +569,9 @@ table.schtable .sch-off{opacity:.35}
       <li><b>Rectangular ducts:</b> converted to the equivalent round duct for the same friction and airflow (Huebscher, as in ASHRAE).</li>
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
       <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
+      <li><b>New HVAC and Plumbing tools:</b> AC Flow by Area (1 m² = 15.75 L/s, editable), Flow Rebalance (Old → New) and Sprinkler Pipe Size (½" and 1" sprinklers).</li>
+      <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, and DB Load with Diversity factor.</li>
+      <li><b>Misc:</b> Percentage (reverse %, add / less %), Car Average, Paper Size &amp; Scale, TV Size (16:9) and Symbols (Alt codes; tap a symbol to copy it).</li>
       <li><b>Pipe Sizer:</b> pick the material, size, fluid and flow to get the pipe properties and the friction head loss (Darcy-Weisbach with Colebrook / Swamee-Jain). Pipe data: ASME B36.10 (steel), ASTM B88 (copper), ASTM D1785 (PVC/ABS).</li>
       <li><b>Chilled Water Calci:</b> sizes Schedule 40 steel pipe by design head loss (quick select 3, 4 or 5 ft per 100 ft, or any typed value) or by velocity, using the equal-friction method (ASHRAE practice). Velocity and head loss can be edited.</li>
       <li><b>Manhole Schedule:</b> enter the IL of the first manhole, then the distance from the connected manhole for each next one. IL = previous IL − distance ÷ N − backdrop (Up to Down). Depth = CL − IL; manhole and cover sizes come from the standard table and can be changed. Print (A3 landscape) and Excel export.</li>
@@ -684,7 +721,8 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11';
+const VERSION = 'v2026.11.11.6';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
 const STORE_KEY = 'meptools.v1';
@@ -791,7 +829,7 @@ const DRSW_ENG = (function () {
 const DRSW = (function () {
   const COLS = [['no', 'Manhole No.'], ['ref', 'Manhole Reference'], ['dist', 'Distance From Prev. Manhole'], ['cl', 'Cover Level (CL)'], ['bd', 'Backdrop'], ['il', 'Invert Level (IL)'], ['depth', 'Depth (D)'], ['mh', 'Manhole Size'], ['cover', 'Cover Size'], ['rem', 'Remarks']];
   const defaultsSlope = () => ({ title: '', sys: 'DR', ratio: '120', dir: 'down', cols: { no: true, ref: true, dist: true, cl: true, bd: true, il: true, depth: true, mh: true, cover: true, rem: true }, rows: [], nextId: 1, f: { point: 'MH-01', from: '', il: '', dist: '', cl: '', bd: '', rem: '' } });
-  const defaultsRain = () => ({ A: '', I: '100', C: '0.9', rwoArea: S.units === 'ip' ? '2927.78' : '272' });
+  const defaultsRain = () => ({ A: '', I: '100', C: '0.9', rwoArea: S.units === 'ip' ? '2927.7836' : '272' });
   const D = S.drsw = { slope: defaultsSlope(), rain: defaultsRain() };
   (function loadSaved() {
     try {
@@ -1217,17 +1255,33 @@ function mountRain(view) {
       rl('rw-rwo', 'RWO Required', 'green big') +
     '</section>' +
     '<section class="card"><p class="hint" id="rw-formula"></p>' +
-      '<div class="row"><span class="lbl">IPC reference: 1 RWO per<small>Editable area per outlet</small></span>' +
-        '<input class="num" id="rw-rwo-area" inputmode="decimal" autocomplete="off" aria-label="Area per RWO">' +
-        '<span class="unit" id="rw-rwo-area-u"></span></div>' +
+      '<div class="row rw-ref-row"><span class="lbl">IPC reference: 1 RWO per<small>Editable area per outlet</small></span>' +
+        '<input class="num" id="rw-rwo-area" inputmode="decimal" autocomplete="off" aria-label="Area per RWO" readonly>' +
+        '<span class="unit rw-ref-u"><span id="rw-rwo-area-u"></span>' +
+          '<button type="button" class="rw-mini" id="rw-ref-edit" aria-label="Edit IPC reference" title="Edit">' + RW_ICON.edit + '</button>' +
+          '<button type="button" class="rw-mini" id="rw-ref-reset" aria-label="Reset IPC reference" title="Reset to 272 m² / 2927.7836 ft²">' + RW_ICON.reset + '</button></span></div>' +
       '<p class="hint">Editable reference. Confirm the required outlet capacity against project/local standards.</p></section>'; 
   $('#rw-A').value = D.rain.A;
   $('#rw-I').value = D.rain.I;
   $('#rw-C').value = D.rain.C;
   $('#rw-rwo-area').value = D.rain.rwoArea;
+  $('#rw-ref-edit').onclick = () => {
+    const el = $('#rw-rwo-area'), on = el.hasAttribute('readonly');
+    if (on) { el.removeAttribute('readonly'); el.focus(); el.select(); } else el.setAttribute('readonly', '');
+    $('#rw-ref-edit').classList.toggle('on', on);
+  };
+  $('#rw-ref-reset').onclick = () => {
+    const el = $('#rw-rwo-area'); D.rain.rwoArea = S.units === 'ip' ? '2927.7836' : '272'; el.value = D.rain.rwoArea;
+    el.setAttribute('readonly', ''); $('#rw-ref-edit').classList.remove('on');
+    refreshRainUnits(); updateRain(); save();
+  };
   refreshRainUnits();
   updateRain();
 }
+const RW_ICON = {
+  edit: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  reset: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>'
+};
 function refreshRainUnits() {
   const U = UNX[S.units];
   if ($('#rw-A-u')) $('#rw-A-u').textContent = U.area.u;
@@ -1464,13 +1518,18 @@ const PIPE = (function () {
     return C + '°C Water';
   }
   
+  const PDN = {'1/8':6,'1/4':8,'3/8':10,'1/2':15,'3/4':20,'1':25,'1-1/4':32,'1-1/2':40,'2':50,'2-1/2':65,'3':80,'3-1/2':90,'4':100,'5':125,'6':150,
+    '8':200,'10':250,'12':300,'14':350,'16':400,'18':450,'20':500,'24':600,'30':750,'36':900,'40':1000};
   function updateSizeOptions(){
     const mat=PMATERIALS.find(m=>m.id===P.material); const sel=$('#pz-size'); const prev=P.size;
     sel.innerHTML='';
     let sizes=mat.copper ? Object.keys(COPPER_WALL[mat.copper]).filter(s=>COPPER_OD[s]!=null) : Object.keys(mat.data);
     const order=['1/8','1/4','3/8','1/2','5/8','3/4','1','1-1/4','1-1/2','2','2-1/2','3','3-1/2','4','5','6','8','10','12','14','16','18','20','24','30','36','40'];
     sizes.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
-    sizes.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s+'"'; sel.appendChild(o); });
+    // Metric shows DN for steel and plastic pipe; copper tube has no standard DN, so it stays in inch
+    const useDN = S.units !== 'ip' && !mat.copper;
+    $('#pz-sizeLabel').textContent = useDN ? 'Nominal Size (DN)' : 'Nominal Size (inch)';
+    sizes.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=useDN && PDN[s] ? 'DN '+PDN[s] : s+'"'; sel.appendChild(o); });
     if(sizes.includes(prev)) P.size=prev; else P.size=sizes[0]||'';
     sel.value=P.size;
   }
@@ -1491,7 +1550,7 @@ const PIPE = (function () {
       '<div class="tool-pz">' +
       '<div class="card"><h2>Inputs</h2><div class="grid2">' +
         '<label class="fld"><span>Pipe Material</span><select id="pz-type"></select></label>' +
-        '<label class="fld"><span>Nominal Size</span><select id="pz-size"></select></label>' +
+        '<label class="fld"><span id="pz-sizeLabel">Nominal Size</span><select id="pz-size"></select></label>' +
         '<label class="fld"><span>Fluid</span><select id="pz-fluid"></select></label>' +
         '<label class="fld"><span id="pz-flowLabel">Flow Rate (USgpm)</span><input type="number" id="pz-flow" step="any" min="0" inputmode="decimal"></label>' +
       '</div></div>' +
@@ -1618,6 +1677,8 @@ const CHW = (function () {
     // Units
     $('#chw-flowUnit').textContent = S.units === 'si' ? 'L/s' : 'USGPM';
     $('#chw-velUnit').textContent = S.units === 'si' ? 'm/s' : 'ft/s';
+    $('#chw-hlUnit').textContent = S.units === 'si' ? 'm/100m' : 'ft/100ft';
+    $('#chw-hlQuick').textContent = (S.units === 'si' ? 'm / 100 m' : 'ft / 100 ft') + ' · quick select';
   
     // HL quick buttons
     $$('#view .hl-group button').forEach(b => {
@@ -1707,12 +1768,12 @@ const CHW = (function () {
         (S.units === 'si' ? (res.fps*0.3048).toFixed(2)+' m/s' : res.fps.toFixed(2)+' ft/s') + '.';
     } else if (mode === 'hl') {
       status.className = 'chw-status manual';
-      status.textContent = 'Sized by manual head loss (' + useHL + ' ft/100ft).';
+      status.textContent = 'Sized by manual head loss (' + useHL + (S.units === 'si' ? ' m/100m).' : ' ft/100ft).');
     } else {
       status.className = 'chw-status ok';
       if (S.units === 'si') {
         status.textContent = 'Suitable by reference capacity. ' +
-          Number((gpm/GPM_PER_LS).toPrecision(4)) + ' L/s at ' + C.hl + ' ft/100 ft.';
+          Number((gpm/GPM_PER_LS).toPrecision(4)) + ' L/s at ' + C.hl + ' m/100 m.';
       } else {
         status.textContent = 'Suitable by reference capacity. ' +
           Number(gpm.toPrecision(4)) + ' GPM at ' + C.hl + ' ft/100 ft.';
@@ -1721,6 +1782,7 @@ const CHW = (function () {
   }
   
   function buildRefTable() {
+    $('#chw-refSub').textContent = 'Schedule 40 steel · Max flow at given head loss (' + (S.units === 'si' ? 'm/100m' : 'ft/100ft') + ')';
     const body = $('#chw-refBody');
     body.innerHTML = LU.map(r => {
       return `<tr>
@@ -1741,7 +1803,7 @@ const CHW = (function () {
         '<div class="row"><label>Flow rate</label><div><input type="number" id="chw-flow" inputmode="decimal" step="any" placeholder="0"><div class="unit" id="chw-flowUnit">L/s</div></div></div>' +
         '<div style="margin:14px 0 6px;font-weight:600;font-size:15px">Design Head Loss</div>' +
         '<div class="hl-group"><button type="button" data-hl="3">3</button><button type="button" data-hl="4">4</button><button type="button" data-hl="5">5</button></div>' +
-        '<div class="unit" style="text-align:left;margin-top:2px">ft / 100 ft · quick select</div>' +
+        '<div class="unit" style="text-align:left;margin-top:2px" id="chw-hlQuick">ft / 100 ft · quick select</div>' +
       '</div>' +
       '<div class="result-card"><h2>Sizing Result</h2>' +
         '<div class="pipe-main"><div class="lbl">Selected Pipe Size</div><div class="size" id="chw-pipeSize">—</div><div class="sub" id="chw-pipeSizeSub">Enter flow rate to size pipe</div></div>' +
@@ -1749,7 +1811,7 @@ const CHW = (function () {
           '<div class="res-item"><div class="lbl">Flow</div><div class="val" id="chw-flowOut">—</div></div>' +
           '<div class="res-item"><div class="lbl">Velocity <span style="font-weight:500;text-transform:none;letter-spacing:0">(editable)</span></div><input type="number" class="edit" id="chw-velEdit" inputmode="decimal" step="any" placeholder="—"><div class="edit-unit" id="chw-velUnit">ft/s</div></div>' +
           '<div class="res-item"><div class="lbl">Capacity at HL</div><div class="val" id="chw-cap">—</div></div>' +
-          '<div class="res-item"><div class="lbl">Head Loss <span style="font-weight:500;text-transform:none;letter-spacing:0">(editable)</span></div><input type="number" class="edit" id="chw-hlEdit" inputmode="decimal" step="any" placeholder="—"><div class="edit-unit">ft/100ft</div></div>' +
+          '<div class="res-item"><div class="lbl">Head Loss <span style="font-weight:500;text-transform:none;letter-spacing:0">(editable)</span></div><input type="number" class="edit" id="chw-hlEdit" inputmode="decimal" step="any" placeholder="—"><div class="edit-unit" id="chw-hlUnit">ft/100ft</div></div>' +
         '</div>' +
         '<div class="chw-status empty" id="chw-status">Enter a flow rate to see results</div>' +
       '</div>' +
@@ -1817,6 +1879,8 @@ const HVAC = (function () {
         H.refs[k] = r0 && Number.isFinite(+r0.velocity) && +r0.velocity > 0 && Number.isFinite(+r0.freeArea) && +r0.freeArea > 0 ? [{ velocity: +r0.velocity, freeArea: +r0.freeArea }] : clone(DEFAULTS[k]);
       });
       if (x.saved && typeof x.saved === 'object') H.saved = x.saved;
+      // Linear Diffuser and Grill Size used fpm in both unit systems; a Metric save is now in m/s
+      ['linear', 'grill'].forEach(k => { const d = H.saved[k]; if (d && !d.velMS) { if (S.units === 'si' && d.velocity !== undefined && d.velocity !== '' && Number.isFinite(+d.velocity)) d.velocity = String(Math.round(+d.velocity * .00508 * 1e6) / 1e6); d.velMS = true; } });
       if (Number.isFinite(x.areas) && x.areas >= 1) H.areas = x.areas;
       if (Number.isFinite(x.dp) && x.dp >= 0 && x.dp <= 4) H.dp = x.dp;
     } catch (e) {}
@@ -1829,7 +1893,8 @@ const HVAC = (function () {
   const toLS = x => unit === 'si' ? x : x / 2.1188799728, fromLS = x => unit === 'si' ? x : x * 2.1188799728,
     toMM = x => unit === 'si' ? x : x * 25.4, fromMM = x => unit === 'si' ? x : x / 25.4,
     fromM2 = x => unit === 'si' ? x : x * 10.7639104167,
-    fromMS = x => unit === 'si' ? x : x / .00508;
+    fromMS = x => unit === 'si' ? x : x / .00508,
+    toFPM = x => unit === 'si' ? x / .00508 : x;   // Linear Diffuser and Grill Size: typed velocity (m/s or fpm) to fpm
 
   function field(label, key, unitTxt, type, value) {
     if (value === undefined) value = '';
@@ -1838,10 +1903,12 @@ const HVAC = (function () {
   }
   function selectOptions(list, selected) { return list.map(x => '<option ' + (x === selected ? 'selected' : '') + ' value="' + x + '">' + x + '</option>').join(''); }
   function result(label, n, u) { return '<div class="rl"><span>' + label + '</span><span><b class="blue">' + n + '</b><i>' + (u || '') + '</i></span></div>'; }
+  const QTY = { roundDuct: 1, square: 1, perforated: 1, disc: 1, circular: 1 };   // diffuser / valve quantity tools: size always in mm
+  const sizeOut = (key, mm) => QTY[key] ? mm : fromMM(mm), sizeIn = (key, x) => QTY[key] ? x : toMM(x);
   function refTable(key, headers, rows, kind) {
     const body = rows.map((r, i) => kind === 'louver'
       ? '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="velocity" type="number" step="any" value="' + nice(fromMS(r.velocity)) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="freeArea" type="number" step="any" value="' + r.freeArea + '"></td></tr>'
-      : '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="0" type="number" step="any" value="' + nice(fromMM(r[0])) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="1" type="number" step="any" value="' + nice(fromLS(r[1])) + '"></td><td><button type="button" class="hv-del" data-delref="' + key + '" data-i="' + i + '">Delete</button></td></tr>').join('');
+      : '<tr><td><input data-ref="' + key + '" data-i="' + i + '" data-f="0" type="number" step="any" value="' + nice(sizeOut(key, r[0])) + '"></td><td><input data-ref="' + key + '" data-i="' + i + '" data-f="1" type="number" step="any" value="' + nice(fromLS(r[1])) + '"></td><td><button type="button" class="hv-del" data-delref="' + key + '" data-i="' + i + '">Delete</button></td></tr>').join('');
     return '<details class="card reference"><summary>Reference table · Edit values</summary><div class="table-wrap"><table class="refedit"><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div><div class="btnrow">' + (kind === 'louver' ? '' : '<button type="button" class="secondary" data-addref="' + key + '">Add row</button>') + '<button type="button" class="secondary" data-resetref="' + key + '">Restore Default</button></div></details>';
   }
 
@@ -1850,7 +1917,7 @@ const HVAC = (function () {
     const box = $('#hv-calc'); if (!box) return;
     const refWasOpen = !!(box.querySelector('details.reference') || {}).open;   // a table being edited stays open
     const d = H.saved[active] || {};
-    let f = '', ref = '';
+    let f = '', ref = '', pw = '';
     if (active === 'ach') {
       const mode = d.mode || 'volume';
       f = field('Room input method', 'mode', '', 'select', '<option value="volume" ' + (mode === 'volume' ? 'selected' : '') + '>Volume (m³ / ft³)</option><option value="area" ' + (mode === 'area' ? 'selected' : '') + '>Floor area × Height</option><option value="lwh" ' + (mode === 'lwh' ? 'selected' : '') + '>Length × Width × Height</option>');
@@ -1862,19 +1929,15 @@ const HVAC = (function () {
     const qty = { roundDuct: 'roundDuct', square: 'square', perforated: 'perforated', disc: 'disc', circular: 'circular' };
     if (qty[active]) {
       const key = qty[active];
-      if (d.size === undefined) d.size = String(H.refs[key][0]?.[0] ?? '');
-      H.saved[active] = d;
-      f = field('Size', 'size', lenU(), 'select', '<option value="custom" ' + (d.size === 'custom' ? 'selected' : '') + '>Custom</option>' + H.refs[key].map(x => '<option value="' + x[0] + '" ' + (String(d.size) === String(x[0]) ? 'selected' : '') + '>' + nice(fromMM(x[0])) + ' ' + lenU() + '</option>').join(''))
-        + field('Custom size', 'customSize', lenU(), 'number', d.customSize ?? '')
-        + field('Custom flow per unit', 'customFlow', flowU(), 'number', d.customFlow ?? '')
-        + field('Total airflow', 'flow', flowU(), 'number', d.flow ?? '');
-      ref = refTable(key, ['Size (' + lenU() + ')', 'Flow (' + flowU() + ')', ''], H.refs[key]);
+      if (d.size === 'custom') d.size = '';                    // the old Custom choice is gone
+      f = field('Size', 'size', 'mm', 'number', d.size ?? '') + field('Flow', 'flow', flowU(), 'number', d.flow ?? '');
+      ref = refTable(key, ['Size (mm)', 'Flow (' + flowU() + ')', ''], H.refs[key]);
     }
     if (active === 'linear') {
       if (d.slots === undefined) { d.slots = '2'; H.saved[active] = d; }       // the box shows 2, so use 2
-      f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Velocity', 'velocity', 'fpm', 'number', d.velocity ?? '') + field('Number of slots', 'slots', 'Nos.', 'number', d.slots ?? '2') + field('Slot width', 'slotWidth', lenU(), 'number', d.slotWidth ?? '');
+      f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Velocity', 'velocity', velU(), 'number', d.velocity ?? '') + field('Number of slots', 'slots', 'Nos.', 'number', d.slots ?? '2') + field('Slot width', 'slotWidth', lenU(), 'number', d.slotWidth ?? '');
     }
-    if (active === 'grill') f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Face velocity', 'velocity', 'fpm', 'number', d.velocity ?? '') + field('Grill width', 'width', lenU(), 'number', d.width ?? '');
+    if (active === 'grill') f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Face velocity', 'velocity', velU(), 'number', d.velocity ?? '') + field('Grill width', 'width', lenU(), 'number', d.width ?? '');
     if (active === 'gravity' || active === 'sand') {
       const key = active;
       f = field('Airflow', 'flow', flowU(), 'number', d.flow ?? '') + field('Width', 'width', lenU(), 'number', d.width ?? '');
@@ -1884,9 +1947,11 @@ const HVAC = (function () {
       const from = d.from || 'TON';
       if (d.rating !== 'COP' && d.eer === undefined) { d.eer = '10'; H.saved[active] = d; }   // the box shows 10, so use 10
       f = field('Input unit', 'from', '', 'select', selectOptions(['TON', 'BTU', 'CFM', 'L/S', 'kW'], from))
-        + field('Input capacity', 'value', from, 'number', d.value ?? '')
+        + field('Input capacity', 'value', from, 'number', d.value ?? '');
+      pw = '<section class="card"><h2 class="section-title">Electrical Power</h2>'
         + field('Power rating method', 'rating', '', 'select', selectOptions(['EER', 'COP'], d.rating || 'EER'))
-        + (d.rating === 'COP' ? field('COP', 'cop', '', 'number', d.cop ?? '') : field('EER', 'eer', '', 'number', d.eer ?? '10'));
+        + (d.rating === 'COP' ? field('COP', 'cop', '', 'number', d.cop ?? '') : field('EER', 'eer', '', 'number', d.eer ?? '10'))
+        + '</section><section class="card res" id="hv-power"></section>';
       ref = '<details class="card reference"><summary>Conversion reference factors · Edit values</summary><div class="table-wrap"><table class="refedit"><thead><tr><th>Unit</th><th>Equivalent per TON</th></tr></thead><tbody>' + Object.entries(H.refs.ac).map(([k, n]) => '<tr><td>' + k + '</td><td><input type="number" step="any" data-acref="' + k + '" value="' + n + '"></td></tr>').join('') + '</tbody></table></div><div class="btnrow"><button type="button" class="secondary" data-resetref="ac">Restore Default</button></div></details>';
     }
     if (active === 'ybranch') f = field('Main branch width', 'mainWidth', lenU(), 'number', d.mainWidth ?? '') + field('Small branch flow', 'smallFlow', flowU(), 'number', d.smallFlow ?? '') + field('Main branch flow', 'mainFlow', flowU(), 'number', d.mainFlow ?? '');
@@ -1900,7 +1965,7 @@ const HVAC = (function () {
     }
     box.innerHTML = '<section class="card"><h2 class="section-title">Inputs</h2>' + f
       + '<div class="row"><label class="lbl">Decimal places</label><select id="hv-dp" style="grid-column:span 2">' + [0, 1, 2, 3, 4].map(n => '<option ' + (n === H.dp ? 'selected' : '') + '>' + n + '</option>').join('') + '</select></div></section>'
-      + '<section class="card res" id="hv-results"></section>'
+      + '<section class="card res" id="hv-results"></section>' + pw
       + '<details class="card formula"><summary>Calculation formula</summary><div class="formula-body" id="hv-formula">Enter valid inputs to see the calculation.</div></details>' + ref;
     if (refWasOpen) { const r = box.querySelector('details.reference'); if (r) r.open = true; }
     $('#hv-dp').addEventListener('change', e => { H.dp = +e.target.value; persist(); calculate(); });
@@ -1922,7 +1987,7 @@ const HVAC = (function () {
       else if (el.dataset.f === 'freeArea') arr[i].freeArea = +el.value;
       else if (+el.dataset.f === 0) {
         // a size changed: the chosen size follows it, and the Size list is drawn again
-        const old = arr[i][0], d = H.saved[el.dataset.ref]; arr[i][0] = toMM(+el.value);
+        const old = arr[i][0], d = H.saved[el.dataset.ref]; arr[i][0] = sizeIn(el.dataset.ref, +el.value);
         if (d && String(d.size) === String(old)) d.size = String(arr[i][0]);
         persist(); render(); return;
       }
@@ -1961,22 +2026,22 @@ const HVAC = (function () {
     }
     const qty = { roundDuct: 'roundDuct', square: 'square', perforated: 'perforated', disc: 'disc', circular: 'circular' };
     if (qty[active]) {
-      const key = qty[active], size = d.size === 'custom' ? toMM(num('customSize')) : Number(d.size),
-        per = d.size === 'custom' ? toLS(num('customFlow')) : (H.refs[key].find(x => Math.abs(x[0] - size) < 1e-6) || [])[1],
-        flow = toLS(num('flow')), q = flow / per;
-      out = [result('Standard flow per unit', fmt(fromLS(per)), flowU()), result('Required quantity', Number.isFinite(q) ? String(Math.ceil(q)) : '—', 'Nos.')];
-      fm = 'Required quantity = ROUNDUP(Total airflow ÷ Standard flow per unit, 0). Standard flow is looked up from the editable size table.';
+      const key = qty[active], size = num('size'), row = Number.isFinite(size) ? H.refs[key].find(x => Math.abs(x[0] - size) < 1e-6) : null,
+        flow = toLS(num('flow')), q = row ? flow / row[1] : NaN;
+      if (Number.isFinite(size) && !row) out = ['<div class="rl big"><span>Qty</span><span><b class="red">Not Standard size</b></span></div>'];
+      else out = ['<div class="rl big"><span>Qty</span><span><b class="blue">' + (Number.isFinite(q) && q > 0 ? String(Math.ceil(q - 1e-9)) : '—') + '</b><i>Nos.</i></span></div>'];
+      fm = 'Qty = ROUNDUP(Flow ÷ Flow per unit of the size, 0). The flow per unit of each size is in the reference table below.';
     }
     if (active === 'linear') {
-      const q = toLS(num('flow')) * 2.1189, vel = num('velocity'), slots = num('slots'), slot = toMM(num('slotWidth'));
+      const q = toLS(num('flow')) * 2.1189, vel = toFPM(num('velocity')), slots = num('slots'), slot = toMM(num('slotWidth'));
       const length = (((q / vel) * 144) / slots) / (slot / 25.4) * 0.0254;   // free area per slot (in²) ÷ slot width (in) = length (in), then to m
       out = [result('Required length', fmt(unit === 'si' ? length : length * 3.280839895), unit === 'si' ? 'm' : 'ft')];
-      fm = LINEAR_FX + '.';
+      fm = LINEAR_FX + '.' + (unit === 'si' ? ' Velocity (fpm) = Velocity (m/s) ÷ 0.00508.' : '');
     }
     if (active === 'grill') {
-      const q = toLS(num('flow')) * 2.1189, vel = num('velocity'), w = toMM(num('width')), h = ((q / vel) / 10.76391) / (w / 1000) * 1000;
+      const q = toLS(num('flow')) * 2.1189, vel = toFPM(num('velocity')), w = toMM(num('width')), h = ((q / vel) / 10.76391) / (w / 1000) * 1000;
       out = [result('Required height', fmt(fromMM(h)), lenU())];
-      fm = 'Height (mm) = (((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) ÷ 10.76391) ÷ (Width (mm) ÷ 1000) × 1000.';
+      fm = 'Height (mm) = (((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) ÷ 10.76391) ÷ (Width (mm) ÷ 1000) × 1000.' + (unit === 'si' ? ' Velocity (fpm) = Velocity (m/s) ÷ 0.00508.' : '');
     }
     if (active === 'gravity' || active === 'sand') {
       const ref = H.refs[active][0] || {}, q = toLS(num('flow')), w = toMM(num('width')), h = (q * 1000) / (ref.velocity * ref.freeArea * w);
@@ -1985,11 +2050,12 @@ const HVAC = (function () {
     }
     if (active === 'ac') {
       const unitIn = d.from || 'TON', factor = H.refs.ac[unitIn], ton = num('value') / factor;
-      out = Object.entries(H.refs.ac).map(([u, k]) => result(u, fmt(ton * k), ''));
+      const AC_LBL = { TON: 'Ton', kW: 'Cooling kW' };
+      out = Object.entries(H.refs.ac).map(([u, k]) => result(AC_LBL[u] || u, fmt(ton * k), ''));
       // cooling capacity from the same (editable) table: kW per TON for COP, BTU/h per TON for EER
       const kwPerTon = Number.isFinite(H.refs.ac.kW) && H.refs.ac.kW > 0 ? H.refs.ac.kW : 3.517, btuPerTon = Number.isFinite(H.refs.ac.BTU) && H.refs.ac.BTU > 0 ? H.refs.ac.BTU : 12000;
       const power = d.rating === 'COP' ? (ton * kwPerTon) / num('cop') : (ton * btuPerTon / num('eer') / 1000);
-      out.push(result('Electrical power', fmt(power), 'kW'));
+      const pr = $('#hv-power'); if (pr) pr.innerHTML = '<div class="rl big"><span>Electrical Power</span><span><b class="blue">' + fmt(power) + '</b><i>kW</i></span></div>';
       fm = 'Equivalent TON = Input capacity ÷ selected unit factor. Converted capacity = TON × target unit factor. Electrical power (kW) = Cooling capacity (kW) ÷ COP. For EER: BTU/h ÷ EER ÷ 1000.';
     }
     if (active === 'ybranch') {
@@ -2001,8 +2067,11 @@ const HVAC = (function () {
       const a = d.areas || [], areasSI = a.map(x => Number(x) * (unit === 'si' ? 1 : .09290304)),
         sum = areasSI.reduce((x, y) => x + (Number.isFinite(y) && y > 0 ? y : 0), 0), total = toLS(num('totalFlow'));
       out.push(result('Total area', fmt(fromM2(sum)), areaU()));
-      areasSI.forEach((x, i) => { if (x > 0 && sum > 0) { out.push(result('Area ' + (i + 1) + ' ratio', fmt(x / sum * 100), '%')); out.push(result('Area ' + (i + 1) + ' airflow', fmt(fromLS(total * x / sum)), flowU())); } });
-      out.push(result('Allocated total', fmt(fromLS(total)), flowU()));
+      const rows = [];
+      areasSI.forEach((x, i) => { if (x > 0 && sum > 0) rows.push('<tr><td>Area ' + (i + 1) + '</td><td>' + fmt(x / sum * 100) + '</td><td>' + fmt(fromLS(total * x / sum)) + '</td></tr>'); });
+      out.push('<div class="table-wrap"><table class="hv-at"><thead><tr><th>Area</th><th>Ratio (%)</th><th>Airflow (' + flowU() + ')</th></tr></thead><tbody>'
+        + (rows.join('') || '<tr><td colspan="3" class="hint">Enter the areas to see the ratio.</td></tr>')
+        + '</tbody><tfoot><tr><td>Total</td><td>' + (sum > 0 ? fmt(100) : '—') + '</td><td>' + fmt(fromLS(total)) + '</td></tr></tfoot></table></div>');
       fm = 'Area ratio (%) = Individual area ÷ Sum of all areas × 100. Airflow to each area = Total airflow × Individual area ÷ Sum of all areas.';
     }
     const res = $('#hv-results'); if (!res) return;
@@ -2016,8 +2085,9 @@ const HVAC = (function () {
     const next = to, len = next === 'ip' ? 1 / 25.4 : 25.4, flow = next === 'ip' ? 2.1188799728 : 1 / 2.1188799728, area = next === 'ip' ? 10.7639104167 : 1 / 10.7639104167;
     for (const [id, d] of Object.entries(H.saved)) {
       for (const k of ['flow', 'customFlow', 'smallFlow', 'mainFlow', 'totalFlow']) if (d[k] !== undefined && d[k] !== '') d[k] = String(+d[k] * flow);
-      for (const k of ['customSize', 'slotWidth', 'mainWidth']) if (d[k] !== undefined && d[k] !== '') d[k] = String(+d[k] * len);
+      for (const k of ['slotWidth', 'mainWidth']) if (d[k] !== undefined && d[k] !== '') d[k] = String(+d[k] * len);
       if (id !== 'ach' && d.width !== undefined && d.width !== '') d.width = String(+d.width * len);
+      if ((id === 'linear' || id === 'grill') && d.velocity !== undefined && d.velocity !== '') d.velocity = String(Math.round(+d.velocity * (next === 'ip' ? 1 / .00508 : .00508) * 1e4) / 1e4);
       for (const k of ['floorArea']) if (d[k] !== undefined && d[k] !== '') d[k] = String(+d[k] * area);
       if (id === 'ach') {
         for (const k of ['length', 'width', 'height']) if (d[k] !== undefined && d[k] !== '') d[k] = String(+d[k] * (next === 'ip' ? 3.280839895 : .3048));
@@ -2222,6 +2292,315 @@ const CONV = (function () {
 })();
 
 
+/* ---------- Electrical and Misc tools (state is kept in S.x2; these tools have no Metric / IP) ---------- */
+const X2 = (function () {
+  const DEF = () => ({
+    amp: { kw: '', v3: '400', v1: '230', pf: '0.8' },
+    cable: { kw: '' },
+    db: { loads: ['', '', ''], df: '0.85' },
+    pct: { total: '', p: '', val: '', p2: '' },
+    car: { start: '', end: '', ltr: '' },
+    paper: { from: 'A0', to: 'A1' },
+    tv: { d: '' },
+    acarea: { u: 'mm²', areas: ['', '', ''], k: '15.75' },     // k is always L/s per m²
+    rebal: { mOld: '', mNew: '', br: ['', '', ''] },
+    spk: { type: '1/2', qty: '' }
+  });
+  const X = S.x2 = DEF();
+  (function loadSaved() {
+    try {
+      const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); const x = r && r.x2; if (!x || typeof x !== 'object') return;
+      Object.keys(X).forEach(k => {
+        if (!x[k] || typeof x[k] !== 'object') return;
+        Object.keys(X[k]).forEach(f => {
+          const v = x[k][f];
+          if (Array.isArray(X[k][f])) { if (Array.isArray(v) && v.length) X[k][f] = v.map(s => typeof s === 'string' ? s : ''); }
+          else if (typeof v === 'string') X[k][f] = v;
+        });
+      });
+    } catch (e) {}
+  })();
+
+  const n = s => (s === undefined || s === null || String(s).trim() === '') ? NaN : Number(s);   // an empty box is "no value", not 0
+  const f2 = (x, dp) => Number.isFinite(x) ? x.toLocaleString('en-US', { minimumFractionDigits: dp === undefined ? 2 : dp, maximumFractionDigits: dp === undefined ? 2 : dp }) : '—';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const field = (label, key, unitTxt, value, small) => '<div class="row"><label class="lbl">' + label + (small ? '<small>' + small + '</small>' : '') + '</label><input type="number" step="any" inputmode="decimal" class="num" data-x="' + key + '" value="' + esc(value) + '"><span class="unit">' + (unitTxt || '') + '</span></div>';
+  const sel = (label, key, list, value) => '<div class="row"><label class="lbl">' + label + '</label><select data-x="' + key + '" style="grid-column:span 2">' + list.map(o => '<option' + (o === value ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></div>';
+  const rl = (label, val, u, cls) => '<div class="rl' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><span><b class="blue">' + val + '</b><i>' + (u || '') + '</i></span></div>';
+  const card = (title, body) => '<section class="card">' + (title ? '<h2 class="section-title">' + title + '</h2>' : '') + body + '</section>';
+  const formula = t => '<details class="card formula"><summary>Calculation formula</summary><div class="formula-body">' + t + '</div></details>';
+  const tbl = (heads, rows, hi) => '<div class="table-wrap"><table class="x2t"><thead><tr>' + heads.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+    rows.map((r, i) => '<tr' + (i === hi ? ' class="hi"' : '') + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+
+  /* every tool: draw() writes the page, calc() fills the results; inputs carry data-x="field" and write into X[tool] */
+  function bind(view, key, calc) {
+    view.querySelectorAll('[data-x]').forEach(el => {
+      const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => { X[key][el.dataset.x] = el.value; save(); calc(); });
+    });
+    calc();
+  }
+
+  /* ----- Electrical: kW to Amp ----- */
+  function amp(view) {
+    const d = X.amp;
+    view.innerHTML = '<div class="tool-x">' +
+      card('Input', field('Power', 'kw', 'kW', d.kw)) +
+      '<section class="card res" id="x-res"></section>' +
+      card('Settings', field('3 Phase voltage', 'v3', 'V', d.v3) + field('1 Phase voltage', 'v1', 'V', d.v1) + field('Power factor', 'pf', 'PF', d.pf)) +
+      formula('3 Phase: Amp = kW × 1000 ÷ (√3 × Voltage × PF)<br>1 Phase: Amp = kW × 1000 ÷ (Voltage × PF)') + '</div>';
+    bind(view, 'amp', () => {
+      const kw = n(d.kw), v3 = n(d.v3), v1 = n(d.v1), pf = n(d.pf), ok = kw >= 0 && pf > 0 && pf <= 1;
+      const a3 = ok && v3 > 0 ? kw * 1000 / (Math.sqrt(3) * v3 * pf) : NaN, a1 = ok && v1 > 0 ? kw * 1000 / (v1 * pf) : NaN;
+      $('#x-res').innerHTML = rl('3 Phase (' + (v3 > 0 ? v3 : '—') + ' V)', f2(a3), 'Amp', 'big') + rl('1 Phase (' + (v1 > 0 ? v1 : '—') + ' V)', f2(a1), 'Amp', 'big') +
+        (pf > 1 || pf <= 0 ? '<p class="hint red">Power factor must be more than 0 and not more than 1.</p>' : '');
+    });
+  }
+
+  /* ----- Electrical: Cable size by kW (Electrical Rating table) ----- */
+  const RATING = [   // [kW up to (inclusive, except the first row which is below 10), kW text, Amp (TP), cable size]
+    [9.999, 'Below 10', '20 - 40', '4C × 4 mm² + 1C × 4 mm²'], [10, '10', '32 - 40', '4C × 6 mm² + 1C × 6 mm²'], [20, '11 - 20', '40', '4C × 10 mm² + 1C × 10 mm²'],
+    [30, '21 - 30', '63', '4C × 16 mm² + 1C × 16 mm²'], [40, '31 - 40', '80', '4C × 25 mm² + 1C × 16 mm²'], [50, '41 - 50', '100', '4C × 35 mm² + 1C × 16 mm²'],
+    [60, '51 - 60', '125', '4C × 50 mm² + 1C × 25 mm²'], [80, '61 - 80', '160', '4C × 70 mm² + 1C × 35 mm²'], [100, '81 - 100', '200', '4C × 95 mm² + 1C × 50 mm²'],
+    [120, '101 - 120', '225', '4C × 120 mm² + 1C × 70 mm²'], [125, '121 - 125', '250', '4C × 150 mm² + 1C × 70 mm²'], [150, '126 - 150', '300', '4C × 185 mm² + 1C × 95 mm²'],
+    [175, '151 - 175', '350', '4C × 240 mm² + 1C × 120 mm²'], [200, '176 - 200', '400', '4C × 300 mm² + 1C × 150 mm²']
+  ];
+  function cable(view) {
+    const d = X.cable;
+    view.innerHTML = '<div class="tool-x">' + card('Input', field('Load', 'kw', 'kW', d.kw)) +
+      '<section class="card res" id="x-res"></section><details class="card x2more"><summary>Electrical Rating table</summary><div id="x-tbl" style="margin-top:10px"></div></details></div>';
+    bind(view, 'cable', () => {
+      const kw = n(d.kw); let i = -1;
+      if (kw > 0) i = kw < 10 ? 0 : RATING.findIndex((r, k) => k > 0 && kw <= r[0]);
+      $('#x-res').innerHTML = !(kw > 0) ? '<span class="hint">Enter the load to see the rating.</span>'
+        : i < 0 ? '<div class="rl big"><span>Rating</span><span><b class="red">Above 200 kW (not in table)</b></span></div>'
+        : rl('Amp (TP)', RATING[i][2], 'A', 'big') + rl('Cable size', RATING[i][3], '', 'big');
+      $('#x-tbl').innerHTML = tbl(['kW', 'Amp (TP)', 'Cable size'], RATING.map(r => [r[1], r[2], r[3]]), i);
+    });
+  }
+
+  /* ----- Electrical: DB load with diversity factor ----- */
+  function db(view) {
+    const d = X.db;
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card("DB's load", d.loads.map((v, i) => field('DB ' + (i + 1), 'L' + i, 'kW', v)).join('') +
+          '<div class="btnrow"><button type="button" class="secondary" id="x-add">+ Add DB</button><button type="button" class="secondary" id="x-del">− Delete Last DB</button></div>' +
+          field('Diversity factor', 'df', 'DF', d.df)) +
+        '<section class="card res" id="x-res"></section>' + formula('Total = Sum of all DB loads.<br>Total @DF = Total × Diversity factor.') + '</div>';
+      view.querySelectorAll('[data-x]').forEach(el => el.addEventListener('input', () => {
+        const k = el.dataset.x; if (k[0] === 'L') d.loads[+k.slice(1)] = el.value; else d.df = el.value; save(); calc();
+      }));
+      $('#x-add').onclick = () => { d.loads.push(''); save(); draw(); };
+      $('#x-del').onclick = () => { if (d.loads.length > 1) { d.loads.pop(); save(); draw(); } };
+      calc();
+    };
+    const calc = () => {
+      const tot = d.loads.reduce((s, v) => s + (n(v) > 0 ? n(v) : 0), 0), df = n(d.df), has = d.loads.some(v => n(v) > 0);
+      $('#x-res').innerHTML = rl('Total load', has ? f2(tot) : '—', 'kW', 'big') + rl('Total @DF' + (df > 0 ? ' (' + df + ')' : ''), has && df > 0 ? f2(tot * df) : '—', 'kW', 'big');
+    };
+    draw();
+  }
+
+  /* ----- Misc: Percentage ----- */
+  function pct(view) {
+    const d = X.pct;
+    view.innerHTML = '<div class="tool-x">' +
+      card('Reverse %', field('Total (with %)', 'total', '', d.total) + field('Percent', 'p', '%', d.p) + '<div class="res" id="x-r1"></div>') +
+      card('Add / Less %', field('Value', 'val', '', d.val) + field('Percent', 'p2', '%', d.p2) + '<div class="res" id="x-r2"></div>') +
+      formula('Reverse %: Amount = Total ÷ (1 + Percent ÷ 100), % Amount = Total − Amount.<br>Add %: Value + (Value × Percent ÷ 100). Less %: Value − (Value × Percent ÷ 100).') + '</div>';
+    bind(view, 'pct', () => {
+      const t = n(d.total), p = n(d.p), a = t / (1 + p / 100), ok = Number.isFinite(t) && Number.isFinite(p) && p > -100;
+      $('#x-r1').innerHTML = rl('Amount (without %)', ok ? f2(a) : '—', '', 'big') + rl('% Amount', ok ? f2(t - a) : '—', '');
+      const v = n(d.val), q = n(d.p2), ok2 = Number.isFinite(v) && Number.isFinite(q), pa = v * q / 100;
+      $('#x-r2').innerHTML = rl('Value + %', ok2 ? f2(v + pa) : '—', '', 'big') + rl('Value − %', ok2 ? f2(v - pa) : '—', '', 'big') + rl('% Amount', ok2 ? f2(pa) : '—', '');
+    });
+  }
+
+  /* ----- Misc: Car average ----- */
+  function car(view) {
+    const d = X.car;
+    const si = S.units !== 'ip', dU = si ? 'km' : 'mile', fU = si ? 'Ltr.' : 'US gal';
+    view.innerHTML = '<div class="tool-x">' + card('Input', field('Start', 'start', dU, d.start) + field('End', 'end', dU, d.end) + field('Fuel', 'ltr', fU, d.ltr)) +
+      '<section class="card res" id="x-res"></section>' + formula(si ? 'Distance (km) = End − Start.<br>Average (km/L) = km ÷ Litres.<br>L/100 km = Litres ÷ km × 100.'
+        : 'Distance (mile) = End − Start.<br>Average (MPG) = miles ÷ US gallons.<br>US gal/100 mile = gallons ÷ miles × 100.') + '</div>';
+    bind(view, 'car', () => {
+      const km = n(d.end) - n(d.start), l = n(d.ltr), ok = km > 0 && l > 0;
+      $('#x-res').innerHTML = rl('Distance', km > 0 ? f2(km, km % 1 ? 1 : 0) : '—', dU) + rl('Average', ok ? f2(km / l) : '—', si ? 'km/L' : 'MPG', 'big') + rl('Consumption', ok ? f2(l / km * 100) : '—', si ? 'L/100 km' : 'gal/100 mile') +
+        (Number.isFinite(km) && km <= 0 ? '<p class="hint red">End must be more than Start.</p>' : '');
+    });
+  }
+
+  /* ----- Misc: Paper size and scale ----- */
+  const PAPER = [['A0', '841 × 1189', '33.1 × 46.8'], ['A1', '594 × 841', '23.4 × 33.1'], ['A2', '420 × 594', '16.5 × 23.4'], ['A3', '297 × 420', '11.7 × 16.5'], ['A4', '210 × 297', '8.3 × 11.7'], ['A5', '148 × 210', '5.8 × 8.3']];
+  function paper(view) {
+    const d = X.paper, names = PAPER.map(p => p[0]);
+    view.innerHTML = '<div class="tool-x">' + card('Page size scale', sel('From', 'from', names, d.from) + sel('To', 'to', names, d.to) + '<div class="res" id="x-res"></div>') +
+      card('A type paper sizes', S.units === 'ip' ? tbl(['Size', 'Width × Height (inch)'], PAPER.map(p => [p[0], p[2]])) : tbl(['Size', 'Width × Height (mm)'], PAPER.map(p => [p[0], p[1]]))) +
+      formula('Each A size is half of the size above it, so one step changes the length by √2.<br>Scale = (1 ÷ √2) ^ (steps down), e.g. A0 to A1 = 0.7071, A0 to A2 = 0.5, A1 to A0 = 1.4142.') + '</div>';
+    bind(view, 'paper', () => {
+      const s = Math.pow(Math.SQRT1_2, names.indexOf(d.to) - names.indexOf(d.from));
+      $('#x-res').innerHTML = rl('Scale (decimal)', f2(s, 4), '', 'big') + rl('Rounded', f2(s, 2), '') + rl('Print scale', f2(s * 100), '%', 'big');
+    });
+  }
+
+  /* ----- Misc: TV size (16:9) ----- */
+  const TV = [32, 43, 49, 50, 55, 65, 75, 77, 85];
+  const w = x => x * 16 / Math.hypot(16, 9), h = x => x * 9 / Math.hypot(16, 9);   // 16:9 screen width and height from the diagonal
+  function tv(view) {
+    const d = X.tv, si = S.units !== 'ip';
+    view.innerHTML = '<div class="tool-x">' + card('Input', field('Screen size (diagonal)', 'd', 'inch', d.d)) + '<section class="card res" id="x-res"></section>' +
+      card('TV sizes (16:9)', si ? tbl(['Size (inch)', 'Width (mm)', 'Height (mm)'], TV.map(x => [x + '"', f2(w(x) * 25.4, 0), f2(h(x) * 25.4, 0)]))
+        : tbl(['Size (inch)', 'Width (inch)', 'Height (inch)'], TV.map(x => [x + '"', f2(w(x), 1), f2(h(x), 1)]))) +
+      formula('For a 16:9 screen: Width = Diagonal × 16 ÷ √(16² + 9²) = Diagonal × 0.8716.<br>Height = Diagonal × 9 ÷ √(16² + 9²) = Diagonal × 0.4903. 1 inch = 25.4 mm.<br>Screen size only; the TV body with frame is a little bigger.') + '</div>';
+    bind(view, 'tv', () => {
+      const x = n(d.d), ok = x > 0;
+      $('#x-res').innerHTML = si ? rl('Width', ok ? f2(w(x) * 25.4, 0) : '—', 'mm', 'big') + rl('Height', ok ? f2(h(x) * 25.4, 0) : '—', 'mm', 'big')
+        : rl('Width', ok ? f2(w(x), 1) : '—', 'inch', 'big') + rl('Height', ok ? f2(h(x), 1) : '—', 'inch', 'big');
+    });
+  }
+
+  /* ----- Misc: Symbols (Alt codes, Windows) ----- */
+  const ALT = (function () {
+    const out = [], dec = new TextDecoder('windows-1252');
+    for (let c = 128; c <= 255; c++) {
+      if (c === 160 || c === 173) continue;                 // no-break space and soft hyphen cannot be seen
+      const ch = dec.decode(new Uint8Array([c]));
+      if (ch.charCodeAt(0) >= 0x80 && ch.charCodeAt(0) <= 0x9f) continue;   // the five unused codes (0129, 0141, 0143, 0144, 0157)
+      out.push(['0' + c, ch]);
+    }
+    return out;
+  })();
+  const COMMON = ['0216', '0248', '0176', '0178', '0179', '0177', '0181', '0215', '0247', '0189', '0188', '0190', '0183', '0185', '0137', '0128', '0163', '0169', '0174', '0153', '0149', '0150', '0151', '0167', '0182', '0171', '0187'];
+  function symbols(view) {
+    const box = (code, ch) => '<button type="button" class="x2sym" data-ch="' + esc(ch) + '" aria-label="Copy ' + esc(ch) + ' (Alt+' + code + ')"><b>' + esc(ch) + '</b><small>Alt+' + code + '</small></button>';
+    const map = Object.fromEntries(ALT);
+    view.innerHTML = '<div class="tool-x">' +
+      '<section class="card"><p class="hint" style="margin:0">Tap a symbol to copy it. In Excel or Word on Windows, hold Alt and type the code on the number pad.</p></section>' +
+      card('Most used', '<div class="x2grid">' + COMMON.map(c => box(c, map[c])).join('') + '</div>') +
+      card('All Alt codes (0128 – 0255)', '<div class="x2grid">' + ALT.map(a => box(a[0], a[1])).join('') + '</div>') + '</div>';
+    view.querySelectorAll('.x2sym').forEach(b => b.addEventListener('click', () => copy(b.dataset.ch, b)));
+  }
+  function copy(t, btn) {
+    const done = () => { toast('Copied  ' + t); btn.classList.add('ok'); setTimeout(() => btn.classList.remove('ok'), 700); };
+    const old = () => { try { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); done(); } catch (e) { toast('Copy is not allowed here'); } };
+    try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, old); else old(); } catch (e) { old(); }
+  }
+  let tt = 0;
+  function toast(t) {
+    let el = $('#x2toast'); if (!el) { el = document.createElement('div'); el.id = 'x2toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 1300);
+  }
+
+
+  /* ----- HVAC: AC flow by area (thumb rule, 1 m² = 15.75 L/s) ----- */
+  const CFMFT2 = 2.1188799728 / 10.7639104167;          // 1 L/s per m² = 0.19685 CFM per ft²
+  function acarea(view) {
+    const d = X.acarea, si = S.units !== 'ip';
+    if (!si) d.u = 'ft²'; else if (d.u === 'ft²') d.u = 'mm²';
+    const toM2 = v => d.u === 'mm²' ? v / 1e6 : d.u === 'm²' ? v : v / 10.7639104167, flowU = si ? 'L/s' : 'CFM';
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Input', (si ? sel('Area unit', 'u', ['mm²', 'm²'], d.u) : '') + d.areas.map((v, i) => field('Area ' + (i + 1), 'A' + i, d.u, v)).join('') +
+          '<div class="btnrow"><button type="button" class="secondary" id="x-add">+ Add Area</button><button type="button" class="secondary" id="x-del">− Delete Last Area</button></div>' +
+          field('Flow per area', 'k', si ? 'L/s per m²' : 'CFM per ft²', si ? d.k : String(Number((n(d.k) * CFMFT2).toPrecision(6))))) +
+        '<section class="card res" id="x-res"></section>' +
+        formula(si ? 'Area (m²) = Area (mm²) ÷ 1,000,000.<br>Air flow (L/s) = Area (m²) × Flow per area (thumb rule: 1 m² = 15.75 L/s).'
+          : 'Air flow (CFM) = Area (ft²) × Flow per area (thumb rule: 15.75 L/s per m² = 3.10 CFM per ft²).') + '</div>';
+      view.querySelectorAll('[data-x]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+        const k = el.dataset.x;
+        if (k === 'u') {   // mm² <-> m²: the typed areas follow the unit
+          const f = d.u === 'mm²' && el.value === 'm²' ? 1e-6 : d.u === 'm²' && el.value === 'mm²' ? 1e6 : 1;
+          d.areas = d.areas.map(v => Number.isFinite(n(v)) ? String(Number((n(v) * f).toPrecision(12))) : v); d.u = el.value; save(); draw(); return;
+        }
+        if (k === 'k') d.k = si ? el.value : (n(el.value) > 0 ? String(n(el.value) / CFMFT2) : el.value);
+        else d.areas[+k.slice(1)] = el.value;
+        save(); calc();
+      }));
+      $('#x-add').onclick = () => { d.areas.push(''); save(); draw(); };
+      $('#x-del').onclick = () => { if (d.areas.length > 1) { d.areas.pop(); save(); draw(); } };
+      calc();
+    };
+    const calc = () => {
+      const k = n(d.k), rows = [];
+      let tA = 0, tQ = 0;
+      d.areas.forEach((v, i) => { const a = n(v); if (a > 0) { const m2 = toM2(a), q = m2 * k; tA += m2; tQ += q;
+        rows.push(['Area ' + (i + 1), f2(si ? m2 : m2 * 10.7639104167), k > 0 ? f2(si ? q : q * 2.1188799728) : '—']); } });
+      $('#x-res').innerHTML = rows.length ? tbl(['Area', 'Area (' + (si ? 'm²' : 'ft²') + ')', 'Air flow (' + flowU + ')'], rows.concat([['<b>Total</b>', '<b>' + f2(si ? tA : tA * 10.7639104167) + '</b>', '<b>' + (k > 0 ? f2(si ? tQ : tQ * 2.1188799728) : '—') + '</b>']]))
+        + (k > 0 ? '' : '<p class="hint red">Flow per area must be more than 0.</p>') : '<span class="hint">Enter the areas to see the air flow.</span>';
+    };
+    draw();
+  }
+
+  /* ----- HVAC: Flow rebalance (old main flow -> new main flow, every branch by the same ratio) ----- */
+  function rebal(view) {
+    const d = X.rebal, si = S.units !== 'ip', u = si ? 'L/s' : 'CFM';
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Main', field('Old main flow', 'mOld', u, d.mOld) + field('New main flow', 'mNew', u, d.mNew)) +
+        card('Branches (old flow)', d.br.map((v, i) => field('Branch ' + (i + 1), 'B' + i, u, v)).join('') +
+          '<div class="btnrow"><button type="button" class="secondary" id="x-add">+ Add Branch</button><button type="button" class="secondary" id="x-del">− Delete Last Branch</button></div>') +
+        '<section class="card res" id="x-res"></section>' +
+        formula('Ratio = New main flow ÷ Old main flow.<br>New branch flow = Old branch flow × Ratio.<br>Remain = Main flow − Total of branches (old and new).') + '</div>';
+      view.querySelectorAll('[data-x]').forEach(el => el.addEventListener('input', () => {
+        const k = el.dataset.x; if (k[0] === 'B') d.br[+k.slice(1)] = el.value; else d[k] = el.value; save(); calc();
+      }));
+      $('#x-add').onclick = () => { d.br.push(''); save(); draw(); };
+      $('#x-del').onclick = () => { if (d.br.length > 1) { d.br.pop(); save(); draw(); } };
+      calc();
+    };
+    const calc = () => {
+      const o = n(d.mOld), w = n(d.mNew), r = o > 0 && w >= 0 ? w / o : NaN, rows = [];
+      let tO = 0, tN = 0;
+      d.br.forEach((v, i) => { const b = n(v); if (b >= 0 && String(v).trim() !== '') { tO += b; tN += b * r; rows.push(['Branch ' + (i + 1), f2(b), f2(b * r)]); } });
+      $('#x-res').innerHTML = rl('Ratio (New ÷ Old)', Number.isFinite(r) ? f2(r, 4) : '—', '', 'big') +
+        (rows.length ? tbl(['Branch', 'Old (' + u + ')', 'New (' + u + ')'], rows.concat([['<b>Total</b>', '<b>' + f2(tO) + '</b>', '<b>' + f2(Number.isFinite(r) ? tN : NaN) + '</b>'],
+          ['<b>Remain</b>', '<b>' + f2(o - tO) + '</b>', '<b>' + f2(Number.isFinite(r) ? w - tN : NaN) + '</b>']])) : '') +
+        (Number.isFinite(o) && !(o > 0) ? '<p class="hint red">Old main flow must be more than 0.</p>' : '');
+    };
+    draw();
+  }
+
+  /* ----- Plumbing: Sprinkler pipe size (pipe schedule: most sprinklers one pipe size can feed) ----- */
+  const SPK = [   // [DN mm, inch, max ½" sprinklers, max 1" sprinklers (0 = not allowed)]
+    [25, '1', 2, 1], [32, '1¼', 3, 0], [40, '1½', 5, 2], [50, '2', 10, 5], [65, '2½', 30, 15], [80, '3', 60, 30], [100, '4', 100, 50], [150, '6', Infinity, Infinity]
+  ];
+  const spkMax = (r, col) => r[col] === Infinity ? (col === 2 ? 'Above 100' : 'Above 50') : r[col] === 0 ? 'NA' : String(r[col]);
+  function spk(view) {
+    const d = X.spk, si = S.units !== 'ip', size = r => si ? r[0] + ' mm' : r[1] + '"';
+    view.innerHTML = '<div class="tool-x">' + card('Input', sel('Sprinkler', 'type', ['1/2', '1'], d.type).replace('>1/2<', '>½" sprinkler<').replace('>1<', '>1" sprinkler<') +
+        field('No. of sprinklers', 'qty', 'Nos.', d.qty)) +
+      '<section class="card res" id="x-res"></section><details class="card x2more"><summary>Sprinkler pipe size table</summary><div id="x-tbl" style="margin-top:10px"></div></details>' +
+      formula('Pipe size = the smallest pipe in the table that can feed the number of sprinklers.<br>For 1" sprinklers the 32 mm (1¼") pipe is not used (NA), so the next size is taken.') + '</div>';
+    const s = view.querySelector('[data-x="type"]'); s.options[0].value = '1/2'; s.options[1].value = '1'; s.value = d.type;
+    bind(view, 'spk', () => {
+      const q = n(d.qty), col = d.type === '1' ? 3 : 2, ok = q > 0 && Number.isInteger(q);
+      const i = ok ? SPK.findIndex(r => r[col] > 0 && q <= r[col]) : -1;
+      $('#x-res').innerHTML = !Number.isFinite(q) ? '<span class="hint">Enter the number of sprinklers.</span>'
+        : !ok ? '<p class="hint red">Enter a whole number of sprinklers (1 or more).</p>'
+        : rl('Pipe size', size(SPK[i]), '', 'big') + rl(si ? 'Pipe size (inch)' : 'Pipe size (DN)', si ? SPK[i][1] + '"' : 'DN ' + SPK[i][0], '');
+      $('#x-tbl').innerHTML = tbl(['Pipe ' + (si ? '(mm)' : '(inch)'), '½" sprinkler (max)', '1" sprinkler (max)'], SPK.map(r => [size(r), spkMax(r, 2), spkMax(r, 3)]), i);
+    });
+  }
+  /* Metric <-> IP: Car Average keeps the typed values in step (km <-> mile, litre <-> US gallon) */
+  function convert(from, to) {
+    if (from === to) return;
+    const k = to === 'ip' ? 1 / 1.609344 : 1.609344, g = to === 'ip' ? 1 / 3.785411784 : 3.785411784;
+    const cv = (v, f) => { const x = n(v); return Number.isFinite(x) ? String(Number((x * f).toPrecision(12))) : v; };
+    X.car.start = cv(X.car.start, k); X.car.end = cv(X.car.end, k); X.car.ltr = cv(X.car.ltr, g);
+    const q = to === 'ip' ? 2.1188799728 : 1 / 2.1188799728, a = to === 'ip' ? 10.7639104167 : 1 / 10.7639104167;
+    X.rebal.mOld = cv(X.rebal.mOld, q); X.rebal.mNew = cv(X.rebal.mNew, q); X.rebal.br = X.rebal.br.map(v => cv(v, q));
+    // AC Flow by Area: Metric may be in mm² or m²; IP is ft²
+    const fromM2 = X.acarea.u === 'mm²' ? 1e-6 : 1;
+    X.acarea.areas = X.acarea.areas.map(v => to === 'ip' ? cv(v, fromM2 * 10.7639104167) : cv(v, 1 / 10.7639104167 * 1e6));
+    X.acarea.u = to === 'ip' ? 'ft²' : 'mm²';
+  }
+  const MOUNT = { acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
+  function mount(id) { return view => MOUNT[id](view); }
+  function clear(id) { const d = DEF(); if (d[id]) { X[id] = d[id]; save(); } }
+  return { mount: mount, clear: clear, convert: convert, data: { SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
+})();
+
 /* ---------- categories and tools (add new tools here) ----------
    A category holds a list of tools. To add a tool, add one object to that category's "tools" list:
    { id, label, icon, actions: ['units','clear','print'], modes?: [...], mount?: fn, soon?: 'text' }
@@ -2262,8 +2641,8 @@ const LIB = (function () {
   const DIFF = [['roundDuct', 'Round Duct'], ['square', '4-Way Square Diffuser'], ['perforated', '4-Way Perforated Square Diffuser'], ['disc', 'Round Disc Valve'], ['circular', 'Circular Diffuser']];
   const diffTables = () => {
     const si = isSI(), R = HVAC.refs();
-    return DIFF.map(d => card(d[1] + ' - standard flow per unit', table(['Size ' + (si ? '(mm)' : '(in)'), 'Flow ' + (si ? '(L/s)' : '(CFM)')],
-      (R[d[0]] || []).map(r => [si ? num(r[0], 2) : num(r[0] / 25.4, 2), si ? num(r[1], 2) : num(r[1] * 2.1188799728, 2)])))).join('') +
+    return DIFF.map(d => card(d[1] + ' - standard flow per unit', table(['Size (mm)', 'Flow ' + (si ? '(L/s)' : '(CFM)')],
+      (R[d[0]] || []).map(r => [num(r[0], 2), si ? num(r[1], 2) : num(r[1] * 2.1188799728, 2)])))).join('') +
       note('These are the values saved in the HVAC calculators.');
   };
   const louverAC = () => {
@@ -2275,9 +2654,9 @@ const LIB = (function () {
   const hvacFormulas = () => {
     const si = isSI();
     return card('Air Change / Hour', fx('Required airflow', si ? 'Q (L/s) = Room volume (m³) × ACH ÷ 3.6' : 'Q (CFM) = Room volume (ft³) × ACH ÷ 60')) +
-      card('Diffuser and valve quantity', fx('Quantity', 'Qty = ROUNDUP( Total airflow ÷ Standard flow per unit )') + note('Standard flow per unit comes from the size tables.')) +
-      card('Linear Diffuser', fx('Required length', LINEAR_FX)) +
-      card('Grill Size', fx('Required height', 'Height (mm) = (((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) ÷ 10.76391) ÷ (Width (mm) ÷ 1000) × 1000')) +
+      card('Diffuser and valve quantity', fx('Quantity', 'Qty = ROUNDUP( Flow ÷ Flow per unit of the size )') + note('Flow per unit comes from the size tables. Sizes are in mm.')) +
+      card('Linear Diffuser', fx('Required length', LINEAR_FX) + (si ? note('Velocity (fpm) = Velocity (m/s) ÷ 0.00508.') : '')) +
+      card('Grill Size', fx('Required height', 'Height (mm) = (((Airflow (L/s) × 2.1189) ÷ Velocity (fpm)) ÷ 10.76391) ÷ (Width (mm) ÷ 1000) × 1000') + (si ? note('Velocity (fpm) = Velocity (m/s) ÷ 0.00508.') : '')) +
       card('Gravity Louvers and Sand Trap', fx('Required height', 'Height (mm) = [Airflow (L/s) × 1000] ÷ [Design velocity (m/s) × Free area factor × Width (mm)]')) +
       card('AC capacity', fx('Conversion', 'TON = Input capacity ÷ unit factor,  Converted = TON × target unit factor') + fx('Electrical power', 'kW = Cooling capacity (kW) ÷ COP,  or  kW = BTU/h ÷ EER ÷ 1000')) +
       card('Y Branch', fx('Small branch width', 'Small width = Main width × Small branch airflow ÷ Main branch airflow')) +
@@ -2301,17 +2680,98 @@ const LIB = (function () {
   };
   const chw = () => {
     const si = isSI(), T = CHW.table(), cap = g => si ? num(g / T.gpmPerLs, 3) : num(g, 4);
-    return card('Pipe capacity (Schedule 40 steel)', table(['Size (in)', 'Size (mm)', '@ 3', '@ 4', '@ 5'].map((h, i) => i > 1 ? h + ' ft/100 ft' : h),
+    return card('Pipe capacity (Schedule 40 steel)', table(['Size (in)', 'Size (mm)', '@ 3', '@ 4', '@ 5'].map((h, i) => i > 1 ? h + (si ? ' m/100 m' : ' ft/100 ft') : h),
       T.rows.map(r => [r['in'] + '"', r.mm, cap(r.gpm[0]), cap(r.gpm[1]), cap(r.gpm[2])])) +
-      note('Maximum flow in ' + (si ? 'L/s' : 'USGPM') + ' at the given head loss. The same head loss ratio is 3, 4 or 5 m per 100 m.')) +
-      card('Velocity at that flow', table(['Size (in)', 'Size (mm)', '@ 3', '@ 4', '@ 5'].map((h, i) => i > 1 ? h + ' ft/100 ft' : h),
+      note('Maximum flow in ' + (si ? 'L/s' : 'USGPM') + ' at the given head loss (3, 4 or 5 m per 100 m is the same ratio as 3, 4 or 5 ft per 100 ft).')) +
+      card('Velocity at that flow', table(['Size (in)', 'Size (mm)', '@ 3', '@ 4', '@ 5'].map((h, i) => i > 1 ? h + (si ? ' m/100 m' : ' ft/100 ft') : h),
         T.rows.map(r => [r['in'] + '"', r.mm].concat(r.fps.map(v => si ? num(v * 0.3048, 2) : num(v, 2))))) + note('Velocity in ' + (si ? 'm/s' : 'ft/s') + '.'));
+  };
+
+  /* ----- Electrical ----- */
+  const CABLE = [["PVC/PVC 1 core", [["1 × 1.5 re", 6.4], ["1 × 1.5 rm", 6.6], ["1 × 2.5 re", 6.8], ["1 × 2.5 rm", 7], ["1 × 4 re", 7.5], ["1 × 4 rm", 7.9], ["1 × 6 re", 8.3], ["1 × 6 rm", 8.5], ["1 × 10 re", 9], ["1 × 10 rm", 9.2], ["1 × 16 rm", 10.3], ["1 × 25 rm", 12], ["1 × 35 rm", 13.1], ["1 × 50 rm", 14.6], ["1 × 70 rm", 16.2], ["1 × 95 rm", 18.7], ["1 × 120 rm", 20.2], ["1 × 150 rm", 22.2], ["1 × 185 rm", 24.4], ["1 × 240 rm", 27.5], ["1 × 300 rm", 30.1], ["1 × 400 rm", 33.6], ["1 × 500 rm", 37.4], ["1 × 630 rm", 43.2], ["1 × 800 rm", 47.4], ["1 × 1000 rm", 53.6]]], ["PVC/PVC 2 core", [["2 × 1.5 re", 11], ["2 × 1.5 rm", 11.4], ["2 × 2.5 re", 11.8], ["2 × 2.5 rm", 12.2], ["2 × 4 re", 14], ["2 × 4 rm", 14.5], ["2 × 6 re", 15], ["2 × 6 rm", 15.2], ["2 × 10 re", 17], ["2 × 10 rm", 17.2], ["2 × 16 rm", 19.2], ["2 × 25 rm", 22.7], ["2 × 35 rm", 24.9], ["2 × 50 rm", 27.9], ["2 × 70 rm", 31.3], ["2 × 95 rm", 36.1], ["2 × 120 rm", 39.3], ["2 × 150 rm", 43.1], ["2 × 185 rm", 47.5], ["2 × 240 rm", 53.7], ["2 × 300 rm", 58.7], ["2 × 400 rm", 65.9], ["2 × 500 rm", 73.1]]], ["XLPE/PVC 2 core", [["2 × 1.5 re", 12.8], ["2 × 1.5 rm", 13.2], ["2 × 2.5 re", 13.8], ["2 × 2.5 rm", 14.2], ["2 × 4 re", 15], ["2 × 4 rm", 15.2], ["2 × 6 re", 16], ["2 × 6 rm", 16.4], ["2 × 10 re", 17.6], ["2 × 10 rm", 18], ["2 × 16 rm", 20.9], ["2 × 25 rm", 24.3], ["2 × 35 rm", 27.8], ["2 × 50 rm", 30.9], ["2 × 70 rm", 34.7], ["2 × 95 rm", 39.9], ["2 × 120 rm", 43.5], ["2 × 150 rm", 47.3], ["2 × 185 rm", 53.1], ["2 × 240 rm", 58.7], ["2 × 300 rm", 63.7], ["2 × 400 rm", 70.7], ["2 × 500 rm", 74]]], ["XLPE/PVC 3 core", [["3 × 1.5 re", 13.3], ["3 × 1.5 rm", 13.7], ["3 × 2.5 re", 14.4], ["3 × 2.5 rm", 14.8], ["3 × 4 rm", 15.9], ["3 × 6 rm", 17.2], ["3 × 10 rm", 19.6], ["3 × 16 rm", 22.2], ["3 × 25 sm", 24.3], ["3 × 35 sm", 26.9], ["3 × 50 sm", 30.1], ["3 × 70 sm", 32.8], ["3 × 95 sm", 38.2], ["3 × 120 sm", 41.8], ["3 × 150 sm", 46.4], ["3 × 185 sm", 50.8], ["3 × 240 sm", 56.9], ["3 × 300 sm", 61.8], ["3 × 400 sm", 69.2]]], ["XLPE/PVC 4 core", [["4 × 1.5 re", 13.5], ["4 × 1.5 rm", 13.8], ["4 × 2.5 re", 14.5], ["4 × 2.5 rm", 15.8], ["4 × 4 rm", 17], ["4 × 6 rm", 18.3], ["4 × 10 rm", 21], ["4 × 16 rm", 23.9], ["4 × 25 sm", 26.4], ["4 × 35 sm", 30], ["4 × 50 sm", 33.1], ["4 × 70 sm", 38.1], ["4 × 95 sm", 42.3], ["4 × 120 sm", 47.1], ["4 × 150 sm", 52], ["4 × 185 sm", 56.9], ["4 × 240 sm", 62.2], ["4 × 300 sm", 68], ["4 × 400 sm", 77.1], ["4 × 500 sm", 86.8]]], ["XLPE/PVC 5 core", [["5 × 1.5 re", 13], ["5 × 1.5 rm", 13.5], ["5 × 2.5 re", 14.1], ["5 × 2.5 rm", 14.6], ["5 × 4 rm", 15.9], ["5 × 6 rm", 17.6], ["5 × 10 rm", 19.5], ["5 × 16 rm", 22.4], ["5 × 25 rm", 27.2], ["5 × 35 rm", 30.2], ["5 × 50 rmc", 35], ["5 × 70 rmc", 40]]]];
+  const elRating = () => card('Electrical Rating', table(['kW', 'Amp (TP)', 'Cable size'], X2.data.RATING.map(r => [r[1], r[2], r[3]])) + note('Used by Electrical › Cable Size by kW.'));
+  const elFormulas = () => card('kW to Amp', fx('3 Phase', 'Amp = kW × 1000 ÷ (√3 × Voltage × PF)') + fx('1 Phase', 'Amp = kW × 1000 ÷ (Voltage × PF)') + note('Typical: 400 V (3 phase), 230 V (1 phase), PF 0.8.')) +
+    card('DB load with diversity', fx('Total @DF', 'Total @DF = Sum of DB loads × Diversity factor') + note('Typical diversity factor: 0.85.'));
+  const elCable = () => CABLE.map(c => card(c[0] + ' cable', table(['Size (mm²)', 'Overall dia (mm)'], c[1].map(r => [r[0], String(r[1])])))).join('') +
+    note('re = round solid, rm = round stranded, rmc = round stranded compacted, sm = sector-shaped stranded conductor.');
+
+  /* ----- Misc ----- */
+  const miscPaper = () => {
+    const si = isSI(), P = X2.data.PAPER, names = P.map(p => p[0]), rows = [];
+    names.forEach((a, i) => names.forEach((b, j) => { if (i !== j) { const sc = Math.pow(Math.SQRT1_2, j - i); rows.push([a, b, num(sc, 4), sc.toFixed(2), num(sc * 100, 2) + ' %']); } }));
+    return card('A type paper sizes', table(['Size', 'Width × Height ' + (si ? '(mm)' : '(inch)')], P.map(p => [p[0], si ? p[1] : p[2]]))) +
+      card('Page size scale', table(['From', 'To', 'Scale', 'Rounded', 'Print scale'], rows) + note('One A size step changes the length by √2 (scale 0.7071 down, 1.4142 up).'));
+  };
+  const miscTV = () => {
+    const si = isSI(), D = X2.data, k = si ? 25.4 : 1, dp = si ? 0 : 1;
+    return card('TV sizes (16:9)', table(['Size (inch)', 'Width ' + (si ? '(mm)' : '(inch)'), 'Height ' + (si ? '(mm)' : '(inch)')], D.TV.map(x => [x + '"', num(D.w(x) * k, dp), num(D.h(x) * k, dp)])) +
+      fx('Screen width and height', 'Width = Diagonal × 0.8716,  Height = Diagonal × 0.4903') + note('Screen size only; the TV body with frame is a little bigger.'));
+  };
+  const SI_PREFIX = [['exa', 'E', '10¹⁸', '1 000 000 000 000 000 000'], ['peta', 'P', '10¹⁵', '1 000 000 000 000 000'], ['tera', 'T', '10¹²', '1 000 000 000 000'], ['giga', 'G', '10⁹', '1 000 000 000'],
+    ['mega', 'M', '10⁶', '1 000 000'], ['kilo', 'k', '10³', '1 000'], ['hecto *', 'h', '10²', '100'], ['deca *', 'da', '10¹', '10'], ['(unit)', '', '10⁰', '1'], ['deci *', 'd', '10⁻¹', '0.1'],
+    ['centi', 'c', '10⁻²', '0.01'], ['milli', 'm', '10⁻³', '0.001'], ['micro', 'µ', '10⁻⁶', '0.000 001'], ['nano', 'n', '10⁻⁹', '0.000 000 001'], ['pico', 'p', '10⁻¹²', '0.000 000 000 001'],
+    ['femto', 'f', '10⁻¹⁵', '0.000 000 000 000 001'], ['atto', 'a', '10⁻¹⁸', '0.000 000 000 000 000 001']];
+  const SI_UNITS = [['Metre', 'm', 'Length'], ['Gram', 'g', 'Mass'], ['Second', 's', 'Time'], ['Kelvin', 'K', 'Temperature'], ['Mole', 'mol', 'Amount of substance'], ['Candela', 'cd', 'Luminous intensity'],
+    ['Hertz', 'Hz', 'Frequency'], ['Watt', 'W', 'Power'], ['Volt', 'V', 'Voltage'], ['Ampere', 'A', 'Current'], ['Ohm', 'Ω', 'Resistance'], ['Farad', 'F', 'Capacitance'], ['Henry', 'H', 'Inductance'],
+    ['Joule', 'J', 'Energy'], ['Pascal', 'Pa', 'Pressure'], ['Newton', 'N', 'Force'], ['Byte', 'B', 'Digital data'], ['Litre', 'L', 'Volume'], ['Electronvolt', 'eV', 'Energy (physics)']];
+  const miscSI = () => card('SI prefixes', table(['Prefix', 'Symbol', 'Power', 'Multiplying factor'], SI_PREFIX) + note('* These prefixes are not normally used.')) +
+    card('SI units and symbols', table(['Unit', 'Symbol', 'Measures'], SI_UNITS));
+  const miscAlt = () => { const D = X2.data, M = Object.fromEntries(D.ALT);
+    return card('Most used symbols', table(['Symbol', 'Alt code'], D.COMMON.map(c => ['<b style="font-size:17px">' + M[c] + '</b>', 'Alt+' + c]))) +
+      card('All Alt codes (0128 – 0255)', table(['Symbol', 'Alt code'], D.ALT.map(a => ['<b style="font-size:17px">' + a[1] + '</b>', 'Alt+' + a[0]])) + note('In Excel or Word on Windows, hold Alt and type the code on the number pad.')); };
+
+  const fire = () => { const si = isSI(), D = X2.data;
+    return card('Sprinkler pipe size (pipe schedule)', table(['Pipe ' + (si ? '(mm)' : '(inch)'), '½" sprinkler (max)', '1" sprinkler (max)'], D.SPK.map(r => [si ? r[0] + ' mm' : r[1] + '"', D.spkMax(r, 2), D.spkMax(r, 3)])) +
+      note('Most sprinklers one pipe size can feed. NA = not used. Used by Plumbing › Sprinkler Pipe Size.')); };
+
+  /* ----- Step 3: design data from Kadir's AllCalci sheet (display only) ----- */
+  const FLEX = [[100, 20, 20], [125, 50, 50], [150, 75, 80], [175, 110, 120], [200, 160, 170], [225, 225, 230], [250, 300, 300], [300, 480, 500], [350, 700, 740], [400, 1000, 1050], [450, 1300, 1400], [500, 1700, 1875]];            // [size mm, CFM at 0.05 in.WC/100 ft, CFM at 0.1 in.WC/100 ft]
+  const STEEL = [["⅛", "6", "0.405 (10.29)", "0.035 (0.889)", "0.049 (1.245)", "—", "0.057 (1.448)", "0.068 (1.727)", "—", "0.095 (2.413)", "—", "—", "—", "—"], ["¼", "8", "0.540 (13.72)", "0.049 (1.245)", "0.065 (1.651)", "—", "0.073 (1.854)", "0.088 (2.235)", "—", "0.119 (3.023)", "—", "—", "—", "—"], ["⅜", "10", "0.675 (17.15)", "0.049 (1.245)", "0.065 (1.651)", "—", "0.073 (1.854)", "0.091 (2.311)", "—", "0.126 (3.200)", "—", "—", "—", "—"], ["½", "15", "0.840 (21.34)", "0.065 (1.651)", "0.083 (2.108)", "—", "0.095 (2.413)", "0.109 (2.769)", "—", "0.147 (3.734)", "—", "—", "—", "0.188 (4.775)"], ["¾", "20", "1.050 (26.67)", "0.065 (1.651)", "0.083 (2.108)", "—", "0.095 (2.413)", "0.113 (2.870)", "—", "0.154 (3.912)", "—", "—", "—", "0.219 (5.563)"], ["1", "25", "1.315 (33.40)", "0.065 (1.651)", "0.109 (2.769)", "—", "0.114 (2.896)", "0.133 (3.378)", "—", "0.179 (4.547)", "—", "—", "—", "0.250 (6.350)"], ["1¼", "32", "1.660 (42.16)", "0.065 (1.651)", "0.109 (2.769)", "—", "0.117 (2.972)", "0.140 (3.556)", "—", "0.191 (4.851)", "—", "—", "—", "0.250 (6.350)"], ["1½", "40", "1.900 (48.26)", "0.065 (1.651)", "0.109 (2.769)", "—", "0.125 (3.175)", "0.145 (3.683)", "—", "0.200 (5.080)", "—", "—", "—", "0.281 (7.137)"], ["2", "50", "2.375 (60.33)", "0.065 (1.651)", "0.109 (2.769)", "—", "0.125 (3.175)", "0.154 (3.912)", "—", "0.218 (5.537)", "—", "0.250 (6.350)", "—", "0.344 (8.738)"], ["2½", "65", "2.875 (73.03)", "0.083 (2.108)", "0.120 (3.048)", "—", "0.188 (4.775)", "0.203 (5.156)", "—", "0.276 (7.010)", "—", "0.300 (7.620)", "—", "0.375 (9.525)"], ["3", "80", "3.500 (88.90)", "0.083 (2.108)", "0.120 (3.048)", "—", "0.188 (4.775)", "0.216 (5.486)", "—", "0.300 (7.620)", "—", "0.350 (8.890)", "—", "0.438 (11.125)"], ["3½", "90", "4.000 (101.60)", "0.083 (2.108)", "0.120 (3.048)", "—", "0.188 (4.775)", "0.226 (5.740)", "—", "0.318 (8.077)", "—", "—", "—", "—"], ["4", "100", "4.500 (114.30)", "0.083 (2.108)", "0.120 (3.048)", "—", "0.188 (4.775)", "0.237 (6.020)", "—", "0.337 (8.560)", "—", "0.437 (11.100)", "—", "0.531 (13.487)"], ["4½", "115", "5.000 (127.00)", "—", "—", "—", "—", "0.247 (6.274)", "—", "0.355 (9.017)", "—", "—", "—", "—"], ["5", "125", "5.563 (141.30)", "0.109 (2.769)", "0.134 (3.404)", "—", "—", "0.258 (6.553)", "—", "0.375 (9.525)", "—", "0.500 (12.700)", "—", "0.625 (15.875)"], ["6", "150", "6.625 (168.28)", "0.109 (2.769)", "0.134 (3.404)", "—", "—", "0.280 (7.112)", "—", "0.432 (10.973)", "—", "0.562 (14.275)", "—", "0.719 (18.263)"], ["7", "—", "7.625 (193.68)", "—", "—", "—", "—", "0.301 (7.645)", "—", "0.500 (12.700)", "—", "—", "—", "—"], ["8", "200", "8.625 (219.08)", "0.109 (2.769)", "0.148 (3.759)", "0.250 (6.350)", "0.277 (7.036)", "0.322 (8.179)", "0.406 (10.312)", "0.500 (12.700)", "0.593 (15.062)", "0.719 (18.263)", "0.812 (20.625)", "0.906 (23.012)"], ["9", "—", "9.625 (244.48)", "—", "—", "—", "—", "0.342 (8.687)", "—", "0.500 (12.700)", "—", "—", "—", "—"], ["10", "250", "10.75 (273.05)", "0.134 (3.404)", "0.165 (4.191)", "0.250 (6.350)", "0.307 (7.798)", "0.365 (9.271)", "0.500 (12.700)", "0.594 (15.088)", "0.718 (18.237)", "0.843 (21.412)", "1.000 (25.400)", "1.125 (28.575)"], ["12", "300", "12.75 (323.85)", "0.156 (3.962)", "0.180 (4.572)", "0.250 (6.350)", "0.330 (8.382)", "0.406 (10.312)", "0.562 (14.275)", "0.687 (17.450)", "0.843 (21.412)", "1.000 (25.400)", "1.125 (28.575)", "1.312 (33.325)"], ["14", "350", "14.00 (355.60)", "0.156 (3.962)", "0.250 (6.350)", "0.312 (7.925)", "0.375 (9.525)", "0.437 (11.100)", "0.593 (15.062)", "0.750 (19.050)", "0.937 (23.800)", "1.093 (27.762)", "1.250 (31.750)", "1.406 (35.712)"], ["16", "400", "16.00 (406.40)", "0.165 (4.191)", "0.250 (6.350)", "0.312 (7.925)", "0.375 (9.525)", "0.500 (12.700)", "0.656 (16.662)", "0.843 (21.412)", "1.031 (26.187)", "1.218 (30.937)", "1.437 (36.500)", "1.594 (40.488)"], ["18", "450", "18.00 (457.20)", "0.165 (4.191)", "0.250 (6.350)", "0.312 (7.925)", "0.437 (11.100)", "0.562 (14.275)", "0.750 (19.050)", "0.937 (23.800)", "1.156 (29.362)", "1.375 (34.925)", "1.562 (39.675)", "1.781 (45.237)"], ["20", "500", "20.00 (508.00)", "0.188 (4.775)", "0.250 (6.350)", "0.375 (9.525)", "0.500 (12.700)", "0.593 (15.062)", "0.812 (20.625)", "1.031 (26.187)", "1.280 (32.512)", "1.500 (38.100)", "1.750 (44.450)", "1.968 (49.987)"], ["22", "550", "22.00 (558.80)", "0.188 (4.775)", "0.250 (6.350)", "0.375 (9.525)", "0.500 (12.700)", "0.593 (15.062)", "0.875 (22.225)", "1.125 (28.575)", "1.375 (34.925)", "1.625 (41.275)", "1.875 (47.625)", "2.125 (53.975)"], ["24", "600", "24.00 (609.60)", "0.218 (5.537)", "0.250 (6.350)", "0.375 (9.525)", "0.562 (14.275)", "0.687 (17.450)", "0.968 (24.587)", "1.218 (30.937)", "1.531 (38.887)", "1.812 (46.025)", "2.062 (52.375)", "2.343 (59.512)"]];          // [NPS, DN, OD "in (mm)", Sch 5 ... Sch 160 "in (mm)"]
+  const INSUL = [[0.5, 15, 10], [0.75, 20, 20], [1, 25, 20], [1.25, 32, 20], [1.5, 40, 20], [2, 50, 20], [2.5, 65, 25], [3, 80, 25], [3.5, 90, 25], [4, 100, 25], [5, 125, 30], [6, 150, 30], [8, 200, 30], [9, 225, 30], [10, 250, 30], [11, 275, 40], [12, 300, 40], [14, 350, 40], [16, 400, 40]];           // [pipe inch, pipe mm, insulation thickness mm]
+  const WSDR = [["½", 15, 18], ["¾", 20, 20], ["1", 25, 25], ["1¼", 32, 32], ["1½", 40, 40], ["2", 50, 55], ["2½", 65, 65], ["3", 75, 80], ["3½", 90, 90], ["4", 100, 110], ["5", 125, 130], ["6", 150, 160], ["8", 200, 200], ["10", 250, 250], ["12", 300, 300], ["14", 350, 350], ["16", 400, 400], ["18", 450, 450], ["20", 500, 500]];           // [inch, water supply mm, drainage mm]
+  const CHWP = [[20, 0.19], [25, 0.35], [32, 0.76], [40, 1.14], [50, 2.21], [65, 3.53], [80, 6.44], [100, 13.12], [150, 38.93], [200, 80.44], [250, 146.37], [300, 222.39], [350, 271.29], [400, 359.6]];           // [size mm, L/s]
+  const FRAC = { 0.5: '½', 0.75: '¾', 1.25: '1¼', 1.5: '1½', 2.5: '2½', 3.5: '3½' };
+  const inch = x => (FRAC[x] || String(x)) + '"';
+  const DN_IN = { 15: '½', 20: '¾', 25: '1', 32: '1¼', 40: '1½', 50: '2', 65: '2½', 80: '3', 90: '3½', 100: '4', 125: '5', 150: '6', 200: '8', 250: '10', 300: '12', 350: '14', 400: '16', 450: '18', 500: '20', 600: '24' };
+  const part = (t, si) => { const m = /^([\d.]+)\s*\(([\d.]+)\)$/.exec(String(t).trim()); return m ? (si ? m[2] : m[1]) : t; };   // "0.035 (0.889)": inch (mm)
+  const v = (ms, si) => si ? num(ms, 2) + ' m/s' : num(ms / 0.00508, 0) + ' fpm';
+  const hvacDesign = () => {
+    const si = isSI();
+    return card('Recommended duct velocities', table(['Duct', 'Velocity'], [
+        ['AC main duct', v(5.08, si)], ['AC branch duct', v(4.064, si)], ['Ventilation duct', si ? '6.86 – 7.62 m/s' : '1350 – 1500 fpm'],
+        ['High velocity duct', v(12, si)], ['Low velocity supply duct', v(6, si)], ['Low velocity return duct', v(6, si)], ['Terminal branches', v(3.5, si)],
+        ['Grille face', v(3.5, si)], ['Kitchen exhaust duct', v(10, si)], ['Fluid', v(2.4, si)]])) +
+      card('Velocity constants', table(['Air', 'Velocity'], [['Supply air (SA)', v(8, si)], ['Return air (RA)', v(7, si)], ['Exhaust air (EX)', v(5, si)], ['Fresh air (FA)', v(4, si)]])) +
+      card('Duct head loss (typical)', table(['Type', si ? 'Pa/m' : 'in.WC/100 ft'], si
+        ? [['Residence', '0.327 – 0.571'], ['Commercial', '0.571 – 0.816'], ['Industrial', '0.816 – 1.306']]
+        : [['Residence', '0.04 – 0.07'], ['Commercial', '0.07 – 0.10'], ['Industrial', '0.10 – 0.16']]) + note('1 in.WC/100 ft = 8.163 Pa/m.')) +
+      card('AC thumb rules', table(['Item', 'Value'], [['1 TON', '3.517 kW = 12,000 BTU/h'], ['1 TON air flow', '400 CFM = 188 L/s'], ['AC air flow by area', si ? '1 m² = 15.75 L/s' : '1 ft² = 3.10 CFM'],
+        ['COP (typical)', '2.5'], ['EER (typical)', '8'], ['COP from EER', 'COP = EER ÷ 3.412'], ['Power for 1 TON (COP)', 'kW = 3.517 ÷ COP'], ['Power for 1 TON (EER)', 'kW = 12 ÷ EER'],
+        ['COP', 'Cooling kW ÷ Power kW'], ['EER', 'BTU/h ÷ Power kW ÷ 1000']]));
+  };
+  const hvacFlex = () => {
+    const si = isSI(), q = c => si ? num(c / 2.1188799728, 2) : String(c);
+    return card('Flex round duct capacity', table(['Size ' + (si ? '(mm)' : '(inch)'), 'Flow at ' + (si ? '0.41 Pa/m' : '0.05 in.WC/100 ft') + (si ? ' (L/s)' : ' (CFM)'), 'Flow at ' + (si ? '0.82 Pa/m' : '0.1 in.WC/100 ft') + (si ? ' (L/s)' : ' (CFM)')],
+      FLEX.map(r => [si ? r[0] + ' mm' : Math.round(r[0] / 25) + '"', q(r[1]), q(r[2])])) + note('Friction 0.05 and 0.1 in.WC per 100 ft (0.41 and 0.82 Pa/m).'));
+  };
+  const plumbPipe = () => {
+    const si = isSI(), heads = ['NPS', 'DN', 'OD'].concat(['5', '10', '20', '30', '40', '60', '80', '100', '120', '140', '160'].map(x => 'Sch ' + x));
+    return card('Steel pipe wall thickness (' + (si ? 'mm' : 'inch') + ')', table(heads, STEEL.map(r => [r[0] + '"', r[1]].concat(r.slice(2).map(t => part(t, si))))) + note('NPS = nominal pipe size (inch), DN = nominal diameter (mm), OD = outside diameter. — = not made in that schedule.')) +
+      card('Pipe size: water supply and drainage', table(['Inch', 'Water supply (mm)', 'Drainage (mm)'], WSDR.map(r => [r[0] + '"', r[1], r[2]]))) +
+      card('Insulated pipe (insulation thickness)', table(['Pipe ' + (si ? '(mm)' : '(inch)'), 'Insulation ' + (si ? '(mm)' : '(inch)')], INSUL.map(r => [si ? r[1] + ' mm' : inch(r[0]), si ? r[2] : num(r[2] / 25.4, 2)])));
+  };
+  const chwExtra = () => {
+    const si = isSI();
+    return card('CHW pump standard flow chart', table(['Size (mm)', 'Size (inch)', 'Flow ' + (si ? '(L/s)' : '(USGPM)')], CHWP.map(r => [r[0], DN_IN[r[0]] ? DN_IN[r[0]] + '"' : '—', si ? num(r[1], 2) : num(r[1] * 15.85, 2)])) + note('1 L/s = 15.85 USGPM.')) +
+      card('Pipe sizing thumb rule', table(['Item', 'Value'], [['Fluid velocity', si ? '2.1 – 3.0 m/s' : '7 – 10 ft/s'], ['Head loss', si ? '3 – 4 m/100 m' : '3 – 4 ft/100 ft']]));
   };
 
   const m = (id, label, fn) => ({ id: id, label: label, mount: wrap(fn) });
   return {
-    hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas)],
-    plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', chw), { id: 'fire', label: 'Fire Fighting', soon: 'Fire fighting tables will be added when you send them.' }]
+    electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable)],
+    misc: [m('paper', 'Paper Size', miscPaper), m('tv', 'TV Size', miscTV), m('si', 'SI Units', miscSI), m('alt', 'Alt Codes', miscAlt)],
+    hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex)],
+    plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', () => chw() + chwExtra()), m('pipe', 'Pipe Data', plumbPipe), m('fire', 'Fire Fighting', fire)]
   };
 })();
 
@@ -2361,7 +2821,9 @@ const CATEGORIES = [
     ].concat(HVAC_TOOLS.map(([id, label, icon]) => ({
       id: 'hv-' + id, label: label, icon: icon, actions: ACTIONS, printTitle: label, mount: HVAC.mount(id),
       onUnits: id === 'ach' ? (from, to) => HVAC.convert(from, to) : undefined,      // one tool converts the saved values of all 13
-      onClear: () => { HVAC.clear(id); render(); }, refresh: () => render() })) ) },
+      onClear: () => { HVAC.clear(id); render(); }, refresh: () => render() })) ).concat([
+      { id: 'hv-acarea', label: 'AC Flow by Area', icon: svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 12h10M13 8l4 4-4 4"/>'), actions: ACTIONS, printTitle: 'AC flow by area', mount: X2.mount('acarea'), onClear: () => { X2.clear('acarea'); render(); }, refresh: () => render() },
+      { id: 'hv-rebal', label: 'Flow Rebalance', icon: svg('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'), actions: ACTIONS, printTitle: 'Flow rebalance', mount: X2.mount('rebal'), onClear: () => { X2.clear('rebal'); render(); }, refresh: () => render() } ]) },
   { id: 'plumbing', label: 'Plumbing', color: '#1fa0e0', icon: ICON.plumbing, min: 4, tools: [
       { id: 'pipe-sizer', label: 'Pipe Sizer', icon: ICON.pipe, actions: ACTIONS, printTitle: 'Pipe sizing',
         mount: PIPE.mount, onUnits: (from, to) => PIPE.convert(from, to), onClear: () => PIPE.clear(), refresh: () => render() },
@@ -2372,17 +2834,26 @@ const CATEGORIES = [
       { id: 'rw-calci', label: 'Rain Water Calci', icon: ICON.rw, actions: ACTIONS, printTitle: 'Rain water',
         mount: DRSW.mountRain, onClear: () => DRSW.clearRain(), refresh: () => render() },
       { id: 'chw-calci', label: 'Chilled Water Calci', icon: ICON.chw, actions: ACTIONS, printTitle: 'Chilled water',
-        mount: CHW.mount, onUnits: (from, to) => CHW.convert(from, to), onClear: () => CHW.clear(), refresh: () => render() } ] },
-  { id: 'electrical', label: 'Electrical', color: '#f5a623', icon: ICON.electrical, min: 4, tools: [] },
+        mount: CHW.mount, onUnits: (from, to) => CHW.convert(from, to), onClear: () => CHW.clear(), refresh: () => render() },
+      { id: 'ff-spk', label: 'Sprinkler Pipe Size', icon: svg('<path d="M12 3v6M8 9h8l-1 4H9z"/><path d="M7 17l-1 2M12 17v3M17 17l1 2"/>'), actions: ACTIONS, printTitle: 'Sprinkler pipe size', mount: X2.mount('spk'), onClear: () => { X2.clear('spk'); render(); }, refresh: () => render() } ] },
+  { id: 'electrical', label: 'Electrical', color: '#f5a623', icon: ICON.electrical, min: 4, tools: [
+      { id: 'el-amp', label: 'kW to Amp', icon: svg('<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'), actions: ['clear', 'print'], printTitle: 'kW to Amp', mount: X2.mount('amp'), onClear: () => { X2.clear('amp'); render(); } },
+      { id: 'el-cable', label: 'Cable Size by kW', icon: svg('<path d="M4 20c0-6 4-6 8-6s8 0 8-6"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="6" r="2"/>'), actions: ['clear', 'print'], printTitle: 'Cable size by kW', mount: X2.mount('cable'), onClear: () => { X2.clear('cable'); render(); } },
+      { id: 'el-db', label: 'DB Load with Diversity', icon: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'), actions: ['clear', 'print'], printTitle: 'DB load with diversity', mount: X2.mount('db'), onClear: () => { X2.clear('db'); render(); } } ] },
   { id: 'convertors', label: 'Converters', color: '#8e6bff', icon: ICON.convertors, min: 4, cols: 3, tools: CONV.cats.map(c => ({
       id: 'cv-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), label: c.name, icon: svg(c.icon), color: c.color,
       actions: ['clear'], printTitle: c.name, mount: CONV.mount(c.name), onClear: () => CONV.clear(c.name) })) },
-  { id: 'misc', label: 'Misc', color: '#d65db1', icon: ICON.misc, min: 4, tools: [] },
+  { id: 'misc', label: 'Misc', color: '#d65db1', icon: ICON.misc, min: 4, tools: [
+      { id: 'ms-pct', label: 'Percentage', icon: svg('<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>'), actions: ['clear', 'print'], printTitle: 'Percentage', mount: X2.mount('pct'), onClear: () => { X2.clear('pct'); render(); } },
+      { id: 'ms-car', label: 'Car Average', icon: svg('<path d="M5 16l1.5-5h11l1.5 5"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>'), actions: ['units', 'clear', 'print'], printTitle: 'Car average', mount: X2.mount('car'), onUnits: (from, to) => X2.convert(from, to), refresh: () => render(), onClear: () => { X2.clear('car'); render(); } },
+      { id: 'ms-paper', label: 'Paper Size & Scale', icon: svg('<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>'), actions: ['units', 'clear', 'print'], printTitle: 'Paper size and scale', mount: X2.mount('paper'), refresh: () => render(), onClear: () => { X2.clear('paper'); render(); } },
+      { id: 'ms-tv', label: 'TV Size', icon: svg('<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'), actions: ['units', 'clear', 'print'], printTitle: 'TV size', mount: X2.mount('tv'), refresh: () => render(), onClear: () => { X2.clear('tv'); render(); } },
+      { id: 'ms-sym', label: 'Symbols (Alt Codes)', icon: svg('<circle cx="12" cy="12" r="7"/><path d="M5 19L19 5"/>'), actions: ['print'], printTitle: 'Symbols (Alt codes)', mount: X2.mount('symbols') } ] },
   { id: 'stddoc', label: 'Standards & References', color: '#ef6a5b', icon: ICON.stddoc, min: 4, tools: [
       { id: 'lib-hvac', label: 'HVAC', icon: ICON.hvac, color: '#2f6fe0', actions: [], modes: LIB.hvac, refresh: () => render() },
       { id: 'lib-plumbing', label: 'Plumbing', icon: ICON.plumbing, color: '#1fa0e0', actions: [], modes: LIB.plumbing, refresh: () => render() },
-      { id: 'lib-electrical', label: 'Electrical', icon: ICON.electrical, color: '#f5a623', refresh: () => render(), soon: 'Electrical tables and formulas will be added when you send them.' },
-      { id: 'lib-misc', label: 'Misc', icon: ICON.misc, color: '#d65db1', refresh: () => render(), soon: 'Tables and formulas will be added when you send them.' }
+      { id: 'lib-electrical', label: 'Electrical', icon: ICON.electrical, color: '#f5a623', actions: [], modes: LIB.electrical, refresh: () => render() },
+      { id: 'lib-misc', label: 'Misc', icon: ICON.misc, color: '#d65db1', actions: [], modes: LIB.misc, refresh: () => render() }
   ] }
 ];
 
@@ -2437,7 +2908,7 @@ function render() {
     if (mode.mount) mode.mount(view);
     else view.innerHTML = '<div class="card soon-card"><h2>' + tool.label + (tool.modes ? ' · ' + mode.label : '') + '</h2><p>Coming soon.</p><p>' + (mode.soon || '') + '</p></div>';
   }
-  if (cat && cat.id === 'stddoc' && tool) view.insertAdjacentHTML('afterbegin', '<div class="float-row"><button type="button" class="float-units" id="float-units" aria-label="Switch units">' + UN[S.units].name + ' ⇄</button></div>');
+  if (cat && cat.id === 'stddoc' && tool && tool.id !== 'lib-electrical') view.insertAdjacentHTML('afterbegin', '<div class="float-row"><button type="button" class="float-units" id="float-units" aria-label="Switch units">' + UN[S.units].name + ' ⇄</button></div>');
   $('#page-title').textContent = !cat ? 'Home' : (tool ? tool.label : cat.label);
   renderModes(); updateActions(); renderPrintHead();
 }
@@ -2722,6 +3193,37 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '11 Nov 2026', items: [
+    ['New', 'Standards & References, HVAC: Design Data (duct velocities, velocity constants, typical duct head loss, AC thumb rules) and Flex Duct capacity'],
+    ['New', 'Standards & References, Plumbing: Pipe Data (steel pipe schedules, water supply / drainage sizes, insulation thickness); Chilled Water adds the CHW pump flow chart and thumb rule'],
+    ['Better', 'Footer and About show the version as the release date (v2026.11.11)']
+  ] },
+  { v: 'v2026.11.11.5', date: '11 Nov 2026', items: [
+    ['New', 'HVAC: AC Flow by Area (thumb rule 1 m² = 15.75 L/s, area in mm², m² or ft²)'],
+    ['New', 'HVAC: Flow Rebalance (Old → New): new branch flows from the new main flow, with total and remain'],
+    ['New', 'Plumbing: Sprinkler Pipe Size for ½" and 1" sprinklers'],
+    ['New', 'Standards & References: Fire Fighting sprinkler pipe size table'],
+    ['Fixed', 'A long page name in the header no longer runs under the About button (it ends with …)']
+  ] },
+  { v: 'v2026.11.11.4', date: '11 Nov 2026', items: [
+    ['Better', 'Car Average, Paper Size & Scale and TV Size: Metric / IP switch (Car Average: km/L or MPG)'],
+    ['Better', 'Symbols: bigger tiles and clearer Alt code text'],
+    ['Better', 'Cable Size by kW: the Electrical Rating table opens from a link'],
+    ['New', 'Standards & References: Electrical (Electrical Rating, kW to Amp, cable sizes PVC/PVC and XLPE/PVC) and Misc (paper sizes and scale, TV sizes, SI prefixes and units, Alt codes)']
+  ] },
+  { v: 'v2026.11.11.3', date: '11 Nov 2026', items: [
+    ['New', 'Electrical: kW to Amp (3 phase and 1 phase), Cable Size by kW (from the Electrical Rating table) and DB Load with Diversity'],
+    ['New', 'Misc: Percentage (reverse %, add / less %), Car Average, Paper Size & Scale, TV Size and Symbols (Alt codes, tap to copy)']
+  ] },
+  { v: 'v2026.11.11.2', date: '11 Nov 2026', items: [
+    ['Better', 'Round Duct, 4-Way Square, 4-Way Perforated, Round Disc Valve and Circular Diffuser Qty: just type the Size (mm) and Flow to get the Qty; a size that is not in the table shows "Not Standard size"'],
+    ['Fixed', 'Linear Diffuser and Grill Size: velocity is in m/s in Metric and fpm in IP'],
+    ['Better', 'AC Capacity Converter: new layout with Ton, BTU, CFM, L/S and Cooling kW, and Electrical Power in its own section'],
+    ['Better', 'Area Ratio: results show in a table (Area, Ratio, Airflow) with a Total row'],
+    ['Better', 'Rain Water Calci: the IPC reference is locked; tap Edit to change it, or Reset to go back to 272 m² (2927.7836 ft²)'],
+    ['Fixed', 'Chilled Water Calci: head loss shows m/100 m in Metric (the same number, as it is a ratio)'],
+    ['Better', 'Pipe Sizer: Metric shows the nominal size as DN (copper tube stays in inch)']
+  ] },
+  { v: 'v2026.11.11', date: '11 Nov 2026', items: [
     ['Fixed', 'Sheet Gauge: changing the gauge standard keeps the same gauge number (for example GI 16 to SWG 16)'],
     ['Fixed', 'HVAC reference tables: editing, deleting or restoring the chosen size now updates the Size list and the result, and the table stays open'],
     ['Fixed', 'Standards & References: the Metric / IP button is no longer printed'],
@@ -2767,10 +3269,13 @@ if (!WN_RAW) S.seen = VERSION;                       // brand new install: nothi
 function wnItems(r) { return r.items.map(it => '<li><span class="wn-tag ' + it[0].toLowerCase() + '">' + it[0] + '</span><span>' + it[1] + '</span></li>').join(''); }
 function openWhatsNew() {
   const r = RELEASES[0], old = RELEASES.slice(1);
-  $('#wn-ver').textContent = r.v + ' · ' + r.date;
+  const day = v => v.split('.').slice(0, 3).join('.');       // several updates on one day show as one date version
+  $('#wn-ver').textContent = day(r.v) + ' · ' + r.date;
   $('#wn-list').innerHTML = wnItems(r);
-  $('#wn-old').hidden = old.length === 0;
-  $('#wn-old-body').innerHTML = old.map(o => '<h3>' + o.v + ' · ' + o.date + '</h3><ul class="wn-list">' + wnItems(o) + '</ul>').join('');
+  const groups = [];
+  old.forEach(o => { const g = groups.find(x => x.v === day(o.v)); if (g) g.items = g.items.concat(o.items); else groups.push({ v: day(o.v), date: o.date, items: o.items.slice() }); });
+  $('#wn-old').hidden = groups.length === 0;
+  $('#wn-old-body').innerHTML = groups.map(o => '<h3>' + o.v + ' · ' + o.date + '</h3><ul class="wn-list">' + wnItems(o) + '</ul>').join('');
   openSheet('whatsnew');
 }
 function closeWhatsNew() { closeSheet('whatsnew'); }
@@ -2802,8 +3307,8 @@ applyTheme();
 $('#m-about').addEventListener('click', () => openSheet('about'));
 $('#about-close').addEventListener('click', () => closeSheet('about'));
 $('#about').addEventListener('click', e => { if (e.target.id === 'about') closeSheet('about'); });
-$('#ver').textContent = 'Version: ' + VERSION;
-$('#about-ver').textContent = 'Version ' + VERSION;
+$('#ver').textContent = 'Version: ' + VSHOW;
+$('#about-ver').textContent = 'Version ' + VSHOW;
 
 render();
 
