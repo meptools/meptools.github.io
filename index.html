@@ -88,6 +88,16 @@ input.num:focus{outline:2px solid var(--accent);outline-offset:0}
 footer.ft{display:flex;justify-content:space-between;color:var(--ink2);font-size:12px;margin-top:6px}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:20}
 .overlay.open{display:flex}
+.overlay.top{align-items:flex-start}
+.overlay.top .sheet{border-radius:0 0 16px 16px;padding-top:calc(14px + env(safe-area-inset-top,0px));max-height:90vh}
+.srow{display:flex;gap:8px;align-items:center;position:sticky;top:-14px;background:var(--sheet);padding:2px 0 8px;z-index:1}
+.srow input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.srow input:focus{outline:2px solid var(--accent)}
+.sheet .srow button{width:auto;margin:0;padding:11px 14px}
+#search-list .hint{font-size:13.5px;padding:6px 2px}
+.sheet button.sr{display:flex;align-items:center;gap:12px;width:100%;margin:6px 0 0;padding:9px 10px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;text-align:left;font-weight:400}
+.sr .bicon{width:38px;height:38px}.sr .bicon svg{width:21px;height:21px}
+.srt{display:flex;flex-direction:column;min-width:0}.srt b{font-size:15px}.srt small{font-size:12.5px;color:var(--ink2)}
 .sheet{background:var(--sheet);color:var(--ink);width:100%;max-width:540px;border-radius:16px 16px 0 0;padding:16px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
 .sheet h2{margin:0 0 8px;font-size:18px}
 .sheet p,.sheet li{font-size:14px;line-height:1.45;color:var(--ink)}
@@ -127,12 +137,13 @@ footer.ft{display:flex;justify-content:space-between;color:var(--ink2);font-size
 .pagehead{margin:2px 2px 12px}
 .pagehead h2{margin:0;font-size:22px}
 .pagehead p{margin:2px 0 0;color:var(--ink2);font-size:13.5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px}
-.box{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;cursor:pointer;padding:8px 4px;text-align:center;height:104px;box-shadow:var(--shadow);min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:11px}
+@media (max-width:420px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}}
+.box{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;cursor:pointer;padding:8px 4px;text-align:center;height:122px;box-shadow:var(--shadow);min-width:0}
 .box:active{transform:scale(.97)}
-.bicon{display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--tc,var(--accent));color:#fff;width:38px;height:38px;flex:0 0 auto}
-.bicon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.blabel{font-size:12px;line-height:1.2;font-weight:700;padding:0 2px;overflow-wrap:anywhere}
+.bicon{display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--tc,var(--accent));color:#fff;width:46px;height:46px;flex:0 0 auto}
+.bicon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.blabel{font-size:13px;line-height:1.2;font-weight:700;padding:0 2px;overflow-wrap:anywhere}
 .box.todo .bicon{opacity:.55}
 .badge{position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--ink2);background:var(--chip);border-radius:999px;padding:2px 7px}
 .box.soonbox{border-style:dashed;background:transparent;cursor:default;color:var(--ink2)}
@@ -518,6 +529,7 @@ table.schtable .sch-off{opacity:.35}
       <button id="m-back" class="back" type="button" aria-label="Back" title="Back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
       <h1 id="page-title">Home</h1>
       <div class="hbtns">
+        <button id="m-search" class="ico" type="button" aria-label="Search tools" title="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
         <button id="m-about" type="button">About</button>
         <button id="m-settings" class="ico" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
@@ -534,6 +546,13 @@ table.schtable .sch-off{opacity:.35}
   <nav class="tabs modes" id="modes" aria-label="Mode"></nav>
   <main id="view"></main>
   <footer class="ft"><span>Created By: Kadir-ekhasti</span><span id="ver"></span></footer>
+</div>
+
+<div class="overlay top" id="search" role="dialog" aria-modal="true" aria-label="Search tools">
+  <div class="sheet">
+    <div class="srow"><input type="search" id="search-q" placeholder="Search tools…" autocomplete="off" enterkeyhint="search" aria-label="Search tools"><button type="button" id="search-close" aria-label="Close search">Close</button></div>
+    <div id="search-list"></div>
+  </div>
 </div>
 
 <div class="overlay" id="settings" role="dialog" aria-modal="true" aria-label="Settings">
@@ -741,7 +760,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11.10';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.11.11';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -2308,7 +2327,7 @@ const CONV = (function () {
     else if (cat.kind === 'elec') { EL.val = ''; const i = $('#el-val'); if (i) { i.value = ''; i.dispatchEvent(new Event('input')); i.focus(); } }
     else { const i = $('#cv-in'); if (i) { i.value = ''; $('#cv-out').value = ''; i.focus(); } }
   }
-  return { mount: mount, clear: clear, cats: CATS.map(c => ({ name: c.name, icon: c.icon, color: c.color })) };
+  return { mount: mount, clear: clear, cats: CATS.map(c => ({ name: c.name, icon: c.icon, color: c.color, units: (c.units || []).map(u => u[0]) })) };
 })();
 
 
@@ -3352,6 +3371,105 @@ const CATEGORIES = [
 ];
 
 const NAV = { cat: null, tool: null };
+/* ---------- A–Z order (Home categories keep their order; Duct Sizer stays first in HVAC; tabs inside a tool keep theirs, except the Standards & References pages) ---------- */
+(function sortAZ() {
+  const az = (a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
+  const PIN = { duct: 1 };
+  CATEGORIES.forEach(c => {
+    if (c.id !== 'stddoc') c.tools.sort((a, b) => (PIN[b.id] || 0) - (PIN[a.id] || 0) || az(a.label, b.label));
+    else c.tools.forEach(t => { if (Array.isArray(t.modes)) t.modes.sort((a, b) => az(a.label, b.label)); });
+  });
+})();
+
+/* ---------- Search (header button, every page) ---------- */
+const SEARCH = (function () {
+  const KW = {   // extra words people type for a tool (names of the tool and its category are searched too)
+    duct: 'duct size sizing cfm l/s friction velocity head loss equal friction mcquay rectangular round advanced fan power air properties static pressure fittings',
+    'hv-ach': 'ach air change room volume ventilation', 'hv-roundDuct': 'round duct qty quantity', 'hv-square': 'four way square diffuser qty quantity',
+    'hv-perforated': 'four way perforated diffuser qty quantity', 'hv-disc': 'rdv round disc valve qty quantity', 'hv-circular': 'circular diffuser qty quantity',
+    'hv-linear': 'linear slot diffuser length', 'hv-grill': 'grille grill size face velocity', 'hv-gravity': 'louver louvre gravity', 'hv-sand': 'sand trap louver louvre',
+    'hv-ac': 'ton tr btu cfm kw cooling capacity eer cop electrical power', 'hv-ybranch': 'y branch', 'hv-area': 'area ratio flow split', 'hv-acarea': 'ac flow area thumb rule 15.75 cfm',
+    'hv-rebal': 'rebalance old new main branch ratio flow percentage',
+    'pipe-sizer': 'pipe size velocity friction head loss water', 'pipe-slope': 'manhole schedule drainage invert level il slope cover', 'rw-calci': 'rain water rwo outlet ipc storm',
+    'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
+    'el-amp': 'kw amp ampere current 3 phase 1 phase', 'el-cable': 'cable size kw amp breaker mccb rating', 'el-db': 'db distribution board load diversity df amp cable schedule excel',
+    'el-ecc': 'ecc earth earthing bonding conductor', 'el-cond': 'conduit wires', 'el-vd': 'voltage drop vd volt cable length',
+    'ms-pct': 'percentage percent reverse add less vat', 'ms-car': 'car average fuel km mileage mpg', 'ms-paper': 'paper size scale a0 a1 a2 a3 a4 a5', 'ms-tv': 'tv television screen size inch',
+    'ms-sym': 'symbol symbols alt code diameter degree square',
+    'cv-flow': 'cfm gpm usgpm lps l/s m3/h cmh', 'cv-pressure': 'pa kpa bar psi in wc inch water', 'cv-temperature': 'celsius fahrenheit kelvin', 'cv-power': 'kw hp horsepower btu',
+    'cv-cooling-capacity': 'ton tr btu kw cooling', 'cv-area': 'm2 ft2 sqft square', 'cv-volume': 'm3 litre gallon usg', 'cv-distance': 'length mm inch feet metre', 'cv-speed': 'velocity fpm m/s',
+    'lib-hvac/design': 'velocity constants head loss thumb rule', 'lib-electrical/dewa': 'dewa cable table breaker', 'lib-electrical/earth': 'elcb rccb earth leakage ma',
+    'lib-electrical/design': 'dewa ambient feeder transformer assumed load socket', 'lib-plumbing/pipe': 'steel pipe schedule wall thickness insulation water supply drainage',
+    'lib-misc/alt': 'symbol alt code', 'lib-misc/si': 'si prefix units'
+  };
+  const norm = s => String(s).toLowerCase().replace(/[²³]/g, m => m === '²' ? '2' : '3').replace(/[^a-z0-9.]+/g, ' ').trim();
+  let INDEX = null;
+  function build() {
+    const L = [];
+    CATEGORIES.forEach(c => c.tools.forEach(t => {
+      if (c.id === 'stddoc' && Array.isArray(t.modes)) {
+        t.modes.forEach(m => L.push({ cat: c.id, tool: t.id, mode: m.id, label: m.label, where: 'Standards & References › ' + t.label, icon: t.icon, color: t.color || c.color, kw: norm((KW[t.id + '/' + m.id] || '') + ' ' + t.label + ' reference table standard') }));
+        return;
+      }
+      const units = Array.isArray(t.units) ? t.units.join(' ') : '';
+      const cv = c.id === 'convertors' && typeof CONV !== 'undefined' && CONV.cats ? (CONV.cats.find(x => 'cv-' + x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === t.id) || {}) : {};
+      const cvu = Array.isArray(cv.units) ? cv.units.map(u => Array.isArray(u) ? u[0] : u).join(' ') : '';
+      L.push({ cat: c.id, tool: t.id, mode: null, label: t.label, where: c.label, icon: t.icon, color: t.color || c.color, kw: norm((KW[t.id] || '') + ' ' + c.label + ' ' + units + ' ' + cvu + (c.id === 'convertors' ? ' convert converter unit' : '')) });
+    }));
+    L.forEach(x => { x.nl = norm(x.label); });
+    return L;
+  }
+  const lev1 = (a, b) => {               // true when a and b differ by at most one letter (typo)
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, e = 0;
+    while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue; } if (++e > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; } }
+    return e + (a.length - i) + (b.length - j) <= 1;
+  };
+  function find(q) {
+    INDEX = INDEX || build();
+    const words = norm(q).split(' ').filter(Boolean); if (!words.length) return [];
+    const out = [];
+    INDEX.forEach(x => {
+      const lw = x.nl.split(' '), kw = x.kw.split(' ');
+      let score = 0, ok = true;
+      words.forEach(w => {
+        if (x.nl.startsWith(w)) score += 6;
+        else if (lw.some(t => t.startsWith(w))) score += 5;
+        else if (x.nl.includes(w)) score += 4;
+        else if (kw.some(t => t.startsWith(w))) score += 3;
+        else if (w.length >= 4 && (lw.some(t => lev1(t, w)) || kw.some(t => t.length >= 4 && lev1(t, w)))) score += 1;
+        else ok = false;
+      });
+      if (ok) out.push({ x: x, s: score });
+    });
+    return out.sort((a, b) => b.s - a.s || a.x.label.localeCompare(b.x.label)).slice(0, 30).map(o => o.x);
+  }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  function draw() {
+    const q = $('#search-q').value, list = $('#search-list'), r = find(q);
+    list.innerHTML = !norm(q) ? '<p class="hint">Type a tool name or a word, e.g. amp, cfm, sprinkler, manhole.</p>'
+      : r.length ? r.map((x, i) => '<button type="button" class="sr" data-i="' + i + '" style="--tc:' + x.color + '"><span class="bicon">' + x.icon + '</span><span class="srt"><b>' + esc(x.label) + '</b><small>' + esc(x.where) + '</small></span></button>').join('')
+      : '<p class="hint">No tool found.</p>';
+    list.querySelectorAll('.sr').forEach(b => b.addEventListener('click', () => open(r[+b.dataset.i])));
+  }
+  function open(x) {
+    if (!x) return;
+    hideSheetNow('search');
+    // the search sheet's history entry becomes the opened tool, so the phone's Back goes to the page before the search
+    NAV.cat = x.cat; NAV.tool = x.tool; S.mode = x.mode || toolModes(currentTool())[0].id;
+    if (HIST[HI] && HIST[HI].ov) { HIST[HI] = { cat: x.cat, tool: x.tool }; try { history.replaceState({ cat: x.cat, tool: x.tool, i: HI, ov: false }, ''); } catch (e) {} }
+    else pushHist({ cat: x.cat, tool: x.tool });
+    render(); save();
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+  function show() {
+    openSheet('search');
+    const i = $('#search-q'); i.value = ''; draw();
+    setTimeout(() => { try { i.focus(); } catch (e) {} }, 60);
+  }
+  return { show: show, draw: draw, find: find, open: open };
+})();
+
 const findCat = id => CATEGORIES.find(c => c.id === id) || null;
 function currentTool() { const c = findCat(NAV.cat); return (c && c.tools.find(t => t.id === NAV.tool)) || null; }
 function toolModes(t) { return t.modes || [{ id: 'main', label: t.label, mount: t.mount, soon: t.soon }]; }
@@ -3687,6 +3805,11 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '11 Nov 2026', items: [
+    ['New', 'Search: tap the search button at the top of any page and type a tool name or a word (amp, cfm, sprinkler, manhole …)'],
+    ['Better', 'Tools are in A–Z order in every category (Duct Sizer stays first in HVAC); Standards & References tabs are A–Z too'],
+    ['Better', 'Bigger tiles and icons']
+  ] },
+  { v: 'v2026.11.11.10', date: '11 Nov 2026', items: [
     ['New', 'Duct Sizer › Advanced: Duct Sizing (real air, duct material, friction and velocity limits, round and rectangular options, check any round / rectangular / flat oval size)'],
     ['New', 'Duct Sizer › Advanced: Duct Run pressure loss (sections, fittings with editable C values, equipment, margin, Excel), Fan Power (motor size, SFP) and Air Properties']
   ] },
@@ -3813,6 +3936,11 @@ $('#theme-seg').addEventListener('click', e => {
 try { const mq = window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener ? mq.addEventListener('change', applyTheme) : mq.addListener && mq.addListener(applyTheme)); } catch (e) {}
 applyTheme();
 $('#m-about').addEventListener('click', () => openSheet('about'));
+$('#m-search').addEventListener('click', () => SEARCH.show());
+$('#search-q').addEventListener('input', () => SEARCH.draw());
+$('#search-q').addEventListener('keydown', e => { if (e.key === 'Enter') { const b = $('#search-list .sr'); if (b) b.click(); } });
+$('#search-close').addEventListener('click', () => closeSheet('search'));
+$('#search').addEventListener('click', e => { if (e.target.id === 'search') closeSheet('search'); });
 $('#about-close').addEventListener('click', () => closeSheet('about'));
 $('#about').addEventListener('click', e => { if (e.target.id === 'about') closeSheet('about'); });
 $('#ver').textContent = 'Version: ' + VSHOW;
