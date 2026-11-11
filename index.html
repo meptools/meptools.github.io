@@ -262,6 +262,18 @@ table.auth-table .shape-ci{display:inline-block;width:10px;height:10px;backgroun
 .x2db input.num::-webkit-inner-spin-button{display:none}
 #x-sch table.x2t td,#x-sch table.x2t th{white-space:nowrap}
 .x2db input:focus{outline:2px solid var(--accent);outline-offset:0}
+.x2seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
+@media (max-width:520px){.x2seg{grid-template-columns:1fr 1fr}}
+.x2seg button{flex:1 1 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.x2seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.linkbtn{border:0;background:none;color:var(--blue);font:inherit;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}
+.x2fits{margin:6px 0 0}
+.x2fit{display:grid;grid-template-columns:minmax(0,1fr) 58px 34px;gap:6px;align-items:center;margin:6px 0}
+.x2fit select{width:100%;min-width:0;font:inherit;font-size:13.5px;padding:9px 6px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.x2fit input{padding:8px 6px}
+.x2x{height:36px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:9px;font-size:18px;font-weight:700;cursor:pointer}
+.tool-adv .row select{width:100%;min-width:0;font:inherit;font-weight:600;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.tool-adv .x2db{grid-template-columns:minmax(0,1fr) 92px 64px}
 .x2grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:9px}
 .x2sym{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 2px 10px;min-height:86px;justify-content:center;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit}
 .x2sym b{font-size:30px;line-height:1.15;font-weight:600}
@@ -574,6 +586,7 @@ table.schtable .sch-off{opacity:.35}
       <li><b>Equal-friction / velocity sizing:</b> enter any two of flow rate, head loss, velocity and equivalent diameter.</li>
       <li><b>Method:</b> Darcy-Weisbach with Colebrook-White friction factor; target head loss is solved with the Swamee-Jain explicit form, then the result is checked with Colebrook-White. Roughness 0.0007 ft (0.213 mm).</li>
       <li><b>Rectangular ducts:</b> converted to the equivalent round duct for the same friction and airflow (Huebscher, as in ASHRAE).</li>
+      <li><b>Duct Sizer › Advanced:</b> Duct Sizing with real air (temperature, altitude, RH), duct material roughness and both friction and velocity limits (round and rectangular options, check any round, rectangular or flat oval size); Duct Run pressure loss (sections, fittings with editable C values, equipment, margin, Excel); Fan Power (motor size, SFP); Air Properties. Basic is not changed.</li>
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
       <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
       <li><b>New HVAC and Plumbing tools:</b> AC Flow by Area (1 m² = 15.75 L/s, editable), Flow Rebalance (Old → New) and Sprinkler Pipe Size (½" and 1" sprinklers).</li>
@@ -728,7 +741,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11.9';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.11.10';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -2724,6 +2737,319 @@ const X2 = (function () {
   return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
 })();
 
+/* ---------- Duct Sizer › Advanced (engineer level; separate from Basic, its own state in S.adv, all values kept in SI) ---------- */
+const ADV = (function () {
+  /* ---- units: every value is stored in SI; the boxes show the selected unit system ---- */
+  const UQ = {
+    flow: { si: ['L/s', 1], ip: ['CFM', 0.47194745] },          // [label, SI per 1 shown unit]
+    dim: { si: ['mm', 1], ip: ['in', 25.4] },
+    len: { si: ['m', 1], ip: ['ft', 0.3048] },
+    vel: { si: ['m/s', 1], ip: ['fpm', 0.00508] },
+    fric: { si: ['Pa/m', 1], ip: ['in.WC/100 ft', 249.08891 / 30.48] },
+    pres: { si: ['Pa', 1], ip: ['in.WC', 249.08891] },
+    alt: { si: ['m', 1], ip: ['ft', 0.3048] },
+    dens: { si: ['kg/m³', 1], ip: ['lb/ft³', 16.018463] },
+    rough: { si: ['mm', 1], ip: ['ft', 304.8] }
+  };
+  const ip = () => S.units === 'ip';
+  const uL = k => UQ[k][ip() ? 'ip' : 'si'][0];
+  const toSI = (k, v) => v * UQ[k][ip() ? 'ip' : 'si'][1], fromSI = (k, v) => v / UQ[k][ip() ? 'ip' : 'si'][1];
+  const tC = { toSI: v => ip() ? (v - 32) * 5 / 9 : v, fromSI: v => ip() ? v * 9 / 5 + 32 : v, u: () => ip() ? '°F' : '°C' };
+  const n = s => (s === undefined || s === null || String(s).trim() === '') ? NaN : Number(s);
+  const shown = (k, si) => { const x = n(si); if (!Number.isFinite(x)) return ''; const v = k === 'temp' ? tC.fromSI(x) : fromSI(k, x); return String(Number(v.toPrecision(6))); };
+  const store = (k, typed) => { const x = n(typed); if (!Number.isFinite(x)) return typed.trim() === '' ? '' : null; return String(k === 'temp' ? tC.toSI(x) : toSI(k, x)); };
+  const fmt = (x, dp) => Number.isFinite(x) ? x.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }) : '—';
+  const out = (k, si, dp) => Number.isFinite(si) ? fmt(fromSI(k, si), dp === undefined ? (k === 'fric' && ip() ? 3 : k === 'pres' && ip() ? 3 : 2) : dp) : '—';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+  /* ---- air properties (ASHRAE psychrometrics; viscosity by Sutherland) ---- */
+  function air(a) {
+    const T = n(a.t), z = n(a.alt), RH = n(a.rh);
+    if (!(T > -40 && T < 100) || !(z > -500 && z < 6000) || !(RH >= 0 && RH <= 100)) return null;
+    const TK = T + 273.15, p = 101325 * Math.pow(1 - 2.25577e-5 * z, 5.2559);
+    const pws = 610.94 * Math.exp(17.625 * T / (T + 243.04)), pw = Math.min(RH / 100 * pws, 0.99 * p);
+    const W = 0.621945 * pw / (p - pw);
+    const rho = (p - pw) / (287.055 * TK) + pw / (461.495 * TK);
+    const mu = 1.716e-5 * Math.pow(TK / 273.15, 1.5) * (273.15 + 110.4) / (TK + 110.4);
+    const g = pw > 0 ? Math.log(pw / 610.94) : NaN, dew = pw > 0 ? 243.04 * g / (17.625 - g) : NaN;
+    const cp = 1006 + 1860 * W;                                  // J/kg·K of moist air (per kg dry air, close enough)
+    return { T: T, p: p, W: W, rho: rho, mu: mu, nu: mu / rho, v: 0.287042 * TK * (1 + 1.607858 * W) / (p / 1000), dew: dew, cp: cp, cf: rho / 1.204, hs: rho * cp / 1000 };
+  }
+
+  /* ---- duct friction (Darcy-Weisbach, Colebrook-White solved by iteration) ---- */
+  function fric(Q, De, eps, A) {          // Q m³/s, De m, eps m, A m² (flow area for velocity; friction uses the round equivalent)
+    if (!(Q > 0 && De > 0)) return null;
+    const ar = air(X.air); if (!ar) return null;
+    const Vr = Q / (Math.PI * De * De / 4), Re = ar.rho * Vr * De / ar.mu;
+    let f = 0.25 / Math.pow(Math.log10(eps / (3.7 * De) + 5.74 / Math.pow(Re, 0.9)), 2);   // Swamee-Jain start
+    if (Re < 2300) f = 64 / Re;
+    else for (let i = 0; i < 40; i++) { const g = -2 * Math.log10(eps / (3.7 * De) + 2.51 / (Re * Math.sqrt(f))), nf = 1 / (g * g); if (Math.abs(nf - f) < 1e-12) { f = nf; break; } f = nf; }
+    const V = Q / (A || Math.PI * De * De / 4);
+    return { V: V, Vp: ar.rho * V * V / 2, Re: Re, f: f, dpL: f / De * ar.rho * Vr * Vr / 2 };
+  }
+  const deRect = (a, b) => 1.30 * Math.pow(a * b, 0.625) / Math.pow(a + b, 0.25);
+  function ovalGeo(A, a) { const ar = Math.PI * a * a / 4 + a * (A - a), P = Math.PI * a + 2 * (A - a); return { area: ar, P: P, De: 1.55 * Math.pow(ar, 0.625) / Math.pow(P, 0.25) }; }
+
+  /* ---- data ---- */
+  const MAT = [['galv', 'Galvanized steel', 0.09], ['spiral', 'Spiral galvanized duct', 0.09], ['alu', 'Aluminium', 0.03], ['pvc', 'PVC / smooth plastic', 0.03],
+    ['board', 'Fibreglass duct board', 0.9], ['lined', 'Fibreglass lined duct', 1.5], ['flex', 'Flexible duct (fully extended)', 3.0], ['concrete', 'Concrete', 1.3], ['custom', 'Custom roughness', NaN]];
+  const ROUND_SI = [100, 125, 150, 160, 200, 250, 300, 315, 355, 400, 450, 500, 560, 630, 710, 800, 900, 1000, 1120, 1250, 1400, 1600];
+  const ROUND_IP = [4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 40, 42, 48, 54, 60];
+  const FIT = [   // [key, name, C (typical, ASHRAE), based on the section velocity pressure]
+    ['el90r', 'Elbow 90°, round smooth (R/D 1.5)', 0.15], ['el90g', 'Elbow 90°, round 5-gore (R/D 1.5)', 0.24], ['el45r', 'Elbow 45°, round smooth', 0.09],
+    ['el90rad', 'Elbow 90°, rectangular radius (R/W 1.0)', 0.21], ['el90vane', 'Elbow 90°, mitred with turning vanes', 0.11], ['el90mit', 'Elbow 90°, mitred without vanes', 1.2],
+    ['teeB', 'Tee / branch takeoff (flow to branch)', 1.0], ['teeS', 'Tee (flow straight through main)', 0.1], ['red', 'Reducer / contraction (gradual)', 0.05],
+    ['exp', 'Expansion (gradual, 30°)', 0.3], ['vcd', 'Volume control damper (open)', 0.2], ['fd', 'Fire damper (open)', 0.2], ['bell', 'Duct entry, bellmouth', 0.03],
+    ['entry', 'Duct entry, abrupt', 0.5], ['exit', 'Exit to room / plenum (abrupt)', 1.0]];
+  const MOTOR = [0.18, 0.25, 0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3, 4, 5.5, 7.5, 11, 15, 18.5, 22, 30, 37, 45, 55, 75, 90, 110, 132, 160, 200, 250, 315];
+
+  /* ---- state ---- */
+  const SEC = () => ({ name: '', q: '', shape: 'rect', d: '', w: '', h: '', len: '', fit: [] });
+  const DEF = () => ({
+    sub: 'size', air: { t: '20', alt: '0', rh: '50' },
+    size: { q: '', mat: 'galv', eps: '0.09', maxF: '0.8', maxV: '7.5', ar: '4', minS: '100' },
+    chk: { q: '', shape: 'rect', mat: 'galv', eps: '0.09', d: '', w: '', h: '', a: '', b: '' },
+    run: { mat: 'galv', eps: '0.09', secs: [SEC()], eq: [{ name: 'Filter', pa: '' }, { name: 'Cooling coil', pa: '' }], mg: '10' },
+    C: Object.fromEntries(FIT.map(f => [f[0], String(f[2])])),
+    fan: { q: '', p: '', ef: '65', ed: '97', em: '90', mg: '15' }
+  });
+  let X = S.adv = DEF();
+  (function load() {
+    try {
+      const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'), x = r && r.adv; if (!x || typeof x !== 'object') return;
+      const str = v => typeof v === 'string' ? v : '';
+      const copy = (dst, src) => { if (!src || typeof src !== 'object') return; Object.keys(dst).forEach(k => { if (typeof dst[k] === 'string' && typeof src[k] === 'string') dst[k] = src[k]; }); };
+      ['air', 'size', 'chk', 'fan', 'C'].forEach(k => copy(X[k], x[k]));
+      if (typeof x.sub === 'string' && ['size', 'run', 'fan', 'air'].includes(x.sub)) X.sub = x.sub;
+      if (x.run && typeof x.run === 'object') {
+        copy(X.run, x.run);
+        if (Array.isArray(x.run.secs) && x.run.secs.length) X.run.secs = x.run.secs.map(s => { const o = SEC(); copy(o, s); o.fit = Array.isArray(s && s.fit) ? s.fit.filter(f => f && FIT.some(F => F[0] === f.k)).map(f => ({ k: f.k, n: str(f.n) })) : []; return o; });
+        if (Array.isArray(x.run.eq)) X.run.eq = x.run.eq.map(e => ({ name: str(e && e.name), pa: str(e && e.pa) }));
+      }
+    } catch (e) {}
+  })();
+  const epsOf = o => { const m = MAT.find(x => x[0] === o.mat); return m && Number.isFinite(m[2]) ? m[2] / 1000 : n(o.eps) / 1000; };
+
+  /* ---- small html helpers ---- */
+  const card = (t, b, id) => '<section class="card"' + (id ? ' id="' + id + '"' : '') + '>' + (t ? '<h2 class="section-title">' + t + '</h2>' : '') + b + '</section>';
+  const rl = (l, v, u, cls) => '<div class="rl' + (cls ? ' ' + cls : '') + '"><span>' + l + '</span><span><b class="blue">' + v + '</b><i>' + (u || '') + '</i></span></div>';
+  const fld = (label, path, kind, small) => {
+    const v = get(path);
+    return '<div class="row"><label class="lbl">' + label + (small ? '<small>' + small + '</small>' : '') + '</label><input type="number" step="any" inputmode="decimal" class="num" data-p="' + path + '" data-k="' + kind + '" value="' + esc(kind === 'raw' || kind === 'pct' ? v : shown(kind, v)) + '"><span class="unit">' + (kind === 'raw' ? '' : kind === 'temp' ? tC.u() : kind === 'pct' ? '%' : uL(kind)) + '</span></div>';
+  };
+  const selF = (label, path, opts) => '<div class="row"><label class="lbl">' + label + '</label><select data-p="' + path + '" style="grid-column:span 2">' + opts.map(o => '<option value="' + o[0] + '"' + (String(get(path)) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>';
+  const formula = t => '<details class="card formula"><summary>Calculation formula</summary><div class="formula-body">' + t + '</div></details>';
+  const tbl = (h, rows, hi) => '<div class="table-wrap"><table class="x2t"><thead><tr>' + h.map(x => '<th>' + x + '</th>').join('') + '</tr></thead><tbody>' + rows.map((r, i) => '<tr' + (i === hi ? ' class="hi"' : '') + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+  function get(path) { return path.split('.').reduce((o, k) => o == null ? o : o[k], X); }
+  function set(path, v) { const ks = path.split('.'), last = ks.pop(), o = ks.reduce((o, k) => o[k], X); o[last] = v; }
+  const matSel = path => { const m = MAT.find(x => x[0] === get(path + '.mat'));
+    return selF('Duct material', path + '.mat', MAT.map(m => [m[0], m[1]])) +
+      (get(path + '.mat') === 'custom' ? fld('Roughness ε', path + '.eps', 'rough') : m ? '<p class="hint" style="margin:-2px 0 4px">Roughness ε = ' + (ip() ? String(Number((m[2] / 304.8).toPrecision(3))) + ' ft' : m[2] + ' mm') + '</p>' : ''); };
+  const airLine = () => { const a = air(X.air); return '<p class="hint" style="margin:0">Air: ' + (a ? shown('temp', X.air.t) + ' ' + tC.u() + ', ' + shown('alt', X.air.alt) + ' ' + uL('alt') + ', ' + X.air.rh + ' % RH, density ' + out('dens', a.rho, ip() ? 4 : 3) + ' ' + uL('dens') : 'check the Air Properties tab') + ' · <button type="button" class="linkbtn" data-sub="air">change</button></p>'; };
+
+  /* ---- 1. Duct sizing (both limits) + check a size ---- */
+  function viewSize() {
+    const s = X.size, c = X.chk;
+    return card('Size a duct', airLine() + fld('Air flow', 'size.q', 'flow') + matSel('size') + fld('Max. friction', 'size.maxF', 'fric') + fld('Max. velocity', 'size.maxV', 'vel') +
+        fld('Max. aspect ratio', 'size.ar', 'raw', 'Width ÷ Height') + fld('Min. side', 'size.minS', 'dim')) +
+      '<section class="card res" id="a-size"></section>' +
+      card('Check a duct size', fld('Air flow', 'chk.q', 'flow') + selF('Shape', 'chk.shape', [['rect', 'Rectangular'], ['round', 'Round'], ['oval', 'Flat oval']]) +
+        (c.shape === 'round' ? fld('Diameter', 'chk.d', 'dim') : c.shape === 'oval' ? fld('Major axis (A)', 'chk.a', 'dim') + fld('Minor axis (a)', 'chk.b', 'dim') : fld('Width', 'chk.w', 'dim') + fld('Height', 'chk.h', 'dim')) +
+        matSel('chk') + '<div class="res" id="a-chk"></div>') +
+      formula('Friction: Darcy-Weisbach, Δp/L = f ÷ D × ρV²/2, with f from Colebrook-White and the air density and viscosity of the Air Properties tab (not standard air).<br>' +
+        'Rectangular: De = 1.30 (a·b)^0.625 ÷ (a+b)^0.25 (Huebscher). Flat oval: De = 1.55 AR^0.625 ÷ P^0.25, AR = πa²/4 + a(A − a), P = πa + 2(A − a).<br>' +
+        'Velocity uses the real duct area. The duct must meet both limits (friction and velocity); the result says which limit governs. Rectangular sides in ' + (ip() ? '2 in' : '50 mm') + ' steps.');
+  }
+  function calcSize() {
+    const s = X.size, Q = n(s.q) / 1000, eps = epsOf(s), mF = n(s.maxF), mV = n(s.maxV), mAR = n(s.ar), minS = n(s.minS) / 1000, el = $('#a-size'); if (!el) return;
+    if (!(Q > 0)) { el.innerHTML = '<span class="hint">Enter the air flow.</span>'; return; }
+    if (!(mF > 0) && !(mV > 0)) { el.innerHTML = '<p class="hint red">Enter a max. friction and/or a max. velocity.</p>'; return; }
+    if (!(eps >= 0) || !air(X.air)) { el.innerHTML = '<p class="hint red">Check the roughness and the air properties.</p>'; return; }
+    const okF = r => !(mF > 0) || r.dpL <= mF * 1.0000001, okV = r => !(mV > 0) || r.V <= mV * 1.0000001;
+    // exact round diameter for each limit (bisection on D)
+    const solveD = test => { let lo = 0.02, hi = 5; if (!test(fric(Q, hi, eps))) return NaN; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (test(fric(Q, m, eps))) hi = m; else lo = m; } return hi; };
+    const dF = mF > 0 ? solveD(okF) : 0, dV = mV > 0 ? solveD(okV) : 0, dReq = Math.max(dF, dV);
+    if (!Number.isFinite(dReq)) { el.innerHTML = '<p class="hint red">No duct up to 5 m diameter meets the limits. Check the inputs.</p>'; return; }
+    const gov = mF > 0 && mV > 0 ? (dF >= dV ? 'Friction' : 'Velocity') : mF > 0 ? 'Friction' : 'Velocity';
+    const RL = ip() ? ROUND_IP.map(x => x * 0.0254) : ROUND_SI.map(x => x / 1000), dStd = RL.find(d => d >= dReq - 1e-9), rs = dStd ? fric(Q, dStd, eps) : null;
+    // rectangular options: for each height, the narrowest width that meets both limits and the aspect ratio
+    const step = ip() ? 0.0508 : 0.05, opts = [];
+    const min = Math.max(minS > 0 ? minS : step, step);
+    for (let h = Math.ceil(min / step - 1e-9) * step; h <= 3.0001; h += step) {
+      for (let w = h; w <= h * (mAR > 0 ? mAR : 4) + 1e-9 && w <= 6; w += step) {
+        const r = fric(Q, deRect(w, h), eps, w * h);
+        if (r && okF(r) && okV(r)) { opts.push({ w: w, h: h, r: r, P: 2 * (w + h) }); break; }
+      }
+      if (opts.length >= 14) break;
+    }
+    opts.sort((a, b) => a.P - b.P);
+    const best = opts.slice(0, 8), dim = x => fmt(fromSI('dim', x * 1000), 0);
+    el.innerHTML = rl('Required round size', out('dim', dReq * 1000, ip() ? 1 : 0), uL('dim'), 'big') + rl('Governing limit', gov, '') +
+      (rs ? rl('Standard round', dim(dStd), uL('dim'), 'big') + rl('Velocity', out('vel', rs.V, ip() ? 0 : 2), uL('vel')) + rl('Friction', out('fric', rs.dpL), uL('fric')) + rl('Velocity pressure', out('pres', rs.Vp), uL('pres')) : rl('Standard round', 'Above the size list', '')) +
+      '<h2 class="section-title" style="margin-top:12px">Rectangular options (least sheet metal first)</h2>' +
+      (best.length ? tbl(['Size (' + uL('dim') + ')', 'AR', 'Velocity (' + uL('vel') + ')', 'Friction (' + uL('fric') + ')', 'De (' + uL('dim') + ')'],
+        best.map(o => [dim(o.w) + ' × ' + dim(o.h), fmt(o.w / o.h, 2), out('vel', o.r.V, ip() ? 0 : 2), out('fric', o.r.dpL), out('dim', deRect(o.w, o.h) * 1000, ip() ? 1 : 0)]), 0)
+        + '<p class="hint">Highlighted row = smallest perimeter (least sheet metal) that meets every limit.</p>' : '<p class="hint red">No rectangular size within the aspect ratio meets the limits.</p>');
+  }
+  function calcChk() {
+    const c = X.chk, Q = n(c.q) / 1000, eps = epsOf(c), el = $('#a-chk'); if (!el) return;
+    let De, A, P, ar = NaN;
+    if (c.shape === 'round') { De = n(c.d) / 1000; A = Math.PI * De * De / 4; P = Math.PI * De; }
+    else if (c.shape === 'oval') { const MA = n(c.a) / 1000, mi = n(c.b) / 1000; if (MA > 0 && mi > 0 && MA >= mi) { const g = ovalGeo(MA, mi); De = g.De; A = g.area; P = g.P; ar = MA / mi; } }
+    else { const w = n(c.w) / 1000, h = n(c.h) / 1000; if (w > 0 && h > 0) { De = deRect(w, h); A = w * h; P = 2 * (w + h); ar = Math.max(w, h) / Math.min(w, h); } }
+    if (c.shape === 'oval' && n(c.a) > 0 && n(c.b) > n(c.a)) { el.innerHTML = '<p class="hint red">Major axis must not be smaller than the minor axis.</p>'; return; }
+    const r = Q > 0 && De > 0 && eps >= 0 ? fric(Q, De, eps, A) : null;
+    el.innerHTML = r ? rl('Velocity', out('vel', r.V, ip() ? 0 : 2), uL('vel'), 'big') + rl('Friction', out('fric', r.dpL), uL('fric'), 'big') + rl('Velocity pressure', out('pres', r.Vp), uL('pres')) +
+      rl('Equivalent diameter', out('dim', De * 1000, ip() ? 1 : 0), uL('dim')) + (Number.isFinite(ar) ? rl('Aspect ratio', fmt(ar, 2), ar > 4 ? '<b class="red" style="font-size:12px">above 4 : 1</b>' : '') : '') +
+      rl('Reynolds number', fmt(r.Re, 0), '') + rl('Friction factor', fmt(r.f, 4), '') + rl('Area', ip() ? fmt(A * 10.7639, 3) : fmt(A, 4), ip() ? 'ft²' : 'm²') + rl('Perimeter', ip() ? fmt(P * 3.28084, 2) : fmt(P, 3), ip() ? 'ft' : 'm')
+      : '<span class="hint">Enter the air flow and the duct size.</span>';
+  }
+
+  /* ---- 2. Duct run pressure loss ---- */
+  function viewRun() {
+    const R = X.run;
+    const fitOpts = FIT.map(f => [f[0], f[1]]);
+    const secs = R.secs.map((s, i) => {
+      const p = 'run.secs.' + i;
+      return '<section class="card x2sec"><h2 class="section-title">Section ' + (i + 1) + '</h2>' +
+        '<div class="row"><label class="lbl">Name</label><input type="text" class="txt" data-p="' + p + '.name" data-k="text" placeholder="e.g. Main A–B" value="' + esc(s.name) + '" style="grid-column:span 2"></div>' +
+        fld('Air flow', p + '.q', 'flow') + selF('Shape', p + '.shape', [['rect', 'Rectangular'], ['round', 'Round']]) +
+        (s.shape === 'round' ? fld('Diameter', p + '.d', 'dim') : fld('Width', p + '.w', 'dim') + fld('Height', p + '.h', 'dim')) + fld('Length', p + '.len', 'len') +
+        '<div class="x2fits">' + s.fit.map((f, j) => '<div class="x2fit"><select data-fit="' + i + '.' + j + '" aria-label="Fitting">' + fitOpts.map(o => '<option value="' + o[0] + '"' + (o[0] === f.k ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
+          '<input type="number" step="1" min="0" inputmode="numeric" class="num" data-fitn="' + i + '.' + j + '" value="' + esc(f.n) + '" aria-label="Quantity"><button type="button" class="x2x" data-fitdel="' + i + '.' + j + '" aria-label="Remove fitting">×</button></div>').join('') + '</div>' +
+        '<div class="btnrow"><button type="button" class="secondary" data-fitadd="' + i + '">+ Add fitting</button>' + (R.secs.length > 1 ? '<button type="button" class="secondary" data-secdel="' + i + '">− Delete section</button>' : '') + '</div></section>';
+    }).join('');
+    return card('Duct run', airLine() + matSel('run') + '<p class="hint">Add the sections from the fan to the farthest outlet (the index run).</p>') + secs +
+      '<div class="btnrow" style="margin:-2px 0 10px"><button type="button" class="secondary" id="a-addsec">+ Add section</button></div>' +
+      card('Equipment and fixed losses', R.eq.map((e, i) => '<div class="x2db"><input type="text" class="txt" data-p="run.eq.' + i + '.name" data-k="text" value="' + esc(e.name) + '" placeholder="Item" aria-label="Item"><input type="number" step="any" inputmode="decimal" class="num" data-p="run.eq.' + i + '.pa" data-k="pres" value="' + esc(shown('pres', e.pa)) + '" aria-label="Pressure drop"><span class="unit">' + uL('pres') + '</span></div>').join('') +
+        '<div class="btnrow"><button type="button" class="secondary" id="a-addeq">+ Add item</button><button type="button" class="secondary" id="a-deleq">− Delete last item</button></div>' +
+        '<p class="hint">Filter, coil, sound attenuator, terminal / diffuser, louver: from the manufacturer data.</p>' + fld('Safety margin', 'run.mg', 'pct')) +
+      '<section class="card res" id="a-run"></section>' +
+      '<details class="card x2more"><summary>Fitting loss coefficients (C) · Edit values</summary><div style="margin-top:10px">' +
+        FIT.map(f => '<div class="row"><label class="lbl" style="font-weight:500;font-size:14px">' + f[1] + '</label><input type="number" step="any" inputmode="decimal" class="num" data-p="C.' + f[0] + '" data-k="raw" value="' + esc(X.C[f[0]]) + '"><span class="unit">C</span></div>').join('') +
+        '<div class="btnrow"><button type="button" class="secondary" id="a-resetc">Reset C values</button></div><p class="hint">Typical ASHRAE values. Use the manufacturer or ASHRAE fitting data for the exact fitting.</p></div></details>' +
+      formula('Friction loss = Friction (Darcy-Weisbach, Colebrook-White) × Length.<br>Fitting loss = Σ (C × Qty) × Velocity pressure of the section, Velocity pressure = ρV²/2.<br>Total = Σ sections + equipment, then + safety margin. This is the external static pressure the fan must give for this run.');
+  }
+  function runCalc() {
+    const R = X.run, eps = epsOf(R), a = air(X.air), rows = [];
+    let tf = 0, tfit = 0, any = false, bad = false;
+    R.secs.forEach((s, i) => {
+      const Q = n(s.q) / 1000, L = n(s.len); let De, A;
+      if (s.shape === 'round') { De = n(s.d) / 1000; A = Math.PI * De * De / 4; } else { const w = n(s.w) / 1000, h = n(s.h) / 1000; if (w > 0 && h > 0) { De = deRect(w, h); A = w * h; } }
+      const r = a && Q > 0 && De > 0 && eps >= 0 ? fric(Q, De, eps, A) : null;
+      if (!r) { if (n(s.q) > 0 || n(s.len) > 0) bad = true; return; }
+      any = true;
+      const fl = r.dpL * (L > 0 ? L : 0), C = s.fit.reduce((t, f) => t + (n(X.C[f.k]) || 0) * (n(f.n) > 0 ? n(f.n) : 0), 0), fit = C * r.Vp;
+      tf += fl; tfit += fit;
+      rows.push({ name: (s.name || '').trim() || 'Section ' + (i + 1), V: r.V, dpL: r.dpL, L: L > 0 ? L : 0, fl: fl, C: C, Vp: r.Vp, fit: fit, tot: fl + fit });
+    });
+    const eq = R.eq.reduce((t, e) => t + (n(e.pa) > 0 ? n(e.pa) : 0), 0), sub = tf + tfit + eq, mg = n(R.mg) > 0 ? n(R.mg) : 0, total = sub * (1 + mg / 100);
+    return { rows: rows, tf: tf, tfit: tfit, eq: eq, sub: sub, mg: mg, total: total, any: any, bad: bad };
+  }
+  function calcRun() {
+    const el = $('#a-run'); if (!el) return;
+    const c = runCalc();
+    if (!c.any && !(c.eq > 0)) { el.innerHTML = '<span class="hint">Enter the sections (air flow, size and length).</span>' + (c.bad ? '<p class="hint red">A section is missing its size or air flow.</p>' : ''); return; }
+    const pd = ip() ? 3 : 1;
+    el.innerHTML = (c.rows.length ? tbl(['Section', 'Velocity (' + uL('vel') + ')', 'Friction (' + uL('fric') + ')', 'Length (' + uL('len') + ')', 'Friction loss (' + uL('pres') + ')', 'ΣC', 'Fitting loss (' + uL('pres') + ')', 'Total (' + uL('pres') + ')'],
+        c.rows.map(r => [esc(r.name), out('vel', r.V, ip() ? 0 : 2), out('fric', r.dpL), out('len', r.L, 1), out('pres', r.fl, pd), fmt(r.C, 2), out('pres', r.fit, pd), out('pres', r.tot, pd)])) : '') +
+      rl('Duct friction loss', out('pres', c.tf, pd), uL('pres')) + rl('Fitting loss', out('pres', c.tfit, pd), uL('pres')) + rl('Equipment', out('pres', c.eq, pd), uL('pres')) +
+      rl('Sub total', out('pres', c.sub, pd), uL('pres')) + rl('Total with ' + c.mg + ' % margin', out('pres', c.total, pd), uL('pres'), 'big') +
+      (c.bad ? '<p class="hint red">A section is missing its size or air flow and is not counted.</p>' : '') +
+      '<div class="btnrow"><button type="button" class="secondary" id="a-tofan">Use this total in Fan Power</button></div>';
+    const b = $('#a-tofan'); if (b) b.onclick = () => { X.fan.p = String(c.total); const q = n(X.run.secs[0] && X.run.secs[0].q); if (q > 0 && !(n(X.fan.q) > 0)) X.fan.q = String(q); X.sub = 'fan'; save(); draw(); };
+  }
+
+  /* ---- 3. Fan power ---- */
+  function viewFan() {
+    return card('Fan', fld('Air flow', 'fan.q', 'flow') + fld('Fan total pressure', 'fan.p', 'pres') + fld('Fan efficiency', 'fan.ef', 'pct') + fld('Drive efficiency', 'fan.ed', 'pct', 'Direct 100, belt 95 – 97') +
+        fld('Motor efficiency', 'fan.em', 'pct') + fld('Motor margin', 'fan.mg', 'pct')) +
+      '<section class="card res" id="a-fan"></section>' +
+      formula('Air power (kW) = Q (m³/s) × Δp (Pa) ÷ 1000.<br>Shaft power = Air power ÷ Fan efficiency.<br>Motor output = Shaft power ÷ Drive efficiency; motor size = next standard size above Motor output × (1 + margin).<br>Electrical input = Motor output ÷ Motor efficiency. SFP = Electrical input (W) ÷ Air flow (L/s).');
+  }
+  function calcFan() {
+    const f = X.fan, Q = n(f.q) / 1000, p = n(f.p), ef = n(f.ef) / 100, ed = n(f.ed) / 100, em = n(f.em) / 100, mg = n(f.mg) > 0 ? n(f.mg) : 0, el = $('#a-fan'); if (!el) return;
+    if (!(Q > 0 && p > 0)) { el.innerHTML = '<span class="hint">Enter the air flow and the fan total pressure.</span>'; return; }
+    if (!(ef > 0 && ef <= 1 && ed > 0 && ed <= 1 && em > 0 && em <= 1)) { el.innerHTML = '<p class="hint red">Efficiencies must be more than 0 and not more than 100 %.</p>'; return; }
+    const air_ = Q * p / 1000, shaft = air_ / ef, mout = shaft / ed, elec = mout / em, need = mout * (1 + mg / 100), mot = MOTOR.find(k => k >= need - 1e-9);
+    el.innerHTML = rl('Air power', fmt(air_, 3), 'kW') + rl('Shaft power', fmt(shaft, 3), 'kW') + rl('Shaft power', fmt(shaft / 0.7457, 2), 'HP') +
+      rl('Electrical input', fmt(elec, 3), 'kW', 'big') + rl('Motor size', mot ? String(mot) : 'Above 315', 'kW', 'big') +
+      rl('Specific fan power (SFP)', fmt(elec * 1000 / (Q * 1000), 2), 'W per L/s');
+  }
+
+  /* ---- 4. Air properties ---- */
+  function viewAir() {
+    return card('Air', fld('Dry bulb temperature', 'air.t', 'temp') + fld('Altitude', 'air.alt', 'alt') + fld('Relative humidity', 'air.rh', 'pct') +
+        '<p class="hint">Used by Duct Sizing, Duct Run and Fan Power. Standard air: 20 °C, sea level, 1.204 kg/m³.</p>') +
+      '<section class="card res" id="a-air"></section>' +
+      formula('Pressure p = 101.325 × (1 − 2.25577×10⁻⁵ × Z)^5.2559 kPa.<br>Saturation pressure (Magnus): pws = 0.61094 × e^(17.625 T ÷ (T + 243.04)) kPa, pw = RH × pws.<br>Humidity ratio W = 0.621945 × pw ÷ (p − pw).<br>Density ρ = (p − pw) ÷ (287.055 T) + pw ÷ (461.495 T), T in K.<br>Viscosity (Sutherland): μ = 1.716×10⁻⁵ (T ÷ 273.15)^1.5 × 383.55 ÷ (T + 110.4).<br>Sensible heat: Q (W) = ρ × cp × L/s × ΔT ÷ 1000.');
+  }
+  function calcAir() {
+    const a = air(X.air), el = $('#a-air'); if (!el) return;
+    if (!a) { el.innerHTML = '<p class="hint red">Enter a temperature (−40 to 100 °C), altitude (−500 to 6000 m) and RH (0 to 100 %).</p>'; return; }
+    el.innerHTML = rl('Density', out('dens', a.rho, ip() ? 4 : 3), uL('dens'), 'big') + rl('Correction to standard air', fmt(a.cf, 3), '× 1.204 kg/m³') +
+      rl('Barometric pressure', ip() ? fmt(a.p / 3386.389, 2) : fmt(a.p / 1000, 2), ip() ? 'in.Hg' : 'kPa') + rl('Specific volume', ip() ? fmt(a.v * 16.018463, 2) : fmt(a.v, 3), ip() ? 'ft³/lb' : 'm³/kg') +
+      rl('Humidity ratio', ip() ? fmt(a.W * 7000, 1) : fmt(a.W * 1000, 2), ip() ? 'gr/lb' : 'g/kg') + rl('Dew point', Number.isFinite(a.dew) ? fmt(tC.fromSI(a.dew), 1) : '—', tC.u()) +
+      rl('Dynamic viscosity', ip() ? fmt(a.mu * 2419.0883, 4) : fmt(a.mu * 1e5, 4), ip() ? 'lb/ft·h' : '×10⁻⁵ Pa·s') + rl('Kinematic viscosity', ip() ? fmt(a.nu * 10.7639 * 1e4, 3) : fmt(a.nu * 1e6, 2), ip() ? '×10⁻⁴ ft²/s' : 'mm²/s') +
+      rl('Sensible heat factor', ip() ? fmt(a.rho * a.cp * 0.00047194745 * 5 / 9 * 3.412142, 3) : fmt(a.hs, 3), ip() ? 'Btu/h per CFM·°F' : 'W per L/s·K');
+  }
+
+  /* ---- page ---- */
+  const SUBS = [['size', 'Duct Sizing'], ['run', 'Duct Run'], ['fan', 'Fan Power'], ['air', 'Air Properties']];
+  let VIEW = null;
+  function draw() {
+    const view = VIEW; if (!view) return;
+    const body = X.sub === 'run' ? viewRun() : X.sub === 'fan' ? viewFan() : X.sub === 'air' ? viewAir() : viewSize();
+    view.innerHTML = '<div class="tool-x tool-adv"><div class="x2seg" role="tablist">' + SUBS.map(s => '<button type="button" role="tab" data-sub="' + s[0] + '" class="' + (X.sub === s[0] ? 'on' : '') + '">' + s[1] + '</button>').join('') + '</div>' + body + '</div>';
+    view.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { X.sub = b.dataset.sub; save(); draw(); try { window.scrollTo(0, 0); } catch (e) {} }));
+    view.querySelectorAll('input[data-p]').forEach(el => el.addEventListener('input', () => {
+      const k = el.dataset.k, v = k === 'text' || k === 'raw' || k === 'pct' ? el.value : store(k, el.value);
+      if (v === null) return;                       // a half-typed number: keep the last good value
+      set(el.dataset.p, v); save(); calc();
+    }));
+    view.querySelectorAll('select[data-p]').forEach(el => el.addEventListener('change', () => {
+      const p = el.dataset.p; set(p, el.value);
+      if (/\.mat$/.test(p)) { const m = MAT.find(x => x[0] === el.value), base = p.replace(/\.mat$/, ''); if (m && Number.isFinite(m[2])) set(base + '.eps', String(m[2])); }
+      save(); draw();
+    }));
+    view.querySelectorAll('[data-fit]').forEach(el => el.addEventListener('change', () => { const [i, j] = el.dataset.fit.split('.').map(Number); X.run.secs[i].fit[j].k = el.value; save(); calc(); }));
+    view.querySelectorAll('[data-fitn]').forEach(el => el.addEventListener('input', () => { const [i, j] = el.dataset.fitn.split('.').map(Number); X.run.secs[i].fit[j].n = el.value; save(); calc(); }));
+    view.querySelectorAll('[data-fitdel]').forEach(b => b.addEventListener('click', () => { const [i, j] = b.dataset.fitdel.split('.').map(Number); X.run.secs[i].fit.splice(j, 1); save(); draw(); }));
+    view.querySelectorAll('[data-fitadd]').forEach(b => b.addEventListener('click', () => { X.run.secs[+b.dataset.fitadd].fit.push({ k: 'el90vane', n: '1' }); save(); draw(); }));
+    view.querySelectorAll('[data-secdel]').forEach(b => b.addEventListener('click', () => { if (X.run.secs.length > 1) { X.run.secs.splice(+b.dataset.secdel, 1); save(); draw(); } }));
+    const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
+    on('a-addsec', () => { const last = X.run.secs[X.run.secs.length - 1], s = SEC(); if (last) { s.shape = last.shape; } X.run.secs.push(s); save(); draw(); });
+    on('a-addeq', () => { X.run.eq.push({ name: '', pa: '' }); save(); draw(); });
+    on('a-deleq', () => { if (X.run.eq.length) { X.run.eq.pop(); save(); draw(); } });
+    on('a-resetc', () => { X.C = DEF().C; save(); draw(); const d = VIEW.querySelector('details.x2more'); if (d) d.open = true; });
+    calc();
+  }
+  function calc() { if (X.sub === 'size') { calcSize(); calcChk(); } else if (X.sub === 'run') calcRun(); else if (X.sub === 'fan') calcFan(); else calcAir(); }
+  function mount(view) { VIEW = view; draw(); }
+  function clear() {
+    const d = DEF();
+    if (X.sub === 'size') { X.size = d.size; X.chk = d.chk; } else if (X.sub === 'run') { X.run = d.run; } else if (X.sub === 'fan') { X.fan = d.fan; } else { X.air = d.air; }
+    save();
+  }
+  function excel() {
+    if (X.sub !== 'run' || !DRSW.buildXlsx) return 'Excel export is in the Duct Run tab.';
+    const c = runCalc(); if (!c.rows.length && !(c.eq > 0)) return 'Enter the duct run first.';
+    const pr = x => Number.isFinite(x) ? Number(fromSI('pres', x).toFixed(ip() ? 4 : 2)) : null, v = (k, x, dp) => Number.isFinite(x) ? Number(fromSI(k, x).toFixed(dp)) : null;
+    const rows = c.rows.map(r => [r.name, v('vel', r.V, 2), v('fric', r.dpL, 4), v('len', r.L, 2), pr(r.fl), Number(r.C.toFixed(3)), pr(r.fit), pr(r.tot)]);
+    X.run.eq.forEach(e => { if (n(e.pa) > 0) rows.push([(e.name || 'Equipment').trim(), null, null, null, null, null, null, pr(n(e.pa))]); });
+    rows.push(['Sub total', null, null, null, null, null, null, pr(c.sub)], ['Total with ' + c.mg + ' % margin', null, null, null, null, null, null, pr(c.total)]);
+    const title = 'Duct Run Pressure Loss';
+    const blob = DRSW.buildXlsx(title, ['Section', 'Velocity\n(' + uL('vel') + ')', 'Friction\n(' + uL('fric') + ')', 'Length\n(' + uL('len') + ')', 'Friction loss\n(' + uL('pres') + ')', 'ΣC', 'Fitting loss\n(' + uL('pres') + ')', 'Total\n(' + uL('pres') + ')'], [24, 12, 14, 11, 14, 8, 14, 14], rows);
+    const name = title + '.xlsx', file = typeof File === 'function' ? new File([blob], name, { type: blob.type }) : null;
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    if (file && coarse && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: title }).catch(() => {}); return ''; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return '';
+  }
+  return { mount: mount, clear: clear, excel: excel, refresh: () => draw(), air: air, fric: fric, MAT: MAT, FIT: FIT };
+})();
+
 /* ---------- categories and tools (add new tools here) ----------
    A category holds a list of tools. To add a tool, add one object to that category's "tools" list:
    { id, label, icon, actions: ['units','clear','print'], modes?: [...], mount?: fn, soon?: 'text' }
@@ -2973,14 +3299,16 @@ const CATEGORIES = [
   { id: 'hvac', label: 'HVAC', color: '#2f6fe0', icon: ICON.hvac, min: 4, tools: [
       { id: 'duct', label: 'Duct Sizer', icon: ICON.duct, actions: ACTIONS, printTitle: 'Duct sizing',
         onUnits: (from, to) => convertAll(from, to),
-        refresh: () => { if ($('#rows')) { $$('[data-in]').forEach(el => { el.value = ''; }); update(); } },
+        refresh: () => { if (S.mode === 'adv') { ADV.refresh(); return; } if ($('#rows')) { $$('[data-in]').forEach(el => { el.value = ''; }); update(); } },
+        onExcel: () => { if (S.mode === 'adv') { const m = ADV.excel(); if (m) X2.toast(m); } },
         onClear: () => {
+          if (S.mode === 'adv') { ADV.clear(); ADV.refresh(); return; }   // Advanced clears only its open tab; Basic below is unchanged
           FIELDS.forEach(k => S.vals[k] = ''); S.duct.w = ''; S.duct.h = ''; S.duct.auto = null; S.duct.pending = null;
           if ($('#rows')) { $$('[data-in]').forEach(el => { el.value = ''; }); $('#dw').value = ''; $('#dh').value = ''; update(); }
         },
         modes: [
           { id: 'basic', label: 'Basic', mount: mountDuctBasic },
-          { id: 'adv', label: 'Advanced', soon: 'Advanced duct calculations will be added here.' } ] }
+          { id: 'adv', label: 'Advanced', mount: v => ADV.mount(v), actions: ['units', 'clear', 'print', 'excel'] } ] }
     ].concat(HVAC_TOOLS.map(([id, label, icon]) => ({
       id: 'hv-' + id, label: label, icon: icon, actions: ACTIONS, printTitle: label, mount: HVAC.mount(id),
       onUnits: id === 'ach' ? (from, to) => HVAC.convert(from, to) : undefined,      // one tool converts the saved values of all 13
@@ -3047,7 +3375,7 @@ function categoryHTML(c) {
 function updateActions() {
   disarmClear();
   const t = currentTool(), bar = $('#tool-actions');
-  const show = t && t.actions && activeMode(t).mount ? t.actions : [];
+  const show = t && t.actions && activeMode(t).mount ? (activeMode(t).actions || t.actions) : [];
   bar.hidden = false; bar.classList.toggle('empty', show.length === 0);
   $('#m-units').hidden = show.indexOf('units') < 0;
   $('#m-clear').hidden = show.indexOf('clear') < 0;
@@ -3319,7 +3647,7 @@ function renderPrintHead() {
   const el = $('#printhead'); if (!el) return;
   const U = UN[S.units], t = currentTool();
   if (t && t.id === 'pipe-slope') { el.innerHTML = ''; return; }
-  el.innerHTML = '<h1>MEPtools' + (t ? ' — ' + (t.printTitle || t.label) : '') + '</h1><p>' + new Date().toLocaleString() + ' · ' + U.name + ' units' + (t && t.id === 'duct' ? ' · ' + fluid().label : '') + '</p>';
+  el.innerHTML = '<h1>MEPtools' + (t ? ' — ' + (t.printTitle || t.label) : '') + '</h1><p>' + new Date().toLocaleString() + ' · ' + U.name + ' units' + (t && t.id === 'duct' && S.mode !== 'adv' ? ' · ' + fluid().label : '') + '</p>';
 }
 
 /* ---------- menu ---------- */
@@ -3359,6 +3687,10 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '11 Nov 2026', items: [
+    ['New', 'Duct Sizer › Advanced: Duct Sizing (real air, duct material, friction and velocity limits, round and rectangular options, check any round / rectangular / flat oval size)'],
+    ['New', 'Duct Sizer › Advanced: Duct Run pressure loss (sections, fittings with editable C values, equipment, margin, Excel), Fan Power (motor size, SFP) and Air Properties']
+  ] },
+  { v: 'v2026.11.11.9', date: '11 Nov 2026', items: [
     ['New', 'Electrical: ECC Size, Conduit Size and Voltage Drop (with the 4 % check)'],
     ['New', 'Standards & References, Electrical: DEWA cable selection tables, earthing and ELCB, wiring colours and supports, voltage drop table and DEWA design data']
   ] },
