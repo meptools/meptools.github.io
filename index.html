@@ -760,7 +760,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.11.12';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.12';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3266,8 +3266,32 @@ const LIB = (function () {
     return card('Gland selection chart (BICC)', table(['Cable (mm²)'].concat(D.BICC_CORES.map(c => c === '1' ? 'Single core' : c + ' core')), sizes.map(k => [k].concat(D.BICC_CORES.map((c, j) => D.BICC[k][j] || '—')))) +
         note('Gland size in mm; S = small version. Guide only, for cables to BS 5467 and BS 7889: use the actual cable diameter for the final selection.')) +
       card('PG cable gland size chart', table(['PG size', 'Cable dia. (mm)', 'Thread O.D. (mm)', 'Gland inner dia. (mm)'], D.PG.map(r => [r[0], r[1] + ' – ' + r[2], r[3].toFixed(1), r[4].toFixed(2)])) + note('Used by Electrical › Cable Gland Size.')); };
-  const elVD = () => card('Voltage drop, armoured XLPE copper cable (mV/A/m)', table(['Cable (mm²)', '2 core, 1 phase', '3/4 core, 3 phase'], X2.data.VDT.map(r => [r[0], r[1], r[2]])) +
-    fx('Volt drop', 'VD (V) = mV/A/m × I (A) × L (m) ÷ 1000') + note('BS 7671 Table 4E4B (90 °C conductor). DEWA limit 4 %. Used by Electrical › Voltage Drop.'));
+  /* Voltage Drop: mV/A/m plus the longest run for a 4 % drop. Load = the cable's rated current (XLPE Load Table) or the current typed on the page. */
+  let vdAmp = '';
+  const elVD = view => {
+    const D = X2.data, PC = 4, V1 = 230, V3 = 400, rated = {};
+    D.XLPE.forEach(r => { const k = /^4C × ([\d.]+) mm²$/.exec(r[5]); if (k) rated[k[1]] = r[3]; });
+    const maxL = (V, mv, I) => I > 0 ? '<b>' + Math.floor(PC / 100 * V * 1000 / (mv * I) + 1e-9) + '</b>' : '—';
+    const draw = () => {
+      const a = parseFloat(vdAmp), own = a > 0; let over = false;
+      const rows = D.VDT.map(r => {
+        const rt = rated[String(r[0])], I = own ? a : rt, hi = own && rt && a > rt; if (hi) over = true;
+        return [r[0], I ? (hi ? '<span class="red">' + num(I, 2) + '</span>' : num(I, 2)) : '—', r[1], maxL(V1, r[1], I), r[2], maxL(V3, r[2], I)];
+      });
+      view.querySelector('#lib-vd').innerHTML = table(['Cable (mm²)', 'Load (A)', '2C, 1P', 'Max (m)', '3/4C, 3P', 'Max (m)'], rows) +
+        (over ? '<p class="hint red">Red = load above the rated current of that cable.</p>' : '');
+    };
+    view.innerHTML = '<div class="tool-lib">' + card('Voltage drop, armoured XLPE copper cable (mV/A/m)',
+      '<div class="row"><label class="lbl" for="lib-vd-a" style="font-weight:600">Load current<small style="display:block;font-weight:400;color:var(--ink2);font-size:11.5px">Empty = rated current of each cable</small></label>' +
+      '<input type="number" step="any" min="0" inputmode="decimal" class="num" id="lib-vd-a" placeholder="Rated"><span class="unit">A</span></div><div id="lib-vd"></div>' +
+      fx('Volt drop', 'VD (V) = mV/A/m × I (A) × L (m) ÷ 1000') + fx('Max. length', 'Max (m) = 4 % × V × 1000 ÷ (mV/A/m × I)') +
+      note('2C, 1P = 2 core, 1 phase; 3/4C, 3P = 3 or 4 core, 3 phase. Max (m) = longest one-way run for a 4 % drop: 1 phase at 230 V (9.2 V), 3 phase at 400 V (16 V), rounded down.') +
+      note('Load (A) = max. load current of the cable from the XLPE Load Table, or the current typed above. 400 mm² has no rating in that table: type the load current.') +
+      note('BS 7671 Table 4E4B (90 °C conductor). DEWA limit 4 %. Used by Electrical › Voltage Drop.')) + '</div>';
+    const inp = view.querySelector('#lib-vd-a'); inp.value = vdAmp;
+    inp.addEventListener('input', () => { vdAmp = inp.value; draw(); });
+    draw();
+  };
 
   /* ----- Misc ----- */
   const miscPaper = () => {
@@ -3343,7 +3367,7 @@ const LIB = (function () {
   const m = (id, label, fn) => ({ id: id, label: label, mount: wrap(fn) });
   return {
     electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable), m('dewa', 'DEWA Cables', elDewaCables), m('earth', 'Earthing & ELCB', elEarth),
-      m('wiring', 'Wiring & Supports', elWiring), m('vd', 'Voltage Drop', elVD), m('design', 'DEWA Design Data', elDesign), m('xlpe', 'XLPE Load Table', elXlpe), m('glands', 'Cable Glands', elGlands)],
+      m('wiring', 'Wiring & Supports', elWiring), { id: 'vd', label: 'Voltage Drop', mount: elVD }, m('design', 'DEWA Design Data', elDesign), m('xlpe', 'XLPE Load Table', elXlpe), m('glands', 'Cable Glands', elGlands)],
     misc: [m('paper', 'Paper Size', miscPaper), m('tv', 'TV Size', miscTV), m('si', 'SI Units', miscSI), m('alt', 'Alt Codes', miscAlt)],
     hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex)],
     plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', () => chw() + chwExtra()), m('pipe', 'Pipe Data', plumbPipe), m('fire', 'Fire Fighting', fire)]
@@ -3873,7 +3897,10 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
-  { v: VERSION, date: '11 Nov 2026', items: [
+  { v: VERSION, date: '12 Nov 2026', items: [
+    ['New', 'Standards & References, Electrical, Voltage Drop: Max (m) columns show the longest cable run for a 4 % drop, at the rated current of each cable or at the load current you type']
+  ] },
+  { v: 'v2026.11.11.12', date: '11 Nov 2026', items: [
     ['New', 'Electrical: Cable Gland Size (by cable size and cores from the BICC chart, or by cable diameter for PG glands)'],
     ['Better', 'Cable Size by kW: choose the table, Electrical Rating or Multi-core armoured XLPE (with MCB/MCCB rating)'],
     ['New', 'Standards & References, Electrical: XLPE Load Table and Cable Glands (BICC and PG charts)']
