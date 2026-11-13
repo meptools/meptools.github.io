@@ -371,24 +371,24 @@ table.abt td.calc{text-align:center;font-weight:700;color:var(--blue);background
 table.abt td:last-child{width:50px;padding:2px;border:0}
 .ab-print{display:none}
 @page abp{size:A4 portrait;margin:10mm}
+table.abp{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;color:#000;font-variant-numeric:tabular-nums;zoom:var(--abz,1)}
+table.abp td{border:1px solid #000;padding:1px 4px;color:#000;vertical-align:middle;text-align:center;overflow-wrap:anywhere;line-height:1.25}
+table.abp tr{break-inside:avoid}
+table.abp td.ttl{font-size:16px;font-weight:700;padding:5px}
+table.abp td.lb{font-weight:700;text-align:left;text-transform:uppercase;white-space:nowrap}
+table.abp td.lb[colspan]{white-space:normal}
+table.abp td.lb.r{text-align:right}
+table.abp td.l{text-align:left}
+table.abp tr.hr td,table.abp tr.dr td,table.abp tr.sg td,table.abp tr.sgs td{height:7mm}
+table.abp tr.th td{font-weight:700;background:#e6e6e6}
+table.abp tr.rem td{height:26mm;vertical-align:top}
+table.abp tr.sg td{font-weight:700;font-size:10px}
+.ab-measuring .ab-print{display:block!important;position:absolute;left:-9999px;top:0;width:190mm;visibility:hidden}
 @media print{
   body:has(.tool-ab){page:abp}
+  html:has(.tool-ab),body:has(.tool-ab){height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important}
   .tool-ab .ab-screen{display:none!important}
-  .tool-ab .ab-print{display:block}
-  table.abp{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;color:#000;font-variant-numeric:tabular-nums}
-  table.abp td{border:1px solid #000;padding:2px 4px;color:#000;vertical-align:middle;text-align:center;overflow-wrap:anywhere}
-  table.abp tr{break-inside:avoid}
-  table.abp td.ttl{font-size:16px;font-weight:700;padding:7px}
-  table.abp td.lb{font-weight:700;text-align:left;text-transform:uppercase;white-space:nowrap}
-  table.abp td.lb[colspan]{white-space:normal}
-  table.abp td.lb.r{text-align:right}
-  table.abp td.l{text-align:left}
-  table.abp tr.hr td{height:7mm}
-  table.abp tr.th td{font-weight:700;background:#e6e6e6}
-  table.abp tr.dr td{height:7mm}
-  table.abp tr.rem td{height:28mm;vertical-align:top}
-  table.abp tr.sg td{height:11mm;font-weight:700;font-size:10px}
-  table.abp tr.sgs td{height:14mm;vertical-align:top}
+  .tool-ab .ab-print{display:block;break-after:avoid;break-inside:avoid}
 }
 /* ---------- Standards & References ---------- */
 .float-row{position:sticky;top:8px;z-index:15;height:44px;margin:0 0 4px;pointer-events:none;display:flex;justify-content:flex-end}
@@ -803,7 +803,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.13';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.13.2';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -844,10 +844,10 @@ function fmtInt(x) { return isFinite(x) ? Math.round(x).toLocaleString('en-US') 
    HIST mirrors the browser history entries this page made (HI = the current one). A pop-up sheet adds one entry,
    so the phone's back button closes the sheet first; the header Back and the path line always go one level up. */
 let HIST = [{ cat: null, tool: null }], HI = 0;
-const sameNav = (a, b) => (a.cat || null) === (b.cat || null) && (a.tool || null) === (b.tool || null);
+const sameNav = (a, b) => (a.cat || null) === (b.cat || null) && (a.tool || null) === (b.tool || null) && (a.sub || null) === (b.sub || null);
 function pushHist(st) {
   HIST.length = HI + 1; HIST.push(st); HI++;
-  try { history.pushState({ cat: st.cat || null, tool: st.tool || null, i: HI, ov: !!st.ov }, ''); } catch (e) {}
+  try { history.pushState({ cat: st.cat || null, tool: st.tool || null, sub: st.sub || null, i: HI, ov: !!st.ov }, ''); } catch (e) {}
 }
 let sheetOpen = null;
 const SHEET_HIDE = {};   // extra work to do when a sheet closes: { sheet id: function }
@@ -856,7 +856,7 @@ function openSheet(id) {
   const had = !!sheetOpen;
   if (sheetOpen && sheetOpen !== id) { const o = document.getElementById(sheetOpen); if (o) o.classList.remove('open'); if (SHEET_HIDE[sheetOpen]) SHEET_HIDE[sheetOpen](); }
   el.classList.add('open'); sheetOpen = id;
-  if (!had) pushHist({ cat: NAV.cat, tool: NAV.tool, ov: true });
+  if (!had) pushHist({ cat: NAV.cat, tool: NAV.tool, sub: NAV.sub, ov: true });
 }
 function hideSheetNow(id) {
   const el = document.getElementById(id); if (el) el.classList.remove('open');
@@ -2860,6 +2860,7 @@ const X2 = (function () {
 })();
 
 /* ---------- Duct Sizer › Advanced (engineer level; separate from Basic, its own state in S.adv, all values kept in SI) ---------- */
+const svg = inner => '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + '</svg>';
 const ADV = (function () {
   /* ---- units: every value is stored in SI; the boxes show the selected unit system ---- */
   const UQ = {
@@ -2871,7 +2872,8 @@ const ADV = (function () {
     pres: { si: ['Pa', 1], ip: ['in.WC', 249.08891] },
     alt: { si: ['m', 1], ip: ['ft', 0.3048] },
     dens: { si: ['kg/m³', 1], ip: ['lb/ft³', 16.018463] },
-    rough: { si: ['mm', 1], ip: ['ft', 304.8] }
+    rough: { si: ['mm', 1], ip: ['ft', 304.8] },
+    area: { si: ['m²', 1], ip: ['ft²', 0.09290304] }
   };
   const ip = () => S.units === 'ip';
   const uL = k => UQ[k][ip() ? 'ip' : 'si'][0];
@@ -2926,6 +2928,7 @@ const ADV = (function () {
   const MOTOR = [0.18, 0.25, 0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3, 4, 5.5, 7.5, 11, 15, 18.5, 22, 30, 37, 45, 55, 75, 90, 110, 132, 160, 200, 250, 315];
 
   /* ---- state ---- */
+  const REGROW = () => ({ name: '', q: '', v1: '', v2: '', len: '', rem: '' });
   const SEC = () => ({ name: '', q: '', shape: 'rect', d: '', w: '', h: '', len: '', fit: [] });
   const DEF = () => ({
     sub: 'size', air: { t: '20', alt: '0', rh: '50' },
@@ -2933,7 +2936,8 @@ const ADV = (function () {
     chk: { q: '', shape: 'rect', mat: 'galv', eps: '0.09', d: '', w: '', h: '', a: '', b: '' },
     run: { mat: 'galv', eps: '0.09', secs: [SEC()], eq: [{ name: 'Filter', pa: '' }, { name: 'Cooling coil', pa: '' }], mg: '10' },
     C: Object.fromEntries(FIT.map(f => [f[0], String(f[2])])),
-    fan: { q: '', p: '', ef: '65', ed: '97', em: '90', mg: '15' }
+    fan: { q: '', p: '', ef: '65', ed: '97', em: '90', mg: '15' },
+    reg: { f: '0.75', rows: [REGROW()] }
   });
   let X = S.adv = DEF();
   (function load() {
@@ -2942,7 +2946,11 @@ const ADV = (function () {
       const str = v => typeof v === 'string' ? v : '';
       const copy = (dst, src) => { if (!src || typeof src !== 'object') return; Object.keys(dst).forEach(k => { if (typeof dst[k] === 'string' && typeof src[k] === 'string') dst[k] = src[k]; }); };
       ['air', 'size', 'chk', 'fan', 'C'].forEach(k => copy(X[k], x[k]));
-      if (typeof x.sub === 'string' && ['size', 'run', 'fan', 'air'].includes(x.sub)) X.sub = x.sub;
+      if (typeof x.sub === 'string' && ['size', 'run', 'fan', 'air', 'regain'].includes(x.sub)) X.sub = x.sub;
+      if (x.reg && typeof x.reg === 'object') {
+        if (typeof x.reg.f === 'string') X.reg.f = x.reg.f;
+        if (Array.isArray(x.reg.rows) && x.reg.rows.length) X.reg.rows = x.reg.rows.slice(0, 200).map(q => { const o = REGROW(); copy(o, q); return o; });
+      }
       if (x.run && typeof x.run === 'object') {
         copy(X.run, x.run);
         if (Array.isArray(x.run.secs) && x.run.secs.length) X.run.secs = x.run.secs.map(s => { const o = SEC(); copy(o, s); o.fit = Array.isArray(s && s.fit) ? s.fit.filter(f => f && FIT.some(F => F[0] === f.k)).map(f => ({ k: f.k, n: str(f.n) })) : []; return o; });
@@ -3079,7 +3087,7 @@ const ADV = (function () {
       rl('Sub total', out('pres', c.sub, pd), uL('pres')) + rl('Total with ' + c.mg + ' % margin', out('pres', c.total, pd), uL('pres'), 'big') +
       (c.bad ? '<p class="hint red">A section is missing its size or air flow and is not counted.</p>' : '') +
       '<div class="btnrow"><button type="button" class="secondary" id="a-tofan">Use this total in Fan Power</button></div>';
-    const b = $('#a-tofan'); if (b) b.onclick = () => { X.fan.p = String(c.total); const q = n(X.run.secs[0] && X.run.secs[0].q); if (q > 0 && !(n(X.fan.q) > 0)) X.fan.q = String(q); X.sub = 'fan'; save(); draw(); };
+    const b = $('#a-tofan'); if (b) b.onclick = () => { X.fan.p = String(c.total); const q = n(X.run.secs[0] && X.run.secs[0].q); if (q > 0 && !(n(X.fan.q) > 0)) X.fan.q = String(q); go(NAV.cat, NAV.tool, true, 'fan'); };
   }
 
   /* ---- 3. Fan power ---- */
@@ -3116,14 +3124,70 @@ const ADV = (function () {
       rl('Sensible heat factor', ip() ? fmt(a.rho * a.cp * 0.00047194745 * 5 / 9 * 3.412142, 3) : fmt(a.hs, 3), ip() ? 'Btu/h per CFM·°F' : 'W per L/s·K');
   }
 
+
+  /* ---- 5. Static regain method ---- */
+  const REGAIN = () => { const f = n(X.reg.f); return f > 0 && f <= 1 ? f : 0.75; };
+  const NC = [['Recording studio / Broadcast (NC 15-20)', '2.5 - 4', '2 - 3', '1.5 - 2.5'], ['Residence, Hospital patient rooms, Private office (NC 25-30)', '4 - 6', '3 - 5', '2.5 - 4'],
+    ['General office, Hospital corridors, Retail (NC 30-40)', '6 - 9', '5 - 7', '4 - 6'], ['Industrial, Kitchen exhaust (NC 40-50)', '8 - 12', '6 - 9', '5 - 8']];
+  const ncRange = t => t.replace(/(\d+(?:\.\d+)?)/g, m => String(Number(fromSI('vel', Number(m)).toFixed(ip() ? 0 : 1))));
+  function regRow(q) {      // SI in, SI out; VP uses standard air (1.2 kg/m3), as in the sheet
+    const V1 = n(q.v1), V2 = n(q.v2), L = n(q.len), Q = n(q.q), f = REGAIN();
+    const o = { vp1: V1 >= 0 ? 0.6 * V1 * V1 : NaN, vp2: V2 >= 0 ? 0.6 * V2 * V2 : NaN };
+    o.sr = Number.isFinite(o.vp1) && Number.isFinite(o.vp2) ? f * (o.vp1 - o.vp2) : NaN;
+    o.fr = Number.isFinite(o.sr) && L > 0 ? o.sr / L : NaN;
+    o.area = Q > 0 && V2 > 0 ? (Q / 1000) / V2 : NaN;
+    o.dia = Number.isFinite(o.area) ? Math.sqrt(4 * o.area / Math.PI) * 1000 : NaN;
+    o.bad = V1 > 0 && V2 > 0 && V2 > V1;
+    return o;
+  }
+  function viewRegain() {
+    const R = X.reg;
+    const secs = R.rows.map((q, i) => {
+      const p = 'reg.rows.' + i;
+      return '<section class="card x2sec"><h2 class="section-title">Section ' + (i + 1) + '</h2>' +
+        '<div class="row"><label class="lbl">Description</label><input type="text" class="txt" data-p="' + p + '.name" data-k="text" placeholder="e.g. Fan discharge to 1st branch" value="' + esc(q.name) + '" style="grid-column:span 2"></div>' +
+        fld('Air flow Q', p + '.q', 'flow', 'downstream section') + fld('Upstream velocity V1', p + '.v1', 'vel') + fld('Downstream velocity V2', p + '.v2', 'vel') + fld('Section length L', p + '.len', 'len') +
+        '<div class="row"><label class="lbl">Remarks</label><input type="text" class="txt" data-p="' + p + '.rem" data-k="text" value="' + esc(q.rem) + '" style="grid-column:span 2"></div>' +
+        '<div id="g-res-' + i + '"></div>' +
+        '<div class="btnrow">' + (R.rows.length > 1 ? '<button type="button" class="secondary" data-regdel="' + i + '">− Delete section</button>' : '') + '</div></section>';
+    }).join('');
+    return card('Static regain method', '<p class="hint">Sizes a duct section so that the static pressure regained at a velocity reduction pays for its friction loss. Add one section for each junction along the trunk duct.</p>' +
+        fld('Regain factor', 'reg.f', 'raw', 'typical 0.75') + '<p class="hint red" id="g-fwarn" hidden>The regain factor must be more than 0 and not more than 1. 0.75 is used.</p>') + secs +
+      '<div class="btnrow" style="margin:-2px 0 10px"><button type="button" class="secondary" id="g-add">+ Add section</button></div>' +
+      '<details class="card x2more"><summary>Recommended duct velocities by NC (' + uL('vel') + ')</summary><div class="formula-body">' +
+        tbl(['Application', 'Main duct', 'Branch / submain', 'Runout to diffuser'], NC.map(r => [r[0], ncRange(r[1]), ncRange(r[2]), ncRange(r[3])])) +
+        '<p class="hint">Use these ranges to select V1 (upstream, main) and V2 (downstream, branch) before running the static regain calculation. Rule of thumb: branch velocity is about 80 % of the main duct velocity and the diffuser runout velocity about 50 %. Hospital: NC 25-30 near patient rooms and wards; NC 30-40 is acceptable for corridors and plant areas.</p></div></details>' +
+      '<details class="card formula"><summary>How to use</summary><div class="formula-body"><ol style="margin:0;padding-left:18px">' +
+        '<li>Add a section for the main trunk and one after each branch or junction, and describe it.</li><li>Enter the air flow of that downstream section.</li>' +
+        '<li>Enter the upstream velocity V1 (just before the junction) and the downstream velocity V2 (the target velocity after it). Use the previous section\'s V2 as the next V1 where it applies.</li>' +
+        '<li>Enter the length of the downstream duct section.</li><li>VP1, VP2 and the static regain are calculated. The allowable friction rate is the regain divided by the length.</li>' +
+        '<li>Use that friction rate with the air flow on a duct sizing chart or software to pick the actual duct size at about the target V2.</li>' +
+        '<li>The area and circular diameter shown are a quick check: area = Q ÷ V2. Adjust V2 slightly if the standard size does not match.</li></ol></div></details>' +
+      formula('Velocity pressure VP = 0.6 × V² (Pa, V in m/s).<br>Static regain SR = R × (VP1 − VP2), with R the regain factor.<br>Allowable friction rate = SR ÷ L.<br>Area = Q ÷ V2, diameter = √(4 × Area ÷ π).<br>Assumption: VP uses standard air, 1.2 kg/m³ (sea level, about 20 °C). A regain factor of 0.75 is a typical SMACNA / ASHRAE value; change it when the fitting needs it.');
+  }
+  function calcRegain() {
+    const w = $('#g-fwarn'); if (w) w.hidden = !(String(X.reg.f).trim() !== '' && !(n(X.reg.f) > 0 && n(X.reg.f) <= 1));
+    const pd = ip() ? 4 : 1;
+    X.reg.rows.forEach((q, i) => {
+      const el = $('#g-res-' + i); if (!el) return;
+      const o = regRow(q);
+      if (!Number.isFinite(o.vp1) && !Number.isFinite(o.vp2) && !Number.isFinite(o.area)) { el.innerHTML = '<span class="hint">Enter the air flow, velocities and length.</span>'; return; }
+      el.innerHTML = '<div class="res">' + rl('Velocity pressure VP1', out('pres', o.vp1, pd), uL('pres')) + rl('Velocity pressure VP2', out('pres', o.vp2, pd), uL('pres')) + rl('Static regain SR', out('pres', o.sr, pd), uL('pres')) +
+        rl('Allowable friction rate', out('fric', o.fr, ip() ? 4 : 2), uL('fric'), 'big') + rl('Duct area required', out('area', o.area, ip() ? 3 : 4), uL('area')) + rl('Circular diameter', out('dim', o.dia / 1, ip() ? 1 : 0), uL('dim')) + '</div>' +
+        (o.bad ? '<p class="hint red">V2 is higher than V1: there is no regain here, the velocity pressure rises. Lower V2 or check the sections.</p>' : '');
+    });
+  }
+
   /* ---- page ---- */
-  const SUBS = [['size', 'Duct Sizing'], ['run', 'Duct Run'], ['fan', 'Fan Power'], ['air', 'Air Properties']];
+  const SUBS = [['regain', 'Static Regain', svg('<path d="M3 18h5V9h6V5h7"/><path d="M3 21h18"/>')], ['air', 'Air Properties', svg('<path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/>')], ['size', 'Duct Sizing', svg('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h10M7 14h6"/>')],
+    ['run', 'Duct Run', svg('<path d="M3 7h10v10h8"/><path d="M3 11h6v10"/>')], ['fan', 'Fan Power', svg('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7 2 0 2 3-1 5l-3 2M14 12c4 0 7 1 7 4 0 2-3 2-5-1l-2-3M12 14c0 4-1 7-4 7-2 0-2-3 1-5l3-2M10 12c-4 0-7-1-7-4 0-2 3-2 5 1l2 3"/>')]];
+  SUBS.sort((a, b) => a[1].localeCompare(b[1]));
   let VIEW = null;
   function draw() {
     const view = VIEW; if (!view) return;
-    const body = X.sub === 'run' ? viewRun() : X.sub === 'fan' ? viewFan() : X.sub === 'air' ? viewAir() : viewSize();
-    view.innerHTML = '<div class="tool-x tool-adv"><div class="x2seg" role="tablist">' + SUBS.map(s => '<button type="button" role="tab" data-sub="' + s[0] + '" class="' + (X.sub === s[0] ? 'on' : '') + '">' + s[1] + '</button>').join('') + '</div>' + body + '</div>';
-    view.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { X.sub = b.dataset.sub; save(); draw(); try { window.scrollTo(0, 0); } catch (e) {} }));
+    const body = X.sub === 'regain' ? viewRegain() : X.sub === 'run' ? viewRun() : X.sub === 'fan' ? viewFan() : X.sub === 'air' ? viewAir() : viewSize();
+    view.innerHTML = '<div class="tool-x tool-adv">' + body + '</div>';
+    view.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { go(NAV.cat, NAV.tool, true, b.dataset.sub); }));
     view.querySelectorAll('input[data-p]').forEach(el => el.addEventListener('input', () => {
       const k = el.dataset.k, v = k === 'text' || k === 'raw' || k === 'pct' ? el.value : store(k, el.value);
       if (v === null) return;                       // a half-typed number: keep the last good value
@@ -3140,43 +3204,58 @@ const ADV = (function () {
     view.querySelectorAll('[data-fitadd]').forEach(b => b.addEventListener('click', () => { X.run.secs[+b.dataset.fitadd].fit.push({ k: 'el90vane', n: '1' }); save(); draw(); }));
     view.querySelectorAll('[data-secdel]').forEach(b => b.addEventListener('click', () => { if (X.run.secs.length > 1) { X.run.secs.splice(+b.dataset.secdel, 1); save(); draw(); } }));
     const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
+    on('g-add', () => { X.reg.rows.push(REGROW()); save(); draw(); });
+    view.querySelectorAll('[data-regdel]').forEach(b => b.addEventListener('click', () => { if (X.reg.rows.length > 1) { X.reg.rows.splice(+b.dataset.regdel, 1); save(); draw(); } }));
     on('a-addsec', () => { const last = X.run.secs[X.run.secs.length - 1], s = SEC(); if (last) { s.shape = last.shape; } X.run.secs.push(s); save(); draw(); });
     on('a-addeq', () => { X.run.eq.push({ name: '', pa: '' }); save(); draw(); });
     on('a-deleq', () => { if (X.run.eq.length) { X.run.eq.pop(); save(); draw(); } });
     on('a-resetc', () => { X.C = DEF().C; save(); draw(); const d = VIEW.querySelector('details.x2more'); if (d) d.open = true; });
     calc();
   }
-  function calc() { if (X.sub === 'size') { calcSize(); calcChk(); } else if (X.sub === 'run') calcRun(); else if (X.sub === 'fan') calcFan(); else calcAir(); }
-  function mount(view) { VIEW = view; draw(); }
+  function calc() { if (X.sub === 'regain') calcRegain(); else if (X.sub === 'size') { calcSize(); calcChk(); } else if (X.sub === 'run') calcRun(); else if (X.sub === 'fan') calcFan(); else calcAir(); }
+  function mount(view) { VIEW = view; if (NAV.sub && SUBS.some(s => s[0] === NAV.sub)) X.sub = NAV.sub; draw(); }
   function clear() {
     const d = DEF();
-    if (X.sub === 'size') { X.size = d.size; X.chk = d.chk; } else if (X.sub === 'run') { X.run = d.run; } else if (X.sub === 'fan') { X.fan = d.fan; } else { X.air = d.air; }
+    if (X.sub === 'regain') { X.reg = d.reg; } else if (X.sub === 'size') { X.size = d.size; X.chk = d.chk; } else if (X.sub === 'run') { X.run = d.run; } else if (X.sub === 'fan') { X.fan = d.fan; } else { X.air = d.air; }
     save();
   }
+  function download(blob, title) {
+    const name = title + '.xlsx', file = typeof File === 'function' ? new File([blob], name, { type: blob.type }) : null;
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    if (file && coarse && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: title }).catch(() => {}); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
   function excel() {
-    if (X.sub !== 'run' || !DRSW.buildXlsx) return 'Excel export is in the Duct Run tab.';
+    if (!DRSW.buildXlsx) return 'Excel export is not available.';
+    const dv = (k, x, dp) => Number.isFinite(x) ? Number(fromSI(k, x).toFixed(dp)) : null;
+    if (X.sub === 'regain') {
+      const used = X.reg.rows.filter(q => [q.name, q.q, q.v1, q.v2, q.len].some(v => String(v).trim() !== ''));
+      if (!used.length) return 'Enter the sections first.';
+      const pd = ip() ? 4 : 2;
+      const rows = used.map((q, i) => { const o = regRow(q); return [String(i + 1), (q.name || '').trim(), dv('flow', n(q.q), 1), dv('vel', n(q.v1), 2), dv('vel', n(q.v2), 2), dv('pres', o.vp1, pd), dv('pres', o.vp2, pd), dv('pres', o.sr, pd), dv('len', n(q.len), 2), dv('fric', o.fr, ip() ? 4 : 2), dv('area', o.area, 4), dv('dim', o.dia, ip() ? 1 : 0), (q.rem || '').trim()]; });
+      const title = 'Duct Sizing - Static Regain Method';
+      const heads = ['Section\nNo.', 'Description', 'Air flow Q\n(' + uL('flow') + ')', 'Upstream V1\n(' + uL('vel') + ')', 'Downstream V2\n(' + uL('vel') + ')', 'VP1\n(' + uL('pres') + ')', 'VP2\n(' + uL('pres') + ')', 'Static regain\n(' + uL('pres') + ')', 'Length L\n(' + uL('len') + ')', 'Allowable friction\n(' + uL('fric') + ')', 'Area required\n(' + uL('area') + ')', 'Diameter\n(' + uL('dim') + ')', 'Remarks'];
+      download(DRSW.buildXlsx(title + ' (regain factor ' + REGAIN() + ')', heads, [9, 30, 12, 12, 12, 12, 12, 13, 11, 16, 14, 12, 26], rows), title);
+      return '';
+    }
+    if (X.sub !== 'run') return 'Excel export is in the Duct Run and Static Regain tabs.';
     const c = runCalc(); if (!c.rows.length && !(c.eq > 0)) return 'Enter the duct run first.';
     const pr = x => Number.isFinite(x) ? Number(fromSI('pres', x).toFixed(ip() ? 4 : 2)) : null, v = (k, x, dp) => Number.isFinite(x) ? Number(fromSI(k, x).toFixed(dp)) : null;
     const rows = c.rows.map(r => [r.name, v('vel', r.V, 2), v('fric', r.dpL, 4), v('len', r.L, 2), pr(r.fl), Number(r.C.toFixed(3)), pr(r.fit), pr(r.tot)]);
     X.run.eq.forEach(e => { if (n(e.pa) > 0) rows.push([(e.name || 'Equipment').trim(), null, null, null, null, null, null, pr(n(e.pa))]); });
     rows.push(['Sub total', null, null, null, null, null, null, pr(c.sub)], ['Total with ' + c.mg + ' % margin', null, null, null, null, null, null, pr(c.total)]);
     const title = 'Duct Run Pressure Loss';
-    const blob = DRSW.buildXlsx(title, ['Section', 'Velocity\n(' + uL('vel') + ')', 'Friction\n(' + uL('fric') + ')', 'Length\n(' + uL('len') + ')', 'Friction loss\n(' + uL('pres') + ')', 'ΣC', 'Fitting loss\n(' + uL('pres') + ')', 'Total\n(' + uL('pres') + ')'], [24, 12, 14, 11, 14, 8, 14, 14], rows);
-    const name = title + '.xlsx', file = typeof File === 'function' ? new File([blob], name, { type: blob.type }) : null;
-    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
-    if (file && coarse && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: title }).catch(() => {}); return ''; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    download(DRSW.buildXlsx(title, ['Section', 'Velocity\n(' + uL('vel') + ')', 'Friction\n(' + uL('fric') + ')', 'Length\n(' + uL('len') + ')', 'Friction loss\n(' + uL('pres') + ')', 'ΣC', 'Fitting loss\n(' + uL('pres') + ')', 'Total\n(' + uL('pres') + ')'], [24, 12, 14, 11, 14, 8, 14, 14], rows), title);
     return '';
   }
-  return { mount: mount, clear: clear, excel: excel, refresh: () => draw(), air: air, fric: fric, MAT: MAT, FIT: FIT };
+  return { subs: () => SUBS, subLabel: id => { const q = SUBS.find(x => x[0] === id); return q ? q[1] : ''; }, mount: mount, clear: clear, excel: excel, refresh: () => draw(), air: air, fric: fric, MAT: MAT, FIT: FIT };
 })();
 
 /* ---------- categories and tools (add new tools here) ----------
    A category holds a list of tools. To add a tool, add one object to that category's "tools" list:
    { id, label, icon, actions: ['units','clear','print'], modes?: [...], mount?: fn, soon?: 'text' }
    Tools without "mount" (or with "soon") open a "Coming soon" page. A category page always shows at least 4 boxes. */
-const svg = inner => '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + '</svg>';
 /* ---------- Standards & References (display only; every value comes from the calculators, so there is one source) ---------- */
 const LIB = (function () {
   const isSI = () => S.units === 'si';
@@ -3407,12 +3486,14 @@ const LIB = (function () {
       card('Pipe sizing thumb rule', table(['Item', 'Value'], [['Fluid velocity', si ? '2.1 – 3.0 m/s' : '7 – 10 ft/s'], ['Head loss', si ? '3 – 4 m/100 m' : '3 – 4 ft/100 ft']]));
   };
 
+  const DAMPERS = [["Volume Control Dampers", [["VCD", "Volume Control Damper", "Manual or motorized; adjusts the air quantity"], ["MVCD", "Motorized Volume Control Damper", "Operated from the BMS for automatic control"], ["MBVCD", "Multi-Blade Volume Control Damper", "Multiple blades; used on large ducts"], ["SVCD", "Single Blade Volume Control Damper", "Used on small ducts"], ["QRD", "Quadrant Regulating Damper", "Used on round ducts for balancing"], ["IRD", "Iris Regulating Damper", "Circular iris type; precise flow control"]]], ["Non-Return / Backdraft Dampers", [["NRD", "Non-Return Damper", "Stops back flow; gravity operated"], ["GNRD", "Gravity Non-Return Damper", "Opens and closes by gravity; no actuator"], ["MNRD", "Motorized Non-Return Damper", "Motor actuated; controlled from the BMS"], ["CBD", "Counter-Balanced Damper", "Weight balanced flap; low pressure drop"]]], ["Kitchen / Special Application Dampers", [["GED", "Grease Exhaust Damper", "Kitchen hood exhaust; grease resistant"], ["KFSD", "Kitchen Fire Suppression Damper", "Interlocked with the kitchen fire suppression system"], ["RD", "Radiation Damper", "For extreme heat applications"], ["AD", "Access Damper", "Provided with an inspection access"]]], ["Fire & Smoke Protection Dampers", [["FD", "Fire Damper", "Installed at fire rated wall or floor penetrations; closes automatically on heat (fusible link)"], ["SD", "Smoke Damper", "Closes on smoke detection; motor actuated"], ["MSFD", "Motorized Smoke & Fire Damper", "Does the work of FD and SD; reacts to both heat and smoke"], ["CFD", "Combination Fire Damper", "FD and SD combined; not used in a smoke exhaust system (code restriction)"], ["DFD", "Dynamic Fire Damper", "Seals properly even with air running; for high velocity systems"], ["RSD", "Remote Smoke Damper", "Operated remotely through the BMS / FAS"]]], ["Smoke Control Specific Dampers", [["SED", "Smoke Extract Damper", "In the smoke extract duct; opens on fire"], ["MAD", "Makeup Air Damper", "In the makeup air duct; opens on fire"], ["PZD", "Pressurization Zone Damper", "For stairwell or refuge area pressurization"], ["ZCD", "Zone Control Damper", "For smoke zone isolation"], ["EHD", "Electrically Held Open Damper", "Normally open; closes on power failure or signal"], ["EHC", "Electrically Held Closed Damper", "Normally closed; opens on signal"]]], ["Balancing Dampers", [["BD", "Balancing Damper", "Used to balance the airflow at system commissioning"], ["TBAD", "Triple-V Balancing and Adjustment Damper", "More precise balancing"], ["OQRD", "Opposed-Blade Quadrant Regulating Damper", "Opposed blade design; better flow linearity"], ["PBQRD", "Parallel-Blade Quadrant Regulating Damper", "Parallel blades; for on/off applications"]]], ["Pressure Control Dampers", [["PRD", "Pressure Relief Damper", "Releases excess pressure; protects the duct from over-pressure"], ["PCD", "Pressure Control Damper", "Maintains the duct pressure; used in VAV systems"], ["SAPRD", "Static & Adjustable Pressure Relief Damper", "Adjustable spring; opens at the set pressure"], ["SPD", "Spill / Bypass Damper", "Bypasses the extra air; used in VAV systems"]]], ["Outdoor Air / Fresh Air Dampers", [["OAD", "Outside Air Damper", "Controls the fresh air intake"], ["RAD", "Return Air Damper", "Controls the return air"], ["MOAD", "Motorized Outside Air Damper", "Operated from the BMS; automatic open / close"], ["ED", "Exhaust Damper", "At the exhaust air outlet; stops back flow"], ["MD", "Motorized Damper", "Generic term for any motorized damper"]]], ["VAV / Special Control Dampers", [["VAV", "Variable Air Volume (Damper / Box)", "Varies the airflow according to the room load"], ["CAV", "Constant Air Volume Damper", "Maintains a fixed airflow"], ["TVAV", "Terminal Variable Air Volume", "At room level; controlled by the thermostat"], ["FPB", "Fan Powered Box", "VAV plus a small fan; for perimeter zones"], ["ATD", "Air Terminal Device", "Diffuser or grille with a built-in damper"]]]];
+  const hvacDampers = () => DAMPERS.map(g => card(g[0], table(['Short', 'Full name', 'Function'], g[1].map(r => ['<b>' + r[0] + '</b>', r[1], r[2]])))).join('');
   const m = (id, label, fn) => ({ id: id, label: label, mount: wrap(fn) });
   return {
     electrical: [m('rating', 'Electrical Rating', () => elRating() + elFormulas()), m('cable', 'Cable Sizes', elCable), m('dewa', 'DEWA Cables', elDewaCables), m('earth', 'Earthing & ELCB', elEarth),
       m('wiring', 'Wiring & Supports', elWiring), { id: 'vd', label: 'Voltage Drop', mount: elVD }, m('design', 'DEWA Design Data', elDesign), m('xlpe', 'XLPE Load Table', elXlpe), m('glands', 'Cable Glands', elGlands)],
     misc: [m('paper', 'Paper Size', miscPaper), m('tv', 'TV Size', miscTV), m('si', 'SI Units', miscSI), m('alt', 'Alt Codes', miscAlt)],
-    hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex)],
+    hvac: [m('duct', 'Duct Sizing', () => ductFormulas() + fluidTable()), m('diff', 'Diffusers', diffTables), m('louv', 'Louvers & AC', louverAC), m('form', 'Formulas', hvacFormulas), m('design', 'Design Data', hvacDesign), m('flex', 'Flex Duct', hvacFlex), m('damper', 'Damper List', hvacDampers)],
     plumbing: [m('drain', 'Drainage', drainage), m('rain', 'Rain Water', rain), m('chw', 'Chilled Water', () => chw() + chwExtra()), m('pipe', 'Pipe Data', plumbPipe), m('fire', 'Fire Fighting', fire)]
   };
 })();
@@ -3726,14 +3807,14 @@ const CATEGORIES = [
       { id: 'ms-tv', label: 'TV Size', icon: svg('<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'), actions: ['units', 'clear', 'print'], printTitle: 'TV size', mount: X2.mount('tv'), refresh: () => render(), onClear: () => { X2.clear('tv'); render(); } },
       { id: 'ms-sym', label: 'Symbols (Alt Codes)', icon: svg('<circle cx="12" cy="12" r="7"/><path d="M5 19L19 5"/>'), actions: ['print'], printTitle: 'Symbols (Alt codes)', mount: X2.mount('symbols') } ] },
   { id: 'stddoc', label: 'Standards & References', color: '#ef6a5b', icon: ICON.stddoc, min: 4, tools: [
-      { id: 'lib-hvac', label: 'HVAC', icon: ICON.hvac, color: '#2f6fe0', actions: [], modes: LIB.hvac, refresh: () => render() },
-      { id: 'lib-plumbing', label: 'Plumbing', icon: ICON.plumbing, color: '#1fa0e0', actions: [], modes: LIB.plumbing, refresh: () => render() },
-      { id: 'lib-electrical', label: 'Electrical', icon: ICON.electrical, color: '#f5a623', actions: [], modes: LIB.electrical, refresh: () => render() },
-      { id: 'lib-misc', label: 'Misc', icon: ICON.misc, color: '#d65db1', actions: [], modes: LIB.misc, refresh: () => render() }
+      { id: 'lib-hvac', label: 'HVAC', icon: ICON.hvac, color: '#2f6fe0', actions: [], tiles: true, modes: LIB.hvac, refresh: () => render() },
+      { id: 'lib-plumbing', label: 'Plumbing', icon: ICON.plumbing, color: '#1fa0e0', actions: [], tiles: true, modes: LIB.plumbing, refresh: () => render() },
+      { id: 'lib-electrical', label: 'Electrical', icon: ICON.electrical, color: '#f5a623', actions: [], tiles: true, modes: LIB.electrical, refresh: () => render() },
+      { id: 'lib-misc', label: 'Misc', icon: ICON.misc, color: '#d65db1', actions: [], tiles: true, modes: LIB.misc, refresh: () => render() }
   ] }
 ];
 
-const NAV = { cat: null, tool: null };
+const NAV = { cat: null, tool: null, sub: null };   // sub = the tile open inside a tool (Standards & References topic, Duct Sizer Advanced tool)
 /* ---------- A–Z order (Home categories keep their order; Duct Sizer stays first in HVAC; tabs inside a tool keep theirs, except the Standards & References pages) ---------- */
 (function sortAZ() {
   const az = (a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
@@ -3763,7 +3844,9 @@ const SEARCH = (function () {
     'ms-sym': 'symbol symbols alt code diameter degree square',
     'cv-flow': 'cfm gpm usgpm lps l/s m3/h cmh', 'cv-pressure': 'pa kpa bar psi in wc inch water', 'cv-temperature': 'celsius fahrenheit kelvin', 'cv-power': 'kw hp horsepower btu',
     'cv-cooling-capacity': 'ton tr btu kw cooling', 'cv-area': 'm2 ft2 sqft square', 'cv-volume': 'm3 litre gallon usg', 'cv-distance': 'length mm inch feet metre', 'cv-speed': 'velocity fpm m/s',
-    'lib-hvac/design': 'velocity constants head loss thumb rule', 'lib-electrical/dewa': 'dewa cable table breaker', 'lib-electrical/earth': 'elcb rccb earth leakage ma',
+    'lib-hvac/design': 'velocity constants head loss thumb rule', 'lib-hvac/damper': 'damper list vcd fd sd msfd fire smoke volume control non return nrd balancing pressure relief',
+    'duct/size': 'duct sizing advanced real air friction velocity limits round rectangular check', 'duct/regain': 'static regain method friction rate vp velocity pressure sr trunk branch junction nc velocity',
+    'duct/run': 'duct run pressure loss fittings equipment fan static', 'duct/fan': 'fan power motor size sfp efficiency', 'duct/air': 'air properties density altitude humidity temperature viscosity', 'lib-electrical/dewa': 'dewa cable table breaker', 'lib-electrical/earth': 'elcb rccb earth leakage ma',
     'lib-electrical/design': 'dewa ambient feeder transformer assumed load socket', 'lib-plumbing/pipe': 'steel pipe schedule wall thickness insulation water supply drainage',
     'lib-misc/alt': 'symbol alt code', 'lib-misc/si': 'si prefix units'
   };
@@ -3780,6 +3863,7 @@ const SEARCH = (function () {
       const cv = c.id === 'convertors' && typeof CONV !== 'undefined' && CONV.cats ? (CONV.cats.find(x => 'cv-' + x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === t.id) || {}) : {};
       const cvu = Array.isArray(cv.units) ? cv.units.map(u => Array.isArray(u) ? u[0] : u).join(' ') : '';
       L.push({ cat: c.id, tool: t.id, mode: null, label: t.label, where: c.label, icon: t.icon, color: t.color || c.color, kw: norm((KW[t.id] || '') + ' ' + c.label + ' ' + units + ' ' + cvu + (c.id === 'convertors' ? ' convert converter unit' : '')) });
+      if (t.id === 'duct') ADV.subs().forEach(sb => L.push({ cat: c.id, tool: t.id, mode: 'adv', sub: sb[0], label: sb[1], where: c.label + ' › Duct Sizer › Advanced', icon: sb[2], color: t.color || c.color, kw: norm((KW['duct/' + sb[0]] || '') + ' duct sizer advanced') }));
     }));
     L.forEach(x => { x.nl = norm(x.label); });
     return L;
@@ -3821,9 +3905,13 @@ const SEARCH = (function () {
     if (!x) return;
     hideSheetNow('search');
     // the search sheet's history entry becomes the opened tool, so the phone's Back goes to the page before the search
-    NAV.cat = x.cat; NAV.tool = x.tool; S.mode = x.mode || toolModes(currentTool())[0].id;
-    if (HIST[HI] && HIST[HI].ov) { HIST[HI] = { cat: x.cat, tool: x.tool }; try { history.replaceState({ cat: x.cat, tool: x.tool, i: HI, ov: false }, ''); } catch (e) {} }
-    else pushHist({ cat: x.cat, tool: x.tool });
+    NAV.cat = x.cat; NAV.tool = x.tool;
+    const t = currentTool();
+    NAV.sub = x.sub || (t && t.tiles ? x.mode || null : null);
+    S.mode = x.mode || toolModes(t)[0].id;
+    const st = { cat: x.cat, tool: x.tool, sub: NAV.sub };
+    if (HIST[HI] && HIST[HI].ov) { HIST[HI] = st; try { history.replaceState({ cat: st.cat, tool: st.tool, sub: st.sub, i: HI, ov: false }, ''); } catch (e) {} }
+    else pushHist(st);
     render(); save();
     try { window.scrollTo(0, 0); } catch (e) {}
   }
@@ -3855,10 +3943,43 @@ function categoryHTML(c) {
   for (let i = n; i < total; i++) h += '<div class="box soonbox" aria-disabled="true"><span class="blabel">Soon...</span></div>';
   return h + '</div>';
 }
+const isTilePage = t => !!t && !NAV.sub && (!!t.tiles || (t.id === 'duct' && S.mode === 'adv'));   // a page that only shows tiles (no tool is open yet)
+const MODE_ICON = {
+  'lib-hvac/duct': svg('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="4"/>'),
+  'lib-hvac/diff': svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 3l18 18M21 3L3 21"/>'),
+  'lib-hvac/louv': svg('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 7h16M4 11h16M4 15h16M4 19h16"/>'),
+  'lib-hvac/form': svg('<path d="M18 5H8l5 7-5 7h10"/>'),
+  'lib-hvac/design': svg('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  'lib-hvac/flex': svg('<path d="M3 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0"/>'),
+  'lib-hvac/damper': svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M6 8l12 2M6 12l12 2M6 16l12 2"/>'),
+  'lib-plumbing/drain': svg('<path d="M3 19h18M3 19L19 8"/>'),
+  'lib-plumbing/rain': svg('<path d="M7 15a4 4 0 0 1-.5-7.9A5 5 0 0 1 16 6a4 4 0 0 1 1 8"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>'),
+  'lib-plumbing/chw': svg('<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><path d="M12 10.5v6M9.4 12l5.2 3M14.6 12l-5.2 3"/>'),
+  'lib-plumbing/pipe': svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>'),
+  'lib-plumbing/fire': svg('<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/>'),
+  'lib-electrical/rating': svg('<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'),
+  'lib-electrical/cable': svg('<path d="M4 20c0-6 4-6 8-6s8 0 8-6"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="6" r="2"/>'),
+  'lib-electrical/dewa': svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/>'),
+  'lib-electrical/earth': svg('<path d="M12 3v10M6 13h12M8 17h8M10 21h4"/>'),
+  'lib-electrical/wiring': svg('<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="10" r="1.6"/><circle cx="12" cy="15" r="1.6"/>'),
+  'lib-electrical/vd': svg('<path d="M3 6h7l4 12h7"/><path d="M17 10l4 4-4 4"/>'),
+  'lib-electrical/design': svg('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  'lib-electrical/xlpe': svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>'),
+  'lib-electrical/glands': svg('<path d="M8 3h8v4H8zM6 7h12v4H6zM9 11h6v10H9z"/>'),
+  'lib-misc/paper': svg('<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>'),
+  'lib-misc/tv': svg('<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'),
+  'lib-misc/si': svg('<path d="M3 8h18v8H3z"/><path d="M7 8v4M11 8v3M15 8v4M19 8v3"/>'),
+  'lib-misc/alt': svg('<circle cx="12" cy="12" r="7"/><path d="M5 19L19 5"/>')
+};
+function tilesHTML(t) {
+  const c = findCat(NAV.cat), col = t.color || (c && c.color) || '#2f6fe0';
+  const items = t.tiles ? t.modes.slice().sort((a, b) => a.label.localeCompare(b.label)).map(m => [m.id, m.label, MODE_ICON[t.id + '/' + m.id] || t.icon]) : ADV.subs();
+  return '<div class="grid">' + items.map(m => '<button type="button" class="box" data-tile="' + m[0] + '" style="--tc:' + col + '"><span class="bicon">' + m[2] + '</span><span class="blabel">' + m[1] + '</span></button>').join('') + '</div>';
+}
 function updateActions() {
   disarmClear();
   const t = currentTool(), bar = $('#tool-actions');
-  const show = t && t.actions && activeMode(t).mount ? (activeMode(t).actions || t.actions) : [];
+  const show = t && t.actions && !isTilePage(t) && activeMode(t).mount ? (activeMode(t).actions || t.actions) : [];
   bar.hidden = false; bar.classList.toggle('empty', show.length === 0);
   $('#m-units').hidden = show.indexOf('units') < 0;
   $('#m-clear').hidden = show.indexOf('clear') < 0;
@@ -3868,79 +3989,92 @@ function updateActions() {
 }
 function renderModes() {
   const t = currentTool(), el = $('#modes');
-  if (!t || !t.modes) { el.innerHTML = ''; return; }
+  if (!t || !t.modes || t.tiles) { el.innerHTML = ''; return; }   // tile tools show tiles instead of the small tabs
   el.innerHTML = t.modes.map(m => '<button type="button" data-mode="' + m.id + '" class="' + (activeMode(t).id === m.id ? 'on' : '') + '">' + m.label + (m.soon ? '<span class="soon">soon</span>' : '') + '</button>').join('');
 }
 function render() {
   const view = $('#view'), crumb = $('#crumb'), cat = findCat(NAV.cat), tool = currentTool();
   const link = (go, text) => '<button type="button" class="cl" data-go="' + go + '">' + text + '</button>';
   const sep = '<span class="sep" aria-hidden="true">›</span>';
+  // the tile that is open inside a tool: a Standards & References topic, or an Advanced duct tool
+  if (tool && NAV.sub) {
+    if (tool.tiles) { if (!tool.modes.some(m => m.id === NAV.sub)) NAV.sub = null; else S.mode = NAV.sub; }
+    else if (tool.id === 'duct' && S.mode === 'adv') { if (!ADV.subLabel(NAV.sub)) NAV.sub = null; }
+    else NAV.sub = null;
+  } else if (!tool) NAV.sub = null;
   $('#m-back').hidden = !cat;
   view.classList.toggle('is-tool', !!tool);
   if (!cat) { crumb.innerHTML = '<span class="cur pick">Select a service from below</span>'; view.innerHTML = homeHTML(); }
   else if (!tool) { crumb.innerHTML = link('home', 'Home') + sep + '<span class="cur">' + cat.label + '</span>'; view.innerHTML = categoryHTML(cat); }
   else {
-    crumb.innerHTML = link('home', 'Home') + sep + link('cat', cat.label) + sep + '<span class="cur">' + tool.label + '</span>';
-    const mode = activeMode(tool);
-    if (mode.mount) mode.mount(view);
-    else view.innerHTML = '<div class="card soon-card"><h2>' + tool.label + (tool.modes ? ' · ' + mode.label : '') + '</h2><p>Coming soon.</p><p>' + (mode.soon || '') + '</p></div>';
+    const subLabel = NAV.sub ? (tool.tiles ? tool.modes.find(m => m.id === NAV.sub).label : ADV.subLabel(NAV.sub)) : '';
+    crumb.innerHTML = link('home', 'Home') + sep + link('cat', cat.label) + sep + (NAV.sub ? link('tool', tool.label) + sep + '<span class="cur">' + subLabel + '</span>' : '<span class="cur">' + tool.label + '</span>');
+    if (isTilePage(tool)) view.innerHTML = tilesHTML(tool);
+    else {
+      const mode = activeMode(tool);
+      if (mode.mount) mode.mount(view);
+      else view.innerHTML = '<div class="card soon-card"><h2>' + tool.label + (tool.modes ? ' · ' + mode.label : '') + '</h2><p>Coming soon.</p><p>' + (mode.soon || '') + '</p></div>';
+    }
   }
-  if (cat && cat.id === 'stddoc' && tool && tool.id !== 'lib-electrical') view.insertAdjacentHTML('afterbegin', '<div class="float-row"><button type="button" class="float-units" id="float-units" aria-label="Switch units">' + UN[S.units].name + ' ⇄</button></div>');
+  if (cat && cat.id === 'stddoc' && tool && tool.id !== 'lib-electrical' && !isTilePage(tool) && NAV.sub !== 'damper') view.insertAdjacentHTML('afterbegin', '<div class="float-row"><button type="button" class="float-units" id="float-units" aria-label="Switch units">' + UN[S.units].name + ' ⇄</button></div>');
   $('#page-title').textContent = !cat ? 'Home' : (tool ? tool.label : cat.label);
   renderModes(); updateActions(); renderPrintHead();
 }
-function go(cat, tool, push) {
-  NAV.cat = cat || null; NAV.tool = tool || null;
-  if (tool) { const t = currentTool(); if (t) S.mode = toolModes(t)[0].id; }
-  if (push !== false) pushHist({ cat: NAV.cat, tool: NAV.tool });
+function go(cat, tool, push, sub) {   // sub undefined = open the tool from its start; sub given (also null) = move inside the tool and keep its mode
+  NAV.cat = cat || null; NAV.tool = tool || null; NAV.sub = (tool && sub) || null;
+  if (tool && sub === undefined) { const t = currentTool(); if (t) S.mode = toolModes(t)[0].id; }
+  if (push !== false) pushHist({ cat: NAV.cat, tool: NAV.tool, sub: NAV.sub });
   render();
   try { window.scrollTo(0, 0); } catch (e) {}
 }
 // Go to a page that is up the tree (Back, path line, logo): step back through the history if that page is in it,
 // so the phone's back button never brings back a page that was left; otherwise open it as a new page.
 let navWait = 0;   // set while a history step is on its way; cleared by popstate
-function nav(cat, tool) {
-  const tgt = { cat: cat || null, tool: tool || null };
+function nav(cat, tool, sub) {
+  const tgt = { cat: cat || null, tool: tool || null, sub: sub || null }, keep = sub === undefined ? undefined : tgt.sub;
   if (sameNav(tgt, NAV) || navWait) return;
   for (let k = HI - 1; k >= 0; k--) {
     if (!HIST[k].ov && sameNav(HIST[k], tgt)) {
       const tok = navWait = Date.now();
       try { history.go(k - HI); } catch (e) { navWait = 0; break; }
-      setTimeout(() => { if (navWait === tok) { navWait = 0; go(tgt.cat, tgt.tool); } }, 700);   // only if the browser never moved
+      setTimeout(() => { if (navWait === tok) { navWait = 0; go(tgt.cat, tgt.tool, true, keep); } }, 700);   // only if the browser never moved
       return;
     }
   }
-  go(tgt.cat, tgt.tool);
+  go(tgt.cat, tgt.tool, true, keep);
 }
 window.addEventListener('popstate', e => {
   navWait = 0;
-  const st = e.state || {}, tgt = { cat: st.cat || null, tool: st.tool || null };
+  const st = e.state || {}, tgt = { cat: st.cat || null, tool: st.tool || null, sub: st.sub || null };
   if (sheetOpen) hideSheetNow(sheetOpen);                      // phone back with a sheet open: just close the sheet
   if (typeof st.i === 'number' && HIST[st.i] && sameNav(HIST[st.i], tgt)) HI = st.i;
-  else { HIST = [tgt]; HI = 0; try { history.replaceState({ cat: tgt.cat, tool: tgt.tool, i: 0 }, ''); } catch (x) {} }
+  else { HIST = [tgt]; HI = 0; try { history.replaceState({ cat: tgt.cat, tool: tgt.tool, sub: tgt.sub, i: 0 }, ''); } catch (x) {} }
   if (sameNav(tgt, NAV)) return;                               // same page (a sheet entry was removed): keep the page as it is
-  NAV.cat = findCat(tgt.cat) ? tgt.cat : null; NAV.tool = NAV.cat ? tgt.tool : null;
-  if (NAV.tool && !currentTool()) NAV.tool = null;
+  NAV.cat = findCat(tgt.cat) ? tgt.cat : null; NAV.tool = NAV.cat ? tgt.tool : null; NAV.sub = NAV.tool ? tgt.sub : null;
+  if (NAV.tool && !currentTool()) { NAV.tool = null; NAV.sub = null; }
   render();
   try { window.scrollTo(0, 0); } catch (x) {}
 });
-try { history.replaceState({ cat: null, tool: null, i: 0 }, ''); } catch (e) {}
+try { history.replaceState({ cat: null, tool: null, sub: null, i: 0 }, ''); } catch (e) {}
 $('#view').addEventListener('click', e => {
   if (e.target.closest('#float-units')) { $('#m-units').click(); return; }
   const c = e.target.closest('[data-cat]'); if (c) { go(c.dataset.cat, null); return; }
+  const ti = e.target.closest('[data-tile]'); if (ti) { go(NAV.cat, NAV.tool, true, ti.dataset.tile); return; }
   const t = e.target.closest('[data-tool]'); if (t) go(NAV.cat, t.dataset.tool);
 });
-$('#m-back').addEventListener('click', () => { if (NAV.tool) nav(NAV.cat, null); else nav(null, null); });   // always one level up
+$('#m-back').addEventListener('click', () => { if (NAV.sub) nav(NAV.cat, NAV.tool, null); else if (NAV.tool) nav(NAV.cat, null); else nav(null, null); });   // always one level up
 function goHome() { if (NAV.cat) nav(null, null); }
 $('#crumb').addEventListener('click', e => {
   const b = e.target.closest('[data-go]'); if (!b) return;
-  if (b.dataset.go === 'home') goHome(); else nav(NAV.cat, null);
+  if (b.dataset.go === 'home') goHome(); else if (b.dataset.go === 'tool') nav(NAV.cat, NAV.tool, null); else nav(NAV.cat, null);
 });
 $('#brand').addEventListener('click', goHome);
 $('#brand').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); } });
 $('#modes').addEventListener('click', e => {
   const b = e.target.closest('[data-mode]'); if (!b) return;
-  S.mode = b.dataset.mode; render(); save();
+  S.mode = b.dataset.mode;
+  if (NAV.sub) { NAV.sub = null; if (HIST[HI]) HIST[HI].sub = null; try { history.replaceState({ cat: NAV.cat, tool: NAV.tool, sub: null, i: HI, ov: false }, ''); } catch (x) {} }   // Basic / Advanced: always start at the tiles
+  render(); save();
 });
 
 /* ---------- Duct · Basic ---------- */
@@ -4165,11 +4299,28 @@ $('#m-clear').addEventListener('click', () => {
   disarmClear(); t.onClear();
 });
 $('#m-print').addEventListener('click', () => { try { window.print(); } catch (e) {} });
+/* Air Balancing: shrink the sheet so it always fits one A4 portrait page, whatever the number of rows */
+function fitAirBalancing() {
+  const t = document.querySelector('.tool-ab table.abp'); if (!t) return;
+  const root = document.documentElement;
+  t.style.setProperty('--abz', '1'); root.classList.add('ab-measuring');
+  const h = t.getBoundingClientRect().height, avail = 272 * 96 / 25.4;      // 297 mm − 2 × 10 mm margin, less a little spare
+  root.classList.remove('ab-measuring');
+  t.style.setProperty('--abz', h > avail ? String(Math.max(0.4, Math.floor(avail / h * 1000) / 1000)) : '1');
+}
+window.addEventListener('beforeprint', fitAirBalancing);
+
 $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t && t.onExcel) t.onExcel(); });
 
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '13 Nov 2026', items: [
+    ['New', 'HVAC, Duct Sizer, Advanced: Static Regain tile (sections with add / delete, regain factor, VP, static regain, allowable friction rate, area and diameter, warning when V2 is higher than V1, Metric / IP, Print, Excel) with a collapsible table of recommended velocities by NC'],
+    ['New', 'Standards & References, HVAC: Damper List (short name, full name and function of 9 damper groups)'],
+    ['Better', 'Standards & References pages and the Duct Sizer Advanced tools now open from tiles; Back returns to the tiles'],
+    ['Fixed', 'Air Balancing Report prints on one A4 portrait page (it shrinks to fit when there are many rows); the bottom rows have equal height']
+  ] },
+  { v: 'v2026.11.13', date: '13 Nov 2026', items: [
     ['New', 'HVAC: Air Balancing Report with separate Round and Rectangular reports; editable header rows (add and delete), fixed Location / Area and Date, terminal rows with automatic velocity and % of Design Flow, saved on the device, Print and Excel export'],
     ['Fixed', 'Cable Gland Size and the Gland selection chart (BICC) now list the cable sizes in order: 1.5 and 2.5 come first']
   ] },
