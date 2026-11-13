@@ -348,6 +348,48 @@ table.schtable .sch-off{opacity:.35}
   table.schtable .sch-off{display:none!important}
   .shp-sq,.shp-ci{background:#000}
 }
+/* ---------- Air Balancing Report ---------- */
+.tool-ab .ab-h{font-size:16px;margin:0 0 8px}
+.tool-ab .ab-in{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-weight:600;font-size:14.5px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.tool-ab .ab-in:focus{outline:2px solid var(--accent);outline-offset:0}
+.tool-ab .ab-in.n{text-align:right;min-width:68px}
+table.abt .ab-in.t{min-width:110px}
+.tool-ab .ab-hr{display:grid;grid-template-columns:minmax(132px,40%) minmax(0,1fr) 44px;gap:6px;margin:0 0 6px;align-items:center}
+.tool-ab .ab-hr .lbl{background:var(--chip);font-size:13.5px}
+.tool-ab .ab-fixed{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:6px 8px;margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line)}
+.tool-ab .ab-fixed label{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);margin:0 0 3px}
+.tool-ab .ab-x{width:44px;height:44px;margin:0;padding:0;border:0;border-radius:10px;background:var(--chip);color:var(--ink);font:inherit;font-size:20px;line-height:1;cursor:pointer}
+.tool-ab .ab-x.arm{background:var(--red);color:#fff;font-size:12px;font-weight:700}
+.tool-ab .ab-add{width:auto;margin:6px 0 0;padding:0 16px;min-height:44px;border:0;border-radius:999px;background:var(--chip);color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.tool-ab .ab-wrap{overflow-x:auto}
+table.abt{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.abt th{background:var(--chip);font-size:12px;font-weight:700;padding:6px 5px;text-align:center;vertical-align:bottom;border:1px solid var(--line)}
+table.abt th small{display:block;font-weight:500;color:var(--ink2);font-size:11px}
+table.abt td{padding:3px;border:1px solid var(--line);vertical-align:middle}
+table.abt td.c{text-align:center;font-weight:700;width:34px}
+table.abt td.calc{text-align:center;font-weight:700;color:var(--blue);background:var(--calc);min-width:62px;white-space:nowrap}
+table.abt td:last-child{width:50px;padding:2px;border:0}
+.ab-print{display:none}
+@page abp{size:A4 portrait;margin:10mm}
+@media print{
+  body:has(.tool-ab){page:abp}
+  .tool-ab .ab-screen{display:none!important}
+  .tool-ab .ab-print{display:block}
+  table.abp{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;color:#000;font-variant-numeric:tabular-nums}
+  table.abp td{border:1px solid #000;padding:2px 4px;color:#000;vertical-align:middle;text-align:center;overflow-wrap:anywhere}
+  table.abp tr{break-inside:avoid}
+  table.abp td.ttl{font-size:16px;font-weight:700;padding:7px}
+  table.abp td.lb{font-weight:700;text-align:left;text-transform:uppercase;white-space:nowrap}
+  table.abp td.lb[colspan]{white-space:normal}
+  table.abp td.lb.r{text-align:right}
+  table.abp td.l{text-align:left}
+  table.abp tr.hr td{height:7mm}
+  table.abp tr.th td{font-weight:700;background:#e6e6e6}
+  table.abp tr.dr td{height:7mm}
+  table.abp tr.rem td{height:28mm;vertical-align:top}
+  table.abp tr.sg td{height:11mm;font-weight:700;font-size:10px}
+  table.abp tr.sgs td{height:14mm;vertical-align:top}
+}
 /* ---------- Standards & References ---------- */
 .float-row{position:sticky;top:8px;z-index:15;height:44px;margin:0 0 4px;pointer-events:none;display:flex;justify-content:flex-end}
 .float-units{pointer-events:auto;min-height:44px;min-width:44px;padding:0 18px;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
@@ -607,6 +649,7 @@ table.schtable .sch-off{opacity:.35}
       <li><b>Rectangular ducts:</b> converted to the equivalent round duct for the same friction and airflow (Huebscher, as in ASHRAE).</li>
       <li><b>Duct Sizer › Advanced:</b> Duct Sizing with real air (temperature, altitude, RH), duct material roughness and both friction and velocity limits (round and rectangular options, check any round, rectangular or flat oval size); Duct Run pressure loss (sections, fittings with editable C values, equipment, margin, Excel); Fan Power (motor size, SFP); Air Properties. Basic is not changed.</li>
       <li><b>HVAC calculators:</b> Air Change / Hour, diffuser and valve quantities, linear diffuser, grill size, louvers, sand trap, AC capacity converter, Y branch and area ratio. Reference tables can be edited and restored.</li>
+      <li><b>Air Balancing Report:</b> separate Round and Rectangular reports. The header rows (Client, Project, HVAC Contractor, System) can be edited, added and deleted; Location / Area and Date stay fixed. Velocity = flow ÷ area and % of Design Flow = (Measured − Design) ÷ Design. Saved on the device, Print (A4) and Excel export.</li>
       <li><b>Converters:</b> 22 unit converters (flow, pressure, temperature, power, cooling capacity, U-value and more) plus Pipe Size, Sheet Gauge and Electrical Load. The last selections are remembered.</li>
       <li><b>New HVAC and Plumbing tools:</b> AC Flow by Area (1 m² = 15.75 L/s, editable), Flow Rebalance (Old → New) and Sprinkler Pipe Size (½" and 1" sprinklers).</li>
       <li><b>Electrical:</b> kW to Amp (3 phase and 1 phase, voltage and power factor editable), Cable Size by kW from the Electrical Rating table, Cable Gland Size (BICC and PG), ECC Size, Conduit Size, Voltage Drop (4 % check) and DB Load with Diversity (each DB with its own name and diversity factor, Amp and cable size per DB and for the total, Excel export).</li>
@@ -760,7 +803,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.12';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.13';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -1375,7 +1418,7 @@ function convert(from, to) {
   $('#view').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'ps-dist') { e.preventDefault(); addSlopRow(); } });
   function clearSlope() { const o = D.slope, n = defaultsSlope(); n.title = o.title; n.sys = o.sys; n.ratio = o.ratio; n.dir = o.dir; n.cols = o.cols; D.slope = n; render(); save(); }
   function clearRain() { D.rain = defaultsRain(); render(); save(); }
-  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope, slopeRows: () => D.slope.rows.length, buildXlsx: buildXlsx };
+  return { mountSlope: mountSlope, mountRain: mountRain, convert: convert, clearSlope: clearSlope, clearRain: clearRain, exportSlope: exportSlope, slopeRows: () => D.slope.rows.length, buildXlsx: buildXlsx, zipStore: zipStore };
 })();
 
 
@@ -2470,7 +2513,7 @@ const X2 = (function () {
     '120': ['32', '40', '50S', '50', ''], '150': ['32', '50S', '50', '50', ''], '185': ['32', '50', '50', '63S', ''], '240': ['40', '50', '63S', '63', ''], '300': ['40', '63S', '63', '75S', ''],
     '400': ['50S', '63', '75S', '75', '']
   };
-  const BICC_SIZES = Object.keys(BICC);
+  const BICC_SIZES = Object.keys(BICC).sort((a, b) => a - b);   // numeric order (1.5 and 2.5 first); plain key order would put them last
   const glandTxt = g => !g ? '' : g === '20/16' ? '20/16 mm' : /S$/.test(g) ? g.replace('S', '') + ' mm small (S)' : g + ' mm';
   function gland(view) {
     const d = X.gland;
@@ -2813,7 +2856,7 @@ const X2 = (function () {
   const MOUNT = { gland: gland, ecc: ecc, cond: cond, vd: vd, acarea: acarea, rebal: rebal, spk: spk, amp: amp, cable: cable, db: db, pct: pct, car: car, paper: paper, tv: tv, symbols: symbols };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { X[id] = d[id]; save(); } }
-  return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { XLPE: XLPE, xlpeKw: xlpeKw, PG: PG, BICC: BICC, BICC_CORES: BICC_CORES, STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
+  return { mount: mount, clear: clear, convert: convert, dbExcel: dbExcel, toast: toast, data: { XLPE: XLPE, xlpeKw: xlpeKw, PG: PG, BICC: BICC, BICC_SIZES: BICC_SIZES, BICC_CORES: BICC_CORES, STD_MM2: STD_MM2, eccOf: eccOf, CONDUIT: CONDUIT, VDT: VDT, SPK: SPK, spkMax: spkMax, RATING: RATING, PAPER: PAPER, TV: TV, w: w, h: h, ALT: ALT, COMMON: COMMON } };
 })();
 
 /* ---------- Duct Sizer › Advanced (engineer level; separate from Basic, its own state in S.adv, all values kept in SI) ---------- */
@@ -3262,7 +3305,7 @@ const LIB = (function () {
   const elXlpe = () => { const D = X2.data;
     return card('Multi-core armoured XLPE insulated, copper conductor', table(['S/N', 'Max. load (kW)', 'Max. load current (A)', 'Max. MCB/MCCB (A)', 'Cable size (1 No. in normal situation)'], D.XLPE.map(r => [r[0], D.xlpeKw(r), r[3], r[4], r[5]])) +
       note('Used by Electrical › Cable Size by kW (Table: Multi-core armoured XLPE).')); };
-  const elGlands = () => { const D = X2.data, sizes = Object.keys(D.BICC);
+  const elGlands = () => { const D = X2.data, sizes = D.BICC_SIZES;
     return card('Gland selection chart (BICC)', table(['Cable (mm²)'].concat(D.BICC_CORES.map(c => c === '1' ? 'Single core' : c + ' core')), sizes.map(k => [k].concat(D.BICC_CORES.map((c, j) => D.BICC[k][j] || '—')))) +
         note('Gland size in mm; S = small version. Guide only, for cables to BS 5467 and BS 7889: use the actual cable diameter for the final selection.')) +
       card('PG cable gland size chart', table(['PG size', 'Cable dia. (mm)', 'Thread O.D. (mm)', 'Gland inner dia. (mm)'], D.PG.map(r => [r[0], r[1] + ' – ' + r[2], r[3].toFixed(1), r[4].toFixed(2)])) + note('Used by Electrical › Cable Gland Size.')); };
@@ -3387,6 +3430,231 @@ const ICON = {
   chw: svg('<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><path d="M12 10.5v6M9.4 12l5.2 3M14.6 12l-5.2 3"/>'),
   rw: svg('<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>')
 };
+/* ---------- Air Balancing Report (state is kept in S.ab; Round and Rectangular are two separate reports) ---------- */
+const AB = (function () {
+  // cols: columns of the report table; size: size columns (Ø, or Width + Height); sig: width of the three signature blocks
+  // wid: print column widths (%); xw: Excel column widths
+  const KINDS = {
+    round: { name: 'Round', cols: 10, size: 1, sig: [2, 3, 4], wid: [7, 12, 15, 16, 8, 8, 8, 8, 8, 10], xw: [6, 13, 24, 22, 10, 11, 11, 11, 11, 13] },
+    rect: { name: 'Rect', cols: 11, size: 2, sig: [2, 4, 4], wid: [7, 11, 13, 14, 7, 7, 8, 8, 8, 8, 9], xw: [6, 13, 22, 22, 9, 9, 11, 11, 11, 11, 13] }
+  };
+  const TYPES = ['Round Diffuser', 'Square Diffuser', '4-Way Diffuser', 'Linear Diffuser', 'Slot Diffuser', 'Supply Grille', 'Return Grille', 'Exhaust Grille', 'Transfer Grille', 'Louver', 'Supply Duct', 'Return Duct', 'Fresh Air Duct', 'Exhaust Duct'];
+  const SIGN = ['PERFORMED BY MEP<br>SUB CONTRACTOR', 'WITNESSED BY MAIN CONT\'R.', 'APPROVED BY CONSULTANT'];
+  const str = v => typeof v === 'string' ? v : '';
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isoToday = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  const blankRow = k => k === 'round' ? { ref: '', type: '', loc: '', d: '', qd: '', qm: '' } : { ref: '', type: '', loc: '', w: '', h: '', qd: '', qm: '' };
+  const defaults = k => ({ head: ['Client', 'Project', 'HVAC Contractor', 'System'].map(l => ({ l: l, v: '' })), loc: '', date: isoToday(), rows: Array.from({ length: 10 }, () => blankRow(k)), instName: '', instModel: '', remarks: '' });
+  const D = S.ab = { round: defaults('round'), rect: defaults('rect') };
+  (function loadSaved() {
+    try {
+      const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'), x = r && r.ab; if (!x || typeof x !== 'object') return;
+      ['round', 'rect'].forEach(k => {
+        const s = x[k]; if (!s || typeof s !== 'object') return; const d = D[k];
+        if (Array.isArray(s.head)) d.head = s.head.filter(h => h && typeof h === 'object').slice(0, 30).map(h => ({ l: str(h.l), v: str(h.v) }));
+        ['loc', 'date', 'instName', 'instModel', 'remarks'].forEach(f => { if (typeof s[f] === 'string') d[f] = s[f]; });
+        if (Array.isArray(s.rows)) d.rows = s.rows.filter(q => q && typeof q === 'object').slice(0, 500).map(q => { const o = blankRow(k); Object.keys(o).forEach(f => { o[f] = str(q[f]); }); return o; });
+      });
+    } catch (e) {}
+  })();
+
+  /* ----- calculations: the same formulas as the Excel sheet ----- */
+  const pn = s => { const t = String(s == null ? '' : s).trim(); return t === '' ? NaN : parseNum(t); };
+  function calc(k, r) {
+    const qd = pn(r.qd), qm = pn(r.qm); let area = NaN;   // flow area in m²
+    if (k === 'round') { const d = pn(r.d); if (d > 0) area = Math.PI * d * d / 4e6; }   // L/s x 4000 / (π x Ø²)
+    else { const w = pn(r.w), h = pn(r.h); if (w > 0 && h > 0) area = w * h / 1e6; }       // L/s x 1000 / (W x H)
+    const vel = q => (Number.isFinite(q) && Number.isFinite(area)) ? q / 1000 / area : NaN;
+    return { qd: qd, qm: qm, vd: vel(qd), vm: vel(qm), pc: (Number.isFinite(qm) && qd > 0) ? (qm - qd) / qd : NaN };   // % = (Measured − Design) ÷ Design, as in the sheet
+  }
+  const f2 = v => Number.isFinite(v) ? v.toFixed(2) : '';
+  const fp = v => Number.isFinite(v) ? Math.round(v * 100) + '%' : '';   // 0 decimals, as the sheet
+  const fmtD = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.slice(8) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : iso;
+  const nl = s => esc(s).replace(/\n/g, '<br>');
+
+  /* ----- print layout (one table, so the borders line up like the sheet) ----- */
+  function printHtml(k) {
+    const K = KINDS[k], d = D[k], N = K.cols, sz = K.size, round = k === 'round';
+    const td = (t, cs, cls, rs) => '<td' + (cs > 1 ? ' colspan="' + cs + '"' : '') + (rs > 1 ? ' rowspan="' + rs + '"' : '') + (cls ? ' class="' + cls + '"' : '') + '>' + t + '</td>';
+    let h = '<table class="abp"><colgroup>' + K.wid.map(w => '<col style="width:' + w + '%">').join('') + '</colgroup><tbody>';
+    h += '<tr>' + td('AIR BALANCING REPORT', N, 'ttl') + '</tr>';
+    d.head.forEach(x => { h += '<tr class="hr">' + td(esc(x.l), 2, 'lb') + td(esc(x.v), N - 2, 'l') + '</tr>'; });
+    h += '<tr class="hr">' + td('Location / Area', 2, 'lb') + td(esc(d.loc), N - 5, 'l') + td('DATE :', 1, 'lb r') + td(esc(fmtD(d.date)), 2, 'c') + '</tr>';
+    h += '<tr class="th">' + td('Sl.<br>no', 1, '', 3) + td('Terminal', 3) + td('Size', sz) + td('Design', 2) + td('Measured', 2) + td('% of Design Flow', 1, '', 3) + '</tr>';
+    h += '<tr class="th">' + td('Reference', 1, '', 2) + td('Type', 1, '', 2) + td('Location', 1, '', 2) + (round ? td('Ø') : td('Width') + td('Height')) + td('Volume') + td('Velocity') + td('Volume') + td('Velocity') + '</tr>';
+    h += '<tr class="th">' + (round ? td('mm') : td('mm') + td('mm')) + td('L/s') + td('m/s') + td('L/s') + td('m/s') + '</tr>';
+    d.rows.forEach((r, i) => {
+      const c = calc(k, r);
+      h += '<tr class="dr">' + td(i + 1, 1, 'c') + td(esc(r.ref), 1, 'l') + td(esc(r.type), 1, 'l') + td(esc(r.loc), 1, 'l') +
+        (round ? td(r.d.trim() ? 'Ø ' + esc(r.d.trim()) : '') : td(esc(r.w)) + td(esc(r.h))) +
+        td('<b>' + esc(r.qd) + '</b>') + td(f2(c.vd)) + td('<b>' + esc(r.qm) + '</b>') + td(f2(c.vm)) + td('<b>' + fp(c.pc) + '</b>') + '</tr>';
+    });
+    const nameCols = N - 6;
+    h += '<tr class="hr">' + td('Instrument Details', 2, 'lb') + td('Name: ' + esc(d.instName), nameCols, 'l') + td('Model: ' + esc(d.instModel), 4, 'l') + '</tr>';
+    h += '<tr class="rem">' + td('<b>Remarks :</b> ' + nl(d.remarks), N, 'l') + '</tr>';
+    h += '<tr class="sg">' + td('') + K.sig.map((w, j) => td(SIGN[j], w, 'c')).join('') + '</tr>';
+    ['Sign:', 'Name:', 'Date:'].forEach((t, j) => { h += '<tr class="' + (j === 0 ? 'sgs' : 'hr') + '">' + td(t, 1, 'lb') + K.sig.map(w => td('', w)).join('') + '</tr>'; });
+    return h + '</tbody></table>';
+  }
+
+  /* ----- Excel (.xlsx): same layout and formulas as the sheet; uses the app's own small zip writer ----- */
+  const xe = s => String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const colL = i => String.fromCharCode(65 + i);
+  const serial = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return m ? Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 864e5) : null; };
+  function excel(k) {
+    const K = KINDS[k], d = D[k], N = K.cols, sz = K.size, round = k === 'round';
+    const cells = {}, merges = [], hts = {};
+    const A = (r, c) => colL(c) + r;
+    const put = (r, c, v, s, f) => { cells[r + ',' + c] = { v: v, s: s, f: f }; };
+    const merge = (r1, c1, r2, c2, v, s) => {
+      for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) put(r, c, (r === r1 && c === c1) ? v : null, s);
+      if (r1 !== r2 || c1 !== c2) merges.push(A(r1, c1) + ':' + A(r2, c2));
+    };
+    // cell styles: 1 title, 2 label, 3 text, 4 column head, 5 centre, 6 centre 0.00, 7 centre bold 0 %, 8 date, 9 remarks, 10 Ø, 11 centre bold, 12 label right, 13 signature head
+    let r = 1; hts[1] = 32;
+    merge(1, 0, 1, N - 1, 'AIR BALANCING REPORT', 1);
+    d.head.forEach(x => { r++; hts[r] = 22; merge(r, 0, r, 1, x.l.toUpperCase(), 2); merge(r, 2, r, N - 1, x.v, 3); });
+    r++; hts[r] = 22;
+    merge(r, 0, r, 1, 'LOCATION / AREA', 2); merge(r, 2, r, N - 4, d.loc, 3); put(r, N - 3, 'DATE :', 12);
+    const sn = serial(d.date); merge(r, N - 2, r, N - 1, sn === null ? fmtD(d.date) : sn, sn === null ? 5 : 8);
+    const t0 = r + 1; hts[t0] = 20; hts[t0 + 1] = 20; hts[t0 + 2] = 20;
+    merge(t0, 0, t0 + 2, 0, 'Sl.\nno', 4); merge(t0, 1, t0, 3, 'Terminal', 4); merge(t0, 4, t0, 3 + sz, 'Size', 4);
+    merge(t0, 4 + sz, t0, 5 + sz, 'Design', 4); merge(t0, 6 + sz, t0, 7 + sz, 'Measured', 4); merge(t0, 8 + sz, t0 + 2, 8 + sz, '% of Design Flow', 4);
+    merge(t0 + 1, 1, t0 + 2, 1, 'Reference', 4); merge(t0 + 1, 2, t0 + 2, 2, 'Type', 4); merge(t0 + 1, 3, t0 + 2, 3, 'Location', 4);
+    if (round) { put(t0 + 1, 4, 'Ø', 4); put(t0 + 2, 4, 'mm', 4); } else { put(t0 + 1, 4, 'Width', 4); put(t0 + 1, 5, 'Height', 4); put(t0 + 2, 4, 'mm', 4); put(t0 + 2, 5, 'mm', 4); }
+    ['Volume', 'Velocity', 'Volume', 'Velocity'].forEach((t, j) => put(t0 + 1, 4 + sz + j, t, 4));
+    ['L/s', 'm/s', 'L/s', 'm/s'].forEach((t, j) => put(t0 + 2, 4 + sz + j, t, 4));
+    const DQ = colL(4 + sz), DV = colL(5 + sz), MQ = colL(6 + sz), MV = colL(7 + sz), PC = colL(8 + sz);
+    const numOrNull = s => { const x = pn(s); return Number.isFinite(x) ? x : null; };
+    d.rows.forEach((q, i) => {
+      const rr = t0 + 3 + i, c = calc(k, q); hts[rr] = 22;
+      put(rr, 0, i + 1, 5); put(rr, 1, q.ref, 3); put(rr, 2, q.type, 3); put(rr, 3, q.loc, 3);
+      if (round) put(rr, 4, numOrNull(q.d), 10); else { put(rr, 4, numOrNull(q.w), 5); put(rr, 5, numOrNull(q.h), 5); }
+      put(rr, 4 + sz, numOrNull(q.qd), 11); put(rr, 6 + sz, numOrNull(q.qm), 11);
+      const size = round ? 'N(E' + rr + ')<=0' : 'N(E' + rr + ')<=0,N(F' + rr + ')<=0', area = round ? '(PI()*E' + rr + '^2)' : '(E' + rr + '*F' + rr + ')', mult = round ? '4000' : '1000';
+      const vf = (Q, v) => 'IF(OR(' + size + ',' + Q + rr + '=""),"",' + Q + rr + '*' + mult + '/' + area + ')';
+      put(rr, 5 + sz, Number.isFinite(c.vd) ? c.vd : '', 6, vf(DQ));
+      put(rr, 7 + sz, Number.isFinite(c.vm) ? c.vm : '', 6, vf(MQ));
+      put(rr, 8 + sz, Number.isFinite(c.pc) ? c.pc : '', 7, 'IF(OR(' + MQ + rr + '="",N(' + DQ + rr + ')<=0),"",(' + MQ + rr + '-' + DQ + rr + ')/' + DQ + rr + ')');
+    });
+    let rf = t0 + 3 + d.rows.length; hts[rf] = 24;
+    const nameCols = N - 6;
+    merge(rf, 0, rf, 1, 'Instrument Details', 2); merge(rf, 2, rf, 1 + nameCols, 'Name: ' + d.instName, 3); merge(rf, 2 + nameCols, rf, N - 1, 'Model: ' + d.instModel, 3);
+    rf++; hts[rf] = 90; merge(rf, 0, rf, N - 1, 'Remarks :' + (d.remarks.trim() ? ' ' + d.remarks : ''), 9);
+    rf += 2; hts[rf] = 34; put(rf, 0, null, 13);
+    let c0 = 1; K.sig.forEach((w, j) => { merge(rf, c0, rf, c0 + w - 1, SIGN[j].replace('<br>', '\n'), 13); c0 += w; });
+    ['Sign:', 'Name:', 'Date:'].forEach((t, j) => {
+      const rr = rf + 1 + j; hts[rr] = j === 0 ? 38 : 24; put(rr, 0, t, 2);
+      let c1 = 1; K.sig.forEach(w => { merge(rr, c1, rr, c1 + w - 1, null, 3); c1 += w; });
+    });
+    const last = rf + 3;
+    const cellXml = (rr, c, o) => {
+      const ref = A(rr, c), s = ' s="' + o.s + '"';
+      if (o.f !== undefined) { const fx = '<f>' + xe(o.f) + '</f>'; return typeof o.v === 'number' ? '<c r="' + ref + '"' + s + '>' + fx + '<v>' + o.v + '</v></c>' : '<c r="' + ref + '"' + s + ' t="str">' + fx + '<v></v></c>'; }
+      if (typeof o.v === 'number') return '<c r="' + ref + '"' + s + '><v>' + o.v + '</v></c>';
+      if (o.v === null || o.v === undefined || o.v === '') return '<c r="' + ref + '"' + s + '/>';
+      return '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + xe(o.v) + '</t></is></c>';
+    };
+    let sd = '';
+    for (let rr = 1; rr <= last; rr++) {
+      let row = '';
+      for (let c = 0; c < N; c++) { const o = cells[rr + ',' + c]; if (o) row += cellXml(rr, c, o); }
+      sd += '<row r="' + rr + '"' + (hts[rr] ? ' ht="' + hts[rr] + '" customHeight="1"' : '') + '>' + row + '</row>';
+    }
+    const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+      '<sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="16"/><cols>' + K.xw.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>' +
+      '<sheetData>' + sd + '</sheetData><mergeCells count="' + merges.length + '">' + merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' +
+      '<printOptions horizontalCentered="1"/><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>';
+    const bd = '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border>';
+    const xf = (num, font, fill, h, v, wrap) => '<xf numFmtId="' + num + '" fontId="' + font + '" fillId="' + fill + '" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="' + h + '" vertical="' + v + '"' + (wrap ? ' wrapText="1"' : '') + '/></xf>';
+    const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<numFmts count="2"><numFmt numFmtId="165" formatCode="dd/mm/yyyy"/><numFmt numFmtId="166" formatCode="\\Ø\\ #0"/></numFmts>' +
+      '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6E6E6"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+      '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' + bd + '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      xf(0, 1, 0, 'center', 'center') + xf(0, 2, 0, 'left', 'center') + xf(0, 0, 0, 'left', 'center', true) + xf(0, 2, 2, 'center', 'center', true) +
+      xf(0, 0, 0, 'center', 'center') + xf(2, 0, 0, 'center', 'center') + xf(9, 2, 0, 'center', 'center') + xf(165, 0, 0, 'center', 'center') +
+      xf(0, 0, 0, 'left', 'top', true) + xf(166, 0, 0, 'center', 'center') + xf(0, 2, 0, 'center', 'center') + xf(0, 2, 0, 'right', 'center') + xf(0, 2, 0, 'center', 'center', true) +
+      '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    const H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const blob = DRSW.zipStore([
+      ['[Content_Types].xml', H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+      ['_rels/.rels', H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+      ['xl/workbook.xml', H + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' + R + '"><sheets><sheet name="' + K.name + '" sheetId="1" r:id="rId1"/></sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>'],
+      ['xl/_rels/workbook.xml.rels', H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="' + R + '/styles" Target="styles.xml"/></Relationships>'],
+      ['xl/styles.xml', styles], ['xl/worksheets/sheet1.xml', sheet]]);
+    const name = 'Air Balancing Report - ' + (round ? 'Round' : 'Rectangular') + '.xlsx';
+    const file = typeof File === 'function' ? new File([blob], name, { type: blob.type }) : null;
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    if (file && coarse && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Air Balancing Report' }).catch(() => {}); return true; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return true;
+  }
+
+  /* ----- screen ----- */
+  function mount(k) {
+    return function (view) {
+      const d = D[k], round = k === 'round', fld = (f, cls, i, extra) => '<input class="ab-in ' + cls + '" data-f="' + f + '" data-i="' + i + '" value="' + esc(d.rows[i][f]) + '" autocomplete="off"' + (extra || '') + '>';
+      const th = (t, u) => '<th>' + t + (u ? '<small>' + u + '</small>' : '') + '</th>';
+      view.innerHTML = '<div class="tool-ab"><div class="ab-screen">' +
+        '<div class="card"><h2 class="ab-h">Report details</h2><div id="ab-head"></div>' +
+        '<button type="button" class="ab-add" id="ab-add-head">+ Add row</button>' +
+        '<div class="ab-fixed"><div><label for="ab-loc">Location / Area</label><input class="ab-in t" id="ab-loc" data-g="loc" value="' + esc(d.loc) + '" autocomplete="off"></div>' +
+        '<div><label for="ab-date">Date</label><input type="date" class="ab-in" id="ab-date" data-g="date" value="' + esc(d.date) + '"></div></div></div>' +
+        '<div class="card"><h2 class="ab-h">' + (round ? 'Round' : 'Rectangular') + ' terminals</h2><div class="ab-wrap"><table class="abt"><thead><tr>' +
+        th('No.') + th('Reference') + th('Type') + th('Location') + (round ? th('Ø', 'mm') : th('Width', 'mm') + th('Height', 'mm')) +
+        th('Design Volume', 'L/s') + th('Design Velocity', 'm/s') + th('Measured Volume', 'L/s') + th('Measured Velocity', 'm/s') + th('% of Design Flow') + '<th></th></tr></thead><tbody id="ab-body"></tbody></table></div>' +
+        '<button type="button" class="ab-add" id="ab-add-row">+ Add row</button></div>' +
+        '<div class="card"><h2 class="ab-h">Instrument and remarks</h2>' +
+        '<div class="ab-fixed" style="border:0;padding:0;margin:0 0 8px"><div><label for="ab-in1">Instrument name</label><input class="ab-in t" id="ab-in1" data-g="instName" value="' + esc(d.instName) + '" autocomplete="off"></div>' +
+        '<div><label for="ab-in2">Model</label><input class="ab-in t" id="ab-in2" data-g="instModel" value="' + esc(d.instModel) + '" autocomplete="off"></div></div>' +
+        '<div class="ab-fixed" style="border:0;padding:0;margin:0;grid-template-columns:1fr"><div><label for="ab-rem">Remarks</label><textarea class="ab-in t" id="ab-rem" data-g="remarks" rows="3">' + esc(d.remarks) + '</textarea></div></div>' +
+        '<p class="hint">Velocity = flow ÷ area. % of Design Flow = (Measured − Design) ÷ Design. The Sign, Name and Date boxes (Performed by, Witnessed by, Approved by) come in the print and in Excel.</p></div>' +
+        '</div><div class="ab-print" id="ab-print"></div><datalist id="ab-types">' + TYPES.map(t => '<option value="' + esc(t) + '">').join('') + '</datalist></div>';
+      const root = view.firstElementChild;
+      const rowHtml = i => '<tr><td class="c">' + (i + 1) + '</td><td>' + fld('ref', 't', i, ' aria-label="Reference"') + '</td><td>' + fld('type', 't', i, ' list="ab-types" aria-label="Type"') + '</td><td>' + fld('loc', 't', i, ' aria-label="Location"') + '</td>' +
+        (round ? '<td>' + fld('d', 'n', i, ' inputmode="decimal" aria-label="Diameter"') + '</td>' : '<td>' + fld('w', 'n', i, ' inputmode="decimal" aria-label="Width"') + '</td><td>' + fld('h', 'n', i, ' inputmode="decimal" aria-label="Height"') + '</td>') +
+        '<td>' + fld('qd', 'n', i, ' inputmode="decimal" aria-label="Design volume"') + '</td><td class="calc" id="ab-vd-' + i + '"></td><td>' + fld('qm', 'n', i, ' inputmode="decimal" aria-label="Measured volume"') + '</td><td class="calc" id="ab-vm-' + i + '"></td><td class="calc" id="ab-pc-' + i + '"></td>' +
+        '<td><button type="button" class="ab-x" data-del="row" data-i="' + i + '" aria-label="Delete row ' + (i + 1) + '">×</button></td></tr>';
+      const fillRow = i => { const c = calc(k, d.rows[i]), set = (id, t) => { const el = $('#ab-' + id + '-' + i, root); if (el) el.textContent = t; }; set('vd', f2(c.vd)); set('vm', f2(c.vm)); set('pc', fp(c.pc)); };
+      const drawBody = () => { $('#ab-body', root).innerHTML = d.rows.length ? d.rows.map((r, i) => rowHtml(i)).join('') : '<tr><td colspan="' + (round ? 11 : 12) + '"><p class="hint">No rows. Tap "Add row".</p></td></tr>'; d.rows.forEach((r, i) => fillRow(i)); };
+      const drawHead = () => { $('#ab-head', root).innerHTML = d.head.length ? d.head.map((x, i) =>
+        '<div class="ab-hr"><input class="ab-in t lbl" data-h="l" data-i="' + i + '" value="' + esc(x.l) + '" autocomplete="off" aria-label="Row title"><input class="ab-in t" data-h="v" data-i="' + i + '" value="' + esc(x.v) + '" autocomplete="off" aria-label="' + esc(x.l || 'Row') + ' text">' +
+        '<button type="button" class="ab-x" data-del="head" data-i="' + i + '" aria-label="Delete row ' + esc(x.l || (i + 1)) + '">×</button></div>').join('') : '<p class="hint">No rows. Tap "Add row".</p>'; };
+      const redrawPrint = () => { $('#ab-print', root).innerHTML = printHtml(k); };
+      drawHead(); drawBody(); redrawPrint();
+      let armed = null, armT = 0;
+      const disarm = () => { clearTimeout(armT); armed = null; $$('.ab-x.arm', root).forEach(x => { x.textContent = '×'; x.classList.remove('arm'); }); };
+      root.addEventListener('input', e => {
+        const t = e.target, i = Number(t.dataset.i);
+        if (t.dataset.g) d[t.dataset.g] = t.value;
+        else if (t.dataset.h && d.head[i]) d.head[i][t.dataset.h] = t.value;
+        else if (t.dataset.f && d.rows[i]) { d.rows[i][t.dataset.f] = t.value; fillRow(i); }
+        else return;
+        redrawPrint(); save();
+      });
+      root.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (b.id === 'ab-add-head') { disarm(); d.head.push({ l: '', v: '' }); drawHead(); redrawPrint(); save(); const x = $$('.ab-hr .lbl', root).pop(); if (x) x.focus(); }
+        else if (b.id === 'ab-add-row') { disarm(); d.rows.push(blankRow(k)); drawBody(); redrawPrint(); save(); const x = $$('#ab-body tr', root).pop(); if (x) { const f = x.querySelector('input'); if (f) f.focus(); } }
+        else if (b.dataset.del) {   // delete asks for a second tap within 3 seconds
+          const key = b.dataset.del + ':' + b.dataset.i;
+          if (armed !== key) { disarm(); armed = key; b.textContent = 'Del?'; b.classList.add('arm'); armT = setTimeout(disarm, 3000); return; }
+          disarm();
+          if (b.dataset.del === 'head') { d.head.splice(Number(b.dataset.i), 1); drawHead(); } else { d.rows.splice(Number(b.dataset.i), 1); drawBody(); }
+          redrawPrint(); save();
+        }
+      });
+    };
+  }
+  const hasData = k => { const d = D[k]; return d.head.some(x => x.v.trim()) || !!(d.loc.trim() || d.instName.trim() || d.instModel.trim() || d.remarks.trim()) || d.rows.some(r => Object.keys(r).some(f => r[f].trim())); };
+  const clear = k => { D[k] = defaults(k); save(); };
+  return { mount: mount, excel: excel, clear: clear, hasData: hasData };
+})();
+
 const ACTIONS = ['units', 'clear', 'print'];
 
 const HVAC_TOOLS = [
@@ -3424,7 +3692,10 @@ const CATEGORIES = [
       onUnits: id === 'ach' ? (from, to) => HVAC.convert(from, to) : undefined,      // one tool converts the saved values of all 13
       onClear: () => { HVAC.clear(id); render(); }, refresh: () => render() })) ).concat([
       { id: 'hv-acarea', label: 'AC Flow by Area', icon: svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 12h10M13 8l4 4-4 4"/>'), actions: ACTIONS, printTitle: 'AC flow by area', mount: X2.mount('acarea'), onClear: () => { X2.clear('acarea'); render(); }, refresh: () => render() },
-      { id: 'hv-rebal', label: 'Flow Rebalance', icon: svg('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'), actions: ACTIONS, printTitle: 'Flow rebalance', mount: X2.mount('rebal'), onClear: () => { X2.clear('rebal'); render(); }, refresh: () => render() } ]) },
+      { id: 'hv-rebal', label: 'Flow Rebalance', icon: svg('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'), actions: ACTIONS, printTitle: 'Flow rebalance', mount: X2.mount('rebal'), onClear: () => { X2.clear('rebal'); render(); }, refresh: () => render() },
+      { id: 'hv-airbal', label: 'Air Balancing Report', icon: svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8 11h8M8 15h5"/>'), actions: ['clear', 'print', 'excel'], printTitle: 'Air Balancing Report',
+        onExcel: () => { AB.excel(S.mode); }, onClear: () => { AB.clear(S.mode); render(); }, confirmClear: () => AB.hasData(S.mode),
+        modes: [ { id: 'round', label: 'Round', mount: AB.mount('round') }, { id: 'rect', label: 'Rectangular', mount: AB.mount('rect') } ] } ]) },
   { id: 'plumbing', label: 'Plumbing', color: '#1fa0e0', icon: ICON.plumbing, min: 4, tools: [
       { id: 'pipe-sizer', label: 'Pipe Sizer', icon: ICON.pipe, actions: ACTIONS, printTitle: 'Pipe sizing',
         mount: PIPE.mount, onUnits: (from, to) => PIPE.convert(from, to), onClear: () => PIPE.clear(), refresh: () => render() },
@@ -3482,6 +3753,7 @@ const SEARCH = (function () {
     'hv-linear': 'linear slot diffuser length', 'hv-grill': 'grille grill size face velocity', 'hv-gravity': 'louver louvre gravity', 'hv-sand': 'sand trap louver louvre',
     'hv-ac': 'ton tr btu cfm kw cooling capacity eer cop electrical power', 'hv-ybranch': 'y branch', 'hv-area': 'area ratio flow split', 'hv-acarea': 'ac flow area thumb rule 15.75 cfm',
     'hv-rebal': 'rebalance old new main branch ratio flow percentage',
+    'hv-airbal': 'air balancing balance report tab testing terminal diffuser grille measured design flow velocity round rectangular excel',
     'pipe-sizer': 'pipe size velocity friction head loss water', 'pipe-slope': 'manhole schedule drainage invert level il slope cover', 'rw-calci': 'rain water rwo outlet ipc storm',
     'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
     'el-amp': 'kw amp ampere current 3 phase 1 phase', 'el-cable': 'cable size kw amp breaker mccb mcb rating xlpe', 'el-db': 'db distribution board load diversity df amp cable schedule excel',
@@ -3857,7 +4129,7 @@ function update(editing) {
 function renderPrintHead() {
   const el = $('#printhead'); if (!el) return;
   const U = UN[S.units], t = currentTool();
-  if (t && t.id === 'pipe-slope') { el.innerHTML = ''; return; }
+  if (t && (t.id === 'pipe-slope' || t.id === 'hv-airbal')) { el.innerHTML = ''; return; }
   el.innerHTML = '<h1>MEPtools' + (t ? ' — ' + (t.printTitle || t.label) : '') + '</h1><p>' + new Date().toLocaleString() + ' · ' + U.name + ' units' + (t && t.id === 'duct' && S.mode !== 'adv' ? ' · ' + fluid().label : '') + '</p>';
 }
 
@@ -3897,7 +4169,11 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
-  { v: VERSION, date: '12 Nov 2026', items: [
+  { v: VERSION, date: '13 Nov 2026', items: [
+    ['New', 'HVAC: Air Balancing Report with separate Round and Rectangular reports; editable header rows (add and delete), fixed Location / Area and Date, terminal rows with automatic velocity and % of Design Flow, saved on the device, Print and Excel export'],
+    ['Fixed', 'Cable Gland Size and the Gland selection chart (BICC) now list the cable sizes in order: 1.5 and 2.5 come first']
+  ] },
+  { v: 'v2026.11.12', date: '12 Nov 2026', items: [
     ['New', 'Standards & References, Electrical, Voltage Drop: Max (m) columns show the longest cable run for a 4 % drop, at the rated current of each cable or at the load current you type']
   ] },
   { v: 'v2026.11.11.12', date: '11 Nov 2026', items: [
