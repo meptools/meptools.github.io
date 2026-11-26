@@ -817,7 +817,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.2';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.3';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3784,20 +3784,20 @@ const PLB = (function () {
   const demand = (w, valve) => !(w > 0) ? 0 : interp(valve && w >= 5 ? VALVE : TANK, w);
   /* water pipe sizes: internal diameter in mm */
   const mm = x => x * 25.4;
-  const dnName = a => 'DN ' + a[1] + ' (' + fr(a[0]) + '")';
+  const dnName = a => 'DN ' + a[1];
   const MATS = {
     ppr: { label: 'PPR PN20', sizes: [[20, 3.4], [25, 4.2], [32, 5.4], [40, 6.7], [50, 8.3], [63, 10.5], [75, 12.5], [90, 15], [110, 18.3], [125, 20.8], [160, 26.6]].map(a => ({ name: 'Ø ' + a[0] + ' mm', id: a[0] - 2 * a[1] })) },
     cu: { label: 'Copper (Type L)', sizes: [['1/2', 15, 0.625, 0.040], ['3/4', 20, 0.875, 0.045], ['1', 25, 1.125, 0.050], ['1-1/4', 32, 1.375, 0.055], ['1-1/2', 40, 1.625, 0.060], ['2', 50, 2.125, 0.070],
-      ['2-1/2', 65, 2.625, 0.080], ['3', 80, 3.125, 0.090], ['4', 100, 4.125, 0.110], ['6', 150, 6.125, 0.140]].map(a => ({ name: dnName(a), id: mm(a[2] - 2 * a[3]) })) },
+      ['2-1/2', 65, 2.625, 0.080], ['3', 80, 3.125, 0.090], ['4', 100, 4.125, 0.110], ['6', 150, 6.125, 0.140]].map(a => ({ name: dnName(a), ip: fr(a[0]) + '"', id: mm(a[2] - 2 * a[3]) })) },
     steel: { label: 'Steel (Sch 40)', sizes: [['1/2', 15, 0.840, 0.109], ['3/4', 20, 1.050, 0.113], ['1', 25, 1.315, 0.133], ['1-1/4', 32, 1.660, 0.140], ['1-1/2', 40, 1.900, 0.145], ['2', 50, 2.375, 0.154],
-      ['2-1/2', 65, 2.875, 0.203], ['3', 80, 3.5, 0.216], ['4', 100, 4.5, 0.237], ['5', 125, 5.563, 0.258], ['6', 150, 6.625, 0.280], ['8', 200, 8.625, 0.322], ['10', 250, 10.75, 0.365]].map(a => ({ name: dnName(a), id: mm(a[2] - 2 * a[3]) })) }
+      ['2-1/2', 65, 2.875, 0.203], ['3', 80, 3.5, 0.216], ['4', 100, 4.5, 0.237], ['5', 125, 5.563, 0.258], ['6', 150, 6.625, 0.280], ['8', 200, 8.625, 0.322], ['10', 250, 10.75, 0.365]].map(a => ({ name: dnName(a), ip: fr(a[0]) + '"', id: mm(a[2] - 2 * a[3]) })) }
   };
   const MATLIST = Object.keys(MATS).map(k => [k, MATS[k].label]);
   function pipePick(mat, gpm, vms) {
     if (!(gpm > 0) || !(vms > 0)) return null;
     const q = gpm * M3S_PER_GPM, list = (MATS[mat] || MATS.ppr).sizes; let r = null;
     for (let i = 0; i < list.length; i++) {
-      const p = list[i], v = q / (Math.PI / 4 * Math.pow(p.id / 1000, 2)); r = { name: p.name, id: p.id, v: v, over: false };
+      const p = list[i], v = q / (Math.PI / 4 * Math.pow(p.id / 1000, 2)); r = { name: p.name, ip: p.ip, id: p.id, v: v, over: false };
       if (v <= vms + 1e-9) return r;
     }
     r.over = true; return r;   // bigger than the largest size in the list
@@ -3824,8 +3824,16 @@ const PLB = (function () {
   const BLD = [[1.25, 32, null, null, 1, 1], [1.5, 40, null, null, 3, 3], [2, 50, null, null, 21, 26], [2.5, 65, null, null, 24, 31], [3, 80, null, 36, 42, 50], [4, 100, null, 180, 216, 250],
     [5, 125, null, 390, 480, 575], [6, 150, null, 700, 840, 1000], [8, 200, 1400, 1600, 1920, 2300], [10, 250, 2500, 2900, 3500, 4200], [12, 300, 3900, 4600, 5600, 6700]];
   const SLOPES = [['1/16', '1/16'], ['1/8', '1/8'], ['1/4', '1/4'], ['1/2', '1/2']];
+  const SLOPE_PCT = { '1/16': '0.5 %', '1/8': '1 %', '1/4': '2 %', '1/2': '4 %' };
   const SLOPE_COL = { '1/16': 2, '1/8': 3, '1/4': 4, '1/2': 5 };
-  const dnLbl = r => { const w = Math.floor(r[0]), f = r[0] - w, s = f === 0.25 ? '¼' : f === 0.5 ? '½' : ''; return 'DN ' + r[1] + ' (' + (w || '') + s + '")'; };
+  const dnLbl = (r, si) => { const w = Math.floor(r[0]), f = r[0] - w, t = f === 0.25 ? '¼' : f === 0.5 ? '½' : ''; return si ? 'DN ' + r[1] : (w || '') + t + '"'; };
+  /* labels that follow the Metric / IP button */
+  const DFSI = { 'Shower, up to 5.7 gpm (21.6 L/min)': 'Shower, up to 21.6 L/min', 'Shower, 5.7 to 12.3 gpm (46.6 L/min)': 'Shower, 21.6 to 46.6 L/min', 'Shower, 12.3 to 25.8 gpm (97.7 L/min)': 'Shower, 46.6 to 97.7 L/min', 'Shower, 25.8 to 55.6 gpm (210.5 L/min)': 'Shower, 97.7 to 210.5 L/min' };
+  const I2MM = { '1¼"': '32 mm', '1½"': '40 mm', '2"': '50 mm', '2½"': '65 mm', '3"': '80 mm', '4"': '100 mm' };
+  const dfLbl = (t, si) => si ? (DFSI[t] || t.replace('above 1.6 gpf', 'above 6 L flush').replace('1.6 gpf', '6 L flush').replace('(1 gpf or less)', '(3.8 L flush or less)').replace(/(\d[¼½]?")\s+outlet/, (m, z) => I2MM[z] + ' outlet'))
+    : t.replace(/ \([\d.]+ L\/min\)/, '');
+  const dfTrap = (t, si) => si ? (I2MM[t] || t) : t;
+  const wsLbl = (t, si) => si ? t.replace('1" flush valve', 'DN 25 flush valve').replace('¾" flush valve', 'DN 20 flush valve').replace('(8 lb)', '(3.6 kg)').replace('(15 lb)', '(6.8 kg)') : t;
   function pickBranch(load, wc, col) {
     for (let i = 0; i < BRANCH.length; i++) {
       const r = BRANCH[i];
@@ -3894,8 +3902,8 @@ const PLB = (function () {
   const tbl = (heads, rows, hi) => '<div class="table-wrap"><table class="x2t"><thead><tr>' + heads.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' +
     rows.map((r, i) => '<tr' + (i === hi ? ' class="hi"' : '') + '>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
   const btns = () => '<div class="btnrow"><button type="button" class="secondary" id="pl-add">+ Add row</button><button type="button" class="secondary" id="pl-del">− Delete last row</button></div>';
-  const frows = (list, rows) => rows.map((r, i) => '<div class="plr"><select data-r="' + i + '" data-f="f" aria-label="Fixture ' + (i + 1) + '">' +
-    list.map((x, k) => '<option value="' + k + '"' + (String(k) === String(r.f) ? ' selected' : '') + '>' + esc(x[0]) + '</option>').join('') + '</select>' +
+  const frows = (list, rows, lab) => rows.map((r, i) => '<div class="plr"><select data-r="' + i + '" data-f="f" aria-label="Fixture ' + (i + 1) + '">' +
+    list.map((x, k) => '<option value="' + k + '"' + (String(k) === String(r.f) ? ' selected' : '') + '>' + esc(lab ? lab(x) : x[0]) + '</option>').join('') + '</select>' +
     '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="q" value="' + esc(r.q) + '" placeholder="Qty" aria-label="Fixture ' + (i + 1) + ' quantity"></div>').join('');
 
   /* every tool: draw() writes the page and wires the inputs; calc() fills the results */
@@ -3919,12 +3927,12 @@ const PLB = (function () {
     const d = P.wsfu, si = siU();
     const draw = () => {
       view.innerHTML = '<div class="tool-x">' +
-        card('Fixtures', frows(WS, d.rows) + btns()) +
+        card('Fixtures', frows(WS, d.rows, x => wsLbl(x[0], si)) + btns()) +
         card('Settings', rad('System type', 'sys', [['valve', 'Flush valve'], ['tank', 'Flush tank']], d.sys) + pick('Pipe material', 'mat', MATLIST, d.mat) +
           num('Max. velocity', 'vmax', si ? 'm/s' : 'ft/s', d.vmax) + num('Continuous demand', 'cont', si ? 'L/s' : 'gpm', d.cont, 'Irrigation, cooling make-up')) +
         '<section class="card res" id="pl-res"></section>' +
         more('Load to demand table', tbl(['WSFU', 'Flush tank (gpm)', 'Flush valve (gpm)'], TANK.map(t => { const v = VALVE.find(x => x[0] === t[0]); return [t[0], f2(t[1], 1), v ? f2(v[1], 1) : '—']; }))) +
-        more('Fixture load values (WSFU)', tbl(['Fixture', 'Cold', 'Hot', 'Total'], WS.map(w => [esc(w[0]), f2(w[1]), w[2] ? f2(w[2]) : '—', f2(w[3])]))) +
+        more('Fixture load values (WSFU)', tbl(['Fixture', 'Cold', 'Hot', 'Total'], WS.map(w => [esc(wsLbl(w[0], si)), f2(w[1]), w[2] ? f2(w[2]) : '—', f2(w[3])]))) +
         formula('Total load = sum of (quantity × fixture load). Cold and hot lines use the cold and hot values of each fixture.<br>Flow (gpm) = value read from the load to demand table for that load (straight line between the table values).<br>A flush valve system uses the flush valve column from 5 WSFU and above; below 5 WSFU, and for the hot water line, the flush tank column is used.<br>Continuous demand is added to the total and the cold line.<br>Pipe size = the smallest size with velocity (flow ÷ pipe area) not above the max. velocity.') + '</div>';
       wire(view, 'wsfu', draw, calc, last => ({ f: last ? last.f : '5', q: '' }));
     };
@@ -3939,7 +3947,7 @@ const PLB = (function () {
         return { name: l[0], w: l[1], gpm: total, bad: bad, p: p };
       });
       const t = out[0];
-      const pipeTxt = o => o.bad ? '—' : !o.p ? '—' : o.p.over ? 'Larger than ' + o.p.name : o.p.name;
+      const pn = x => si ? x.name : (x.ip || x.name), pipeTxt = o => o.bad ? '—' : !o.p ? '—' : o.p.over ? 'Larger than ' + pn(o.p) : pn(o.p);
       let h = '';
       if (!(tot > 0) && !(cg > 0)) h = '<span class="hint">Enter the quantity of the fixtures to see the flow and the pipe size.</span>';
       else if (t.bad) h = '<div class="rl big"><span>Flow</span><span><b class="red">Load above 4000 WSFU (not in table)</b></span></div>';
@@ -3959,13 +3967,13 @@ const PLB = (function () {
     const d = P.dfu, si = siU();
     const draw = () => {
       view.innerHTML = '<div class="tool-x">' +
-        card('Fixtures', frows(DF, d.rows) + btns() + '<p class="hint">A showerhead over a bathtub does not add to the bathtub value.</p>') +
-        card('Settings', rad('Slope of building drain (inch per foot)', 'slope', SLOPES, d.slope) + '<p class="hint">1/8 is about 1 %, 1/4 about 2 %, 1/2 about 4 %.</p>' +
-          num('Continuous flow', 'cont', si ? 'L/s' : 'gpm', d.cont, 'Pumps, sump ejectors, AC drain: 2 DFU per gpm') + num('Highest load on one floor', 'floor', 'DFU', d.floor, 'For stacks of more than 3 floors (optional)')) +
+        card('Fixtures', frows(DF, d.rows, x => dfLbl(x[0], si)) + btns() + '<p class="hint">A showerhead over a bathtub does not add to the bathtub value.</p>') +
+        card('Settings', rad(si ? 'Slope of building drain' : 'Slope of building drain (inch per foot)', 'slope', SLOPES.map(x => [x[0], si ? SLOPE_PCT[x[0]] : x[1]]), d.slope) + '<p class="hint">' + (si ? '0.5 % = 1/16, 1 % = 1/8, 2 % = 1/4 and 4 % = 1/2 inch per foot.' : '1/8 is about 1 %, 1/4 about 2 %, 1/2 about 4 %.') + '</p>' +
+          num('Continuous flow', 'cont', si ? 'L/s' : 'gpm', d.cont, si ? 'Pumps, sump ejectors, AC drain: 2 DFU per 0.063 L/s' : 'Pumps, sump ejectors, AC drain: 2 DFU per gpm') + num('Highest load on one floor', 'floor', 'DFU', d.floor, 'For stacks of more than 3 floors (optional)')) +
         '<section class="card res" id="pl-res"></section>' +
-        more('Fixture unit values (DFU)', tbl(['Fixture', 'DFU', 'Min. trap'], DF.map(x => [esc(x[0]), String(x[1]), x[3]]))) +
-        more('Horizontal branches and stacks (max. DFU)', tbl(['Pipe', 'Branch', 'Stack up to 3 floors', 'Stack above 3 floors (total)', '… at one floor'], BRANCH.map(r => [dnLbl(r), r[2], r[3], r[4], r[5]]))) +
-        more('Building drains and sewers (max. DFU)', tbl(['Pipe', '1/16', '1/8', '1/4', '1/2'], BLD.map(r => [dnLbl(r), r[2] === null ? '—' : r[2], r[3] === null ? '—' : r[3], r[4], r[5]]))) +
+        more('Fixture unit values (DFU)', tbl(['Fixture', 'DFU', 'Min. trap'], DF.map(x => [esc(dfLbl(x[0], si)), String(x[1]), dfTrap(x[3], si)]))) +
+        more('Horizontal branches and stacks (max. DFU)', tbl(['Pipe', 'Branch', 'Stack up to 3 floors', 'Stack above 3 floors (total)', '… at one floor'], BRANCH.map(r => [dnLbl(r, si), r[2], r[3], r[4], r[5]]))) +
+        more('Building drains and sewers (max. DFU)', tbl(['Pipe', si ? '0.5 %' : '1/16', si ? '1 %' : '1/8', si ? '2 %' : '1/4', si ? '4 %' : '1/2'], BLD.map(r => [dnLbl(r, si), r[2] === null ? '—' : r[2], r[3] === null ? '—' : r[3], r[4], r[5]]))) +
         formula('Total DFU = sum of (quantity × fixture value) + 2 × continuous flow in gpm.<br>Pipe size = the smallest pipe whose maximum DFU is not less than the load.<br>No water closet on 2½" and smaller pipes. A 3" branch or stack takes at most 2 water closets (6 on a stack of more than 3 floors).<br>A building drain that serves a water closet is never smaller than 3".<br>A stack is sized for the total load at each floor; it is not reduced below half of the largest stack size.') + '</div>';
       wire(view, 'dfu', draw, calc, last => ({ f: last ? last.f : '4', q: '' }));
     };
@@ -3977,15 +3985,15 @@ const PLB = (function () {
       if (!(load > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the quantity of the fixtures to see the pipe sizes.</span>'; return; }
       const iBr = pickBranch(load, wc, 2), iS3 = pickBranch(load, wc, 3), iS4a = pickBranch(load, wc, 4), iS4b = fl > 0 ? pickBranch(fl, wc, 5) : -1;
       const iS4 = iS4a < 0 || (fl > 0 && iS4b < 0) ? -1 : Math.max(iS4a, iS4b), iBd = pickBuilding(load, wc, col);
-      const sz = (i, T, c) => i < 0 ? '<b class="red">Above table</b>' : dnLbl(T[i]), mx = (i, T, c) => i < 0 ? '—' : String(T[i][c]);
+      const sz = (i, T, c) => i < 0 ? '<b class="red">Above table</b>' : dnLbl(T[i], si), mx = (i, T, c) => i < 0 ? '—' : String(T[i][c]);
       $('#pl-res').innerHTML = rl('Total load', f2(load, 1), 'DFU', 'big') + (wc > 0 ? rl('Water closets / bathroom groups', f2(wc, 0), 'Nos.') : '') +
         tbl(['Pipe', 'Min. size', 'Max. DFU'], [
           ['Horizontal fixture branch', sz(iBr, BRANCH), mx(iBr, BRANCH, 2)],
           ['Stack, up to 3 floors', sz(iS3, BRANCH), mx(iS3, BRANCH, 3)],
           ['Stack, above 3 floors', sz(iS4, BRANCH), mx(iS4, BRANCH, 4)],
-          ['Building drain at ' + d.slope + ' in/ft', sz(iBd, BLD), mx(iBd, BLD, col)]]) +
+          ['Building drain at ' + (si ? SLOPE_PCT[d.slope] : d.slope + ' in/ft'), sz(iBd, BLD), mx(iBd, BLD, col)]]) +
         (fl > 0 || iS4 < 0 ? '' : '<p class="hint">For a stack of more than 3 floors, type the highest DFU on one floor to check that too.</p>') +
-        (wc > 0 ? '<p class="hint">Water closets: a 3" pipe takes at most 2 on a branch or on a stack of up to 3 floors, and at most 6 on a taller stack. Check the number on each floor.</p>' : '');
+        (wc > 0 ? '<p class="hint">Water closets: a ' + (si ? 'DN 80' : '3"') + ' pipe takes at most 2 on a branch or on a stack of up to 3 floors, and at most 6 on a taller stack. Check the number on each floor.</p>' : '');
     };
     draw();
   }
@@ -4195,11 +4203,11 @@ const PLB = (function () {
   const SCH = { '40': [['1', 25, 1.315, 0.133], ['1-1/4', 32, 1.660, 0.140], ['1-1/2', 40, 1.900, 0.145], ['2', 50, 2.375, 0.154], ['2-1/2', 65, 2.875, 0.203], ['3', 80, 3.5, 0.216], ['4', 100, 4.5, 0.237], ['6', 150, 6.625, 0.280], ['8', 200, 8.625, 0.322]],
     '10': [['1', 25, 1.315, 0.109], ['1-1/4', 32, 1.660, 0.109], ['1-1/2', 40, 1.900, 0.109], ['2', 50, 2.375, 0.109], ['2-1/2', 65, 2.875, 0.120], ['3', 80, 3.5, 0.120], ['4', 100, 4.5, 0.120], ['6', 150, 6.625, 0.134], ['8', 200, 8.625, 0.148]] };
   const CFAC = [['120', 'Black steel, wet (C 120)'], ['100', 'Steel, dry (C 100)'], ['120', 'Galvanized (C 120)'], ['150', 'Copper / SS (C 150)'], ['150', 'CPVC (C 150)'], ['140', 'Cement-lined (C 140)'], ['100', 'Cast iron (C 100)']];
-  const pipeList = sch => (SCH[sch] || SCH['40']).map((a, i) => [String(i), 'DN ' + a[1] + ' (' + fr(a[0]) + '")']);
+  const pipeList = (sch, si) => (SCH[sch] || SCH['40']).map((a, i) => [String(i), si ? 'DN ' + a[1] : fr(a[0]) + '"']);
   function hyd(view) {
     const d = P.hyd, si = siU(), lu = si ? 'm' : 'ft', pu = si ? 'bar' : 'psi';
     const draw = () => {
-      const pl = pipeList(d.sch);
+      const pl = pipeList(d.sch, si);
       const rows = d.rows.map((r, i) => '<div class="plgb"><div class="plsec">Pipe ' + (i + 1) + '</div><select data-r="' + i + '" data-f="s" aria-label="Pipe ' + (i + 1) + ' size">' + pl.map(o => '<option value="' + o[0] + '"' + (o[0] === String(r.s) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
         '<div class="plg4">' + [['l', 'Length (' + lu + ')'], ['e', 'Fittings (' + lu + ')'], ['h', 'Drop (' + lu + ')'], ['n', 'Sprinklers']].map(k => '<label><span>' + k[1] + '</span><input type="number" step="any" inputmode="decimal" class="num" data-r="' + i + '" data-f="' + k[0] + '" value="' + esc(r[k[0]]) + '" aria-label="Pipe ' + (i + 1) + ' ' + k[1] + '"></label>').join('') + '</div></div>').join('');
       view.innerHTML = '<div class="tool-x">' +
@@ -4221,7 +4229,7 @@ const PLB = (function () {
         const id = mm(pp[2] - 2 * pp[3]), eq = n(r.e) > 0 ? n(r.e) : 0, lt = (len + eq) * L, fall = (Number.isFinite(n(r.h)) ? n(r.h) : 0) * L, nn = n(r.n) > 0 ? n(r.n) : 0;
         const v = Q / 60000 / (Math.PI / 4 * Math.pow(id / 1000, 2)), loss = Q > 0 ? 6.05e5 * Math.pow(Q, 1.85) / (Math.pow(cf, 1.85) * Math.pow(id, 4.87)) * lt : 0, pe = Pc + loss + fall * BAR_M;
         if (!(pe > 0)) { bad = 'Pipe ' + (i + 1) + ': the pressure falls below zero. Check the drop.'; return; }
-        out.push({ i: i + 1, name: 'DN ' + pp[1], q: Q, v: v, loss: loss, p: pe }); Pc = pe; Q += nn * km * Math.sqrt(pe);
+        out.push({ i: i + 1, name: si ? 'DN ' + pp[1] : fr(pp[0]) + '"', q: Q, v: v, loss: loss, p: pe }); Pc = pe; Q += nn * km * Math.sqrt(pe);
       });
       if (!out.length) { $('#pl-res').innerHTML = '<span class="hint">Enter the length of the pipes.</span>' + (bad ? '<p class="hint red">' + bad + '</p>' : ''); return; }
       const fq = x => si ? f2(x, 1) : f2(x / 3.785411784, 1), fp = x => si ? f2(x, 3) : f2(x * BAR_PSI, 2), fv = x => si ? f2(x, 2) : f2(x / FT, 2);
@@ -4883,6 +4891,9 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['Fixed', 'Plumbing: Metric / IP now changes the names too in Drain Pipe Size, Water Supply and Sprinkler Hydraulic (DN or inch pipes, litre or gpf flush, slope in % or inch per foot)']
+  ] },
+  { v: 'v2026.11.26.2', date: '26 Nov 2026', items: [
     ['New', 'Plumbing, Fire Fighting: Sprinkler Head Count (hazard class, coverage, density, design area, flow, pressure and water storage), Sprinkler Hydraulic (pipe by pipe from the remote sprinkler to the riser, Hazen-Williams) and Fire Pump & Tank (rated pump flow, head, motor and tank size), with Metric / IP and Print']
   ] },
   { v: 'v2026.11.26', date: '26 Nov 2026', items: [
