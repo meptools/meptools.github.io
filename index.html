@@ -819,7 +819,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.5';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.6';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3869,6 +3869,11 @@ const PLB = (function () {
     septic: { method: 'ret', p: '', lpp: '150', ret: '1', sludge: '40', years: '1', depth: '1.5', free: '0.3' },
     heads: { haz: 'ord1', area: '', cover: '', k: '5.6', dur: '60' },
     hyd: { sch: '40', c: '0', k: '5.6', p0: '', n0: '1', rows: [{ s: '0', l: '', e: '', h: '0', n: '1' }, { s: '3', l: '', e: '', h: '0', n: '0' }] },
+    fillc: { rows: [{ od: '', q: '' }], kind: 'conduit', depth: '50', lim: '40', pick: '' },
+    xfmr: { kind: 'xf', kw: '', df: '80', pf: '0.85', gr: '20', v: '400', load: '80', mg: '10', z: '5', mk: '', sm: '6', me: '90', mp: '0.85', cap: '3' },
+    hang: { mat: 'steel', size: '25', len: '' },
+    dsheet: { rows: [{ s: 'r', w: '', h: '', l: '' }], g: 'auto', ws: '10', rho: '7850' },
+    scale: { sc: '50', scc: '', mode: 'r2d', v: '' },
     cload: { rows: [{ t: '0', a: '', w: '' }, { t: '3', a: '', w: '' }], div: '100', margin: '10', shr: '0.8', dt: '10', cdt: '5.5' },
     fresh: { rows: [{ t: '0', p: '', a: '' }], ez: '1', ev: '1', sup: '', oaDb: '46', oaWb: '30', rmDb: '24', rmRh: '50', alt: '0' },
     psy: { mode: 'rh', db: '25', v2: '50', alt: '0', flow: '', db2: '', rh2: '' },
@@ -4305,6 +4310,10 @@ const PLB = (function () {
     heads: (a, b) => { const k = P.heads; k.area = cv(k.area, b ? 1 / M2 : M2); k.cover = cv(k.cover, b ? 1 / M2 : M2); },
     hyd: (a, b) => { const k = P.hyd; k.p0 = cv(k.p0, b ? BAR_PSI : 1 / BAR_PSI); k.rows.forEach(r => { ['l', 'e', 'h'].forEach(f => { r[f] = cv(r[f], b ? 1 / FT : FT); }); }); },
     fpump: (a, b) => { const k = P.fpump; k.flow = cv(k.flow, b ? 1 / USG : USG); k.hose = cv(k.hose, b ? 1 / USG : USG); k.stat = cv(k.stat, b ? 1 / FT : FT); k.fric = cv(k.fric, b ? BAR_PSI : 1 / BAR_PSI); k.press = cv(k.press, b ? BAR_PSI : 1 / BAR_PSI); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); },
+    fillc: (a, b) => { const k = P.fillc; k.rows.forEach(r => { r.od = cv(r.od, b ? 1 / 25.4 : 25.4); }); },
+    hang: (a, b) => { P.hang.len = cv(P.hang.len, b ? 1 / FT : FT); },
+    dsheet: (a, b) => { const k = P.dsheet; k.rows.forEach(r => { r.w = cv(r.w, b ? 1 / 25.4 : 25.4); r.h = cv(r.h, b ? 1 / 25.4 : 25.4); r.l = cv(r.l, b ? 1 / FT : FT); }); },
+    scale: (a, b) => { const k = P.scale; k.v = cv(k.v, k.mode === 'r2d' ? (b ? 1 / FT : FT) : (b ? 1 / 25.4 : 25.4)); },
     cload: (a, b) => { const k = P.cload; k.rows.forEach(r => { r.a = cv(r.a, b ? 1 / M2 : M2); r.w = cv(r.w, b ? 1 / BTUFT : BTUFT); }); k.dt = cv(k.dt, b ? 1.8 : 1 / 1.8); k.cdt = cv(k.cdt, b ? 1.8 : 1 / 1.8); },
     fresh: (a, b) => { const k = P.fresh; k.rows.forEach(r => { r.a = cv(r.a, b ? 1 / M2 : M2); }); k.sup = cv(k.sup, b ? LS_CFM : 1 / LS_CFM); ['oaDb', 'oaWb', 'rmDb'].forEach(f => { k[f] = ct(k[f], b); }); k.alt = cv(k.alt, b ? 1 / FT : FT); },
     psy: (a, b) => { const k = P.psy; k.db = ct(k.db, b); if (k.mode !== 'rh') k.v2 = ct(k.v2, b); k.db2 = ct(k.db2, b); k.alt = cv(k.alt, b ? 1 / FT : FT); k.flow = cv(k.flow, b ? LS_CFM : 1 / LS_CFM); },
@@ -4459,8 +4468,9 @@ const PLB = (function () {
 
   /* ----- fan and pump affinity laws ----- */
   function affin(view) {
-    const d = P.affin, si = siU(), fan = d.type === 'fan';
+    const d = P.affin, si = siU();
     const draw = () => {
+      const fan = d.type === 'fan';
       const k = fan ? { q: 'fq', p: 'fp', k: 'fk', n: 'fn', q2: 'q2f' } : { q: 'pq', p: 'ph', k: 'pk', n: 'pn', q2: 'q2p' };
       const qu = fan ? (si ? 'L/s' : 'cfm') : (si ? 'L/s' : 'gpm'), pu = fan ? (si ? 'Pa' : 'in.wg') : (si ? 'm' : 'ft');
       view.innerHTML = '<div class="tool-x">' +
@@ -4474,6 +4484,7 @@ const PLB = (function () {
       wire(view, 'affin', draw, calc);
     };
     const calc = () => {
+      const fan = d.type === 'fan';
       const f = fan ? { q: n(d.fq), p: n(d.fp), kw: n(d.fk), n: n(d.fn), q2: n(d.q2f) } : { q: n(d.pq), p: n(d.ph), kw: n(d.pk), n: n(d.pn), q2: n(d.q2p) };
       let r = NaN, how = '';
       if (d.by === 'n') { if (n(d.n2p) > 0) r = n(d.n2p) / 100; else if (n(d.n2) > 0 && f.n > 0) r = n(d.n2) / f.n; how = 'speed'; }
@@ -4493,7 +4504,184 @@ const PLB = (function () {
     draw();
   }
 
-  const MOUNT = { cload: cload, fresh: fresh, psy: psyTool, affin: affin, heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
+  /* ===== Step 4 tools: cable fill, transformer and generator, pipe supports, duct sheet, drawing scale ===== */
+  const next = (list, v) => list.find(x => x >= v - 1e-9);
+  const KVA_T = [100, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150];
+  const KVA_G = [20, 30, 40, 50, 60, 80, 100, 125, 150, 200, 250, 300, 350, 400, 500, 630, 750, 800, 1000, 1250, 1500, 1600, 2000, 2500];
+  const fr2 = x => { const w = Math.floor(x), f = Math.round((x - w) * 8) / 8; return (w ? w : '') + (f === 0 ? '' : f === 0.5 ? '½' : f === 0.25 ? '¼' : f === 0.75 ? '¾' : f === 0.125 ? '⅛' : f === 0.375 ? '⅜' : f === 0.625 ? '⅝' : '⅞'); };
+
+  /* ----- cable fill: conduit and cable tray ----- */
+  const CONDF = [[16, 12.5, '½"'], [20, 16.5, '¾"'], [25, 21.5, '1"'], [32, 28, '1¼"'], [40, 35.5, '1½"'], [50, 44.5, '2"'], [63, 57, '2½"']];   // nominal mm, typical inside mm, inch
+  const TRAYW = [[50, '2"'], [100, '4"'], [150, '6"'], [200, '8"'], [300, '12"'], [400, '16"'], [450, '18"'], [500, '20"'], [600, '24"'], [750, '30"'], [900, '36"']];
+  function fillc(view) {
+    const d = P.fillc, si = siU(), ou = si ? 'mm' : 'in';
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Cables', d.rows.map((r, i) => '<div class="plr"><input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="od" value="' + esc(r.od) + '" placeholder="Cable diameter ' + ou + '" aria-label="Cable ' + (i + 1) + ' outside diameter">' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="q" value="' + esc(r.q) + '" placeholder="Qty" aria-label="Cable ' + (i + 1) + ' quantity"></div>').join('') + btns() +
+          '<p class="hint">Type the outside diameter of the cable (from the data sheet, over the sheath) and how many of that cable.</p>') +
+        card('Containment', rad('Type', 'kind', [['conduit', 'Conduit'], ['tray', 'Cable tray']], d.kind) + (d.kind === 'tray' ? pick('Tray depth', 'depth', [['25', '25 mm'], ['50', '50 mm'], ['75', '75 mm'], ['100', '100 mm']].map(x => [x[0], si ? x[1] : fr2(x[0] / 25.4) + '"']), d.depth) : '') +
+          num('Fill limit', 'lim', '%', d.lim, d.kind === 'conduit' ? 'NEC allows 53 % for 1 cable, 31 % for 2 cables and 40 % for 3 or more' : 'Typical practice is 40 to 50 % of the tray cross-section') +
+          pick(d.kind === 'conduit' ? 'Check this conduit' : 'Check this tray width', 'pick', d.kind === 'conduit' ? [['', 'Smallest that fits']].concat(CONDF.map(x => [String(x[0]), si ? x[0] + ' mm' : x[2]])) : [['', 'Smallest that fits']].concat(TRAYW.map(x => [String(x[0]), si ? x[0] + ' mm' : x[1]])), d.pick)) +
+        '<section class="card res" id="pl-res"></section>' +
+        more(d.kind === 'conduit' ? 'Conduit sizes used' : 'Tray sizes used', d.kind === 'conduit' ? tbl(['Conduit', 'Inside diameter', 'Area'], CONDF.map(x => [si ? x[0] + ' mm' : x[2], si ? x[1] + ' mm' : f2(x[1] / 25.4, 2) + ' in', si ? f2(Math.PI / 4 * x[1] * x[1], 0) + ' mm²' : f2(Math.PI / 4 * x[1] * x[1] / 645.16, 2) + ' in²'])) : tbl(['Width', 'Depth', 'Area'], TRAYW.map(x => [si ? x[0] + ' mm' : x[1], si ? d.depth + ' mm' : fr2(d.depth / 25.4) + '"', si ? f2(x[0] * d.depth / 100, 0) + ' cm²' : f2(x[0] * d.depth / 645.16, 1) + ' in²']))) +
+        formula('Cable area = π ÷ 4 × diameter² for each cable, added up (the cable is taken as a round object).<br>Fill = total cable area ÷ inside area of the conduit (or width × depth of the tray) × 100.<br>The smallest size whose fill is not more than the limit is the answer. The conduit inside diameters are typical values for PVC and GI conduit, so check the maker\'s catalogue. Also check the pulling length and bends, and the derating of cables bunched together.') +
+        '</div>';
+      wire(view, 'fillc', draw, calc, last => ({ od: last ? last.od : '', q: '' }));
+    };
+    const calc = () => {
+      let area = 0, cnt = 0;
+      d.rows.forEach(r => { const od = n(r.od) * (si ? 1 : 25.4), q = n(r.q); if (od > 0 && q > 0) { area += Math.PI / 4 * od * od * q; cnt += q; } });
+      if (!(area > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the cable diameter and the quantity.</span>'; return; }
+      let lim = n(d.lim); if (!(lim > 0 && lim <= 100)) lim = 40;
+      const conduit = d.kind === 'conduit', depth = +d.depth || 50;
+      const list = conduit ? CONDF.map(x => ({ n: x[0], a: Math.PI / 4 * x[1] * x[1], t: si ? x[0] + ' mm' : x[2] })) : TRAYW.map(x => ({ n: x[0], a: x[0] * depth, t: si ? x[0] + ' mm' : x[1] }));
+      const pk = list.some(x => String(x.n) === String(d.pick)) ? d.pick : '', chosen = pk ? list.find(x => String(x.n) === String(pk)) : list.find(x => area / x.a * 100 <= lim + 1e-9);
+      let h = rl('Total cable area', si ? f2(area, 0) : f2(area / 645.16, 2), si ? 'mm²' : 'in²') + rl('Number of cables', f2(cnt, 0), 'Nos.');
+      if (!chosen) h += '<div class="rl big"><span>' + (conduit ? 'Conduit' : 'Tray') + '</span><span><b class="red">' + (conduit ? 'Above 63 mm: use a cable tray or more conduits' : 'Above 900 mm: use more trays or a deeper tray') + '</b></span></div>';
+      else { const fill = area / chosen.a * 100; h += rl(pk ? 'Chosen size' : (conduit ? 'Conduit size' : 'Tray width'), chosen.t, '', 'big') + rl('Fill', f2(fill, 1), '% (limit ' + f2(lim, 0) + ' %)', fill <= lim + 1e-9 ? 'big' : 'big red') + (fill > lim + 1e-9 ? '<p class="hint red">The fill is more than the limit. Choose a bigger size.</p>' : ''); }
+      $('#pl-res').innerHTML = h;
+    };
+    draw();
+  }
+
+  /* ----- transformer and generator sizing ----- */
+  const START = [['6', 'Direct on line (6 × current)'], ['3', 'Soft starter (3 ×)'], ['2', 'Star-delta (2 ×)'], ['1.5', 'Variable speed drive (1.5 ×)']];
+  function xfmr(view) {
+    const d = P.xfmr;
+    const draw = () => {
+      const tr = d.kind === 'xf';
+      view.innerHTML = '<div class="tool-x">' +
+        card('Machine', rad('Size a', 'kind', [['xf', 'Transformer'], ['gen', 'Generator']], d.kind)) +
+        card('Load', num('Connected load', 'kw', 'kW', d.kw) + num('Demand factor', 'df', '%', d.df, 'Share of the connected load that runs together') + num('Power factor', 'pf', '', d.pf) + num('Future growth', 'gr', '%', d.gr) +
+          num('Secondary voltage (line to line)', 'v', 'V', d.v) + num(tr ? 'Highest loading wanted' : 'Margin on the load', tr ? 'load' : 'mg', '%', tr ? d.load : d.mg, tr ? 'Transformers are usually loaded to 70 to 80 %' : 'For the ageing and the error of the load')) +
+        (tr ? card('Fault level', num('Transformer impedance', 'z', '%', d.z, 'Typical 4 to 6 %')) :
+          card('Biggest motor start', num('Motor power', 'mk', 'kW', d.mk, 'Leave empty if there is no big motor') + pick('Starting method', 'sm', START, d.sm) + num('Motor efficiency', 'me', '%', d.me) + num('Motor power factor', 'mp', '', d.mp) + num('Generator short-time capacity', 'cap', '× rating', d.cap, 'About 3 times the rating for a normal alternator'))) +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Running kVA = connected kW × demand factor ÷ power factor × (1 + growth).<br>' + (tr ? 'Transformer kVA needed = running kVA ÷ highest loading, then the next standard size.<br>Full load current = kVA ÷ (√3 × V). Fault current at the secondary (infinite source) = full load current ÷ impedance.' :
+          'Generator kVA = running kVA × (1 + margin), then the next standard size. Power in kW = kVA × power factor.<br>Motor start: start kVA = motor kW ÷ (efficiency × power factor) × starting multiple. The generator must also carry the other load plus the start kVA ÷ its short-time capacity.<br>This is a first selection. Check the maker data for the voltage dip, the motor starting and the site derating (heat, height).')) + '</div>';
+      wire(view, 'xfmr', draw, calc);
+    };
+    const calc = () => {
+      const tr = d.kind === 'xf';
+      const kw = n(d.kw), df = n(d.df) > 0 ? n(d.df) / 100 : 1, pf = n(d.pf), gr = n(d.gr) > 0 ? n(d.gr) / 100 : 0, v = n(d.v);
+      if (!(kw > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the connected load.</span>'; return; }
+      if (!(pf > 0 && pf <= 1) || !(v > 0)) { $('#pl-res').innerHTML = '<p class="hint red">Power factor must be more than 0 and not more than 1, and the voltage more than 0.</p>'; return; }
+      const run = kw * df / pf * (1 + gr), amp = k => k * 1000 / (Math.sqrt(3) * v);
+      let h = rl('Running load', f2(kw * df * (1 + gr), 1), 'kW') + rl('Running load', f2(run, 1), 'kVA', 'big');
+      if (tr) {
+        const lo = n(d.load) > 0 && n(d.load) <= 100 ? n(d.load) / 100 : 0.8, need = run / lo, std = next(KVA_T, need), z = n(d.z);
+        h += rl('Transformer kVA needed', f2(need, 1), 'kVA') + rl('Standard transformer', std ? f2(std, 0) : 'Above 3150', std ? 'kVA' : '', 'big');
+        if (std) { h += rl('Loading at the running load', f2(run / std * 100, 1), '%') + rl('Full load current', f2(amp(std), 0), 'A'); if (z > 0) h += rl('Fault current at the secondary', f2(amp(std) * 100 / z / 1000, 1), 'kA'); }
+        else h += '<p class="hint red">Above 3150 kVA: use two or more transformers.</p>';
+      } else {
+        const mg = n(d.mg) > 0 ? n(d.mg) / 100 : 0; let need = run * (1 + mg), why = 'running load';
+        const mk = n(d.mk), me = n(d.me) > 0 ? n(d.me) / 100 : 0.9, mp = n(d.mp) > 0 ? n(d.mp) : 0.85, cap = n(d.cap) > 0 ? n(d.cap) : 3;
+        if (mk > 0) {
+          const sk = mk / (me * mp) * (+d.sm || 6), others = Math.max(0, run - mk / (me * mp)), byStart = others + sk / cap;
+          h += rl('Motor running kVA', f2(mk / (me * mp), 1), 'kVA') + rl('Motor start kVA', f2(sk, 1), 'kVA') + rl('Needed to carry the start', f2(byStart, 1), 'kVA');
+          if (byStart > need) { need = byStart; why = 'motor start'; }
+        }
+        const std = next(KVA_G, need);
+        h += rl('Generator kVA needed', f2(need, 1), 'kVA (' + why + ')') + rl('Standard generator', std ? f2(std, 0) : 'Above 2500', std ? 'kVA' : '', 'big');
+        if (std) h += rl('Generator power', f2(std * pf, 0), 'kW at PF ' + f2(pf, 2)) + rl('Full load current', f2(amp(std), 0), 'A');
+        else h += '<p class="hint red">Above 2500 kVA: use sets in parallel.</p>';
+      }
+      $('#pl-res').innerHTML = h;
+    };
+    draw();
+  }
+
+  /* ----- pipe support spacing (MSS SP-69 and ASME B31.1 steel water pipe, copper tube water) ----- */
+  const HANG = [['15', 0.5, 7, 5, '3/8'], ['20', 0.75, 7, 5, '3/8'], ['25', 1, 7, 6, '3/8'], ['40', 1.5, 9, 8, '3/8'], ['50', 2, 10, 8, '3/8'], ['65', 2.5, 11, 9, '1/2'], ['80', 3, 12, 10, '1/2'], ['100', 4, 14, 12, '5/8'], ['150', 6, 17, 14, '3/4'], ['200', 8, 19, null, '7/8'], ['250', 10, 22, null, '7/8'], ['300', 12, 23, null, '7/8']];
+  const RODMM = { '3/8': 'M10', '1/2': 'M12', '5/8': 'M16', '3/4': 'M20', '7/8': 'M22' };
+  function hang(view) {
+    const d = P.hang, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Pipe', rad('Material', 'mat', [['steel', 'Steel'], ['copper', 'Copper']], d.mat) + pick('Pipe size', 'size', HANG.filter(x => d.mat === 'steel' || x[3]).map(x => [x[0], si ? 'DN ' + x[0] : fr2(x[1]) + '"']), d.size) + num('Pipe run length (optional)', 'len', si ? 'm' : 'ft', d.len)) +
+        '<section class="card res" id="pl-res"></section>' +
+        more('Spacing table', tbl(['Pipe', 'Steel', 'Copper', 'Hanger rod'], HANG.map(x => [si ? 'DN ' + x[0] : fr2(x[1]) + '"', si ? f2(x[2] * 0.3048, 1) + ' m' : x[2] + ' ft', x[3] ? (si ? f2(x[3] * 0.3048, 1) + ' m' : x[3] + ' ft') : '—', si ? RODMM[x[4]] : x[4] + '"']))) +
+        formula('Maximum span between hangers for straight horizontal water pipe: steel pipe from the MSS SP-69 and ASME B31.1 table, copper tube from the usual manufacturer tables.<br>Number of hangers = run length ÷ span (rounded up) + 1.<br>Put a support within 300 mm of each change of direction and at valves and heavy fittings, and use the shorter span for insulated pipe or a pipe full of water with fittings. Vertical pipe, plastic pipe, gas pipe and fire pipe have their own rules (for fire pipe see NFPA 13). Check the local authority and the maker of the hanger.') + '</div>';
+      wire(view, 'hang', draw, calc);
+    };
+    const calc = () => {
+      let x = HANG.find(r => r[0] === d.size); if (!x || (d.mat === 'copper' && !x[3])) x = HANG[2];
+      const ft = d.mat === 'steel' ? x[2] : x[3], m = ft * 0.3048, len = n(d.len) * (si ? 1 : 0.3048);
+      let h = rl('Maximum span', si ? f2(m, 1) : String(ft), si ? 'm (' + ft + ' ft)' : 'ft (' + f2(m, 1) + ' m)', 'big') + rl('Hanger rod', si ? RODMM[x[4]] : x[4] + '"', si ? '(' + x[4] + '")' : '(' + RODMM[x[4]] + ')');
+      if (len > 0) h += rl('Hangers for the run', String(Math.ceil(len / m - 1e-9) + 1), 'Nos.', 'big');
+      $('#pl-res').innerHTML = h;
+    };
+    draw();
+  }
+
+  /* ----- duct sheet area and weight ----- */
+  const GAUGE = [['auto', 'Automatic by size'], ['0.5', '0.5 mm'], ['0.6', '0.6 mm (24 G)'], ['0.8', '0.8 mm (22 G)'], ['1', '1.0 mm (20 G)'], ['1.2', '1.2 mm (18 G)'], ['1.5', '1.5 mm (16 G)']];
+  const autoT = mm => mm <= 750 ? 0.6 : mm <= 1350 ? 0.8 : mm <= 2100 ? 1 : 1.2;
+  function dsheet(view) {
+    const d = P.dsheet, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Ducts', d.rows.map((r, i) => '<div class="plr plr3"><select data-r="' + i + '" data-f="s" aria-label="Duct ' + (i + 1) + ' shape"><option value="r"' + (r.s === 'r' ? ' selected' : '') + '>Rectangular</option><option value="c"' + (r.s === 'c' ? ' selected' : '') + '>Round</option></select>' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="w" value="' + esc(r.w) + '" placeholder="' + (r.s === 'c' ? 'Diameter' : 'Width') + ' ' + (si ? 'mm' : 'in') + '" aria-label="Duct ' + (i + 1) + ' width">' +
+          (r.s === 'c' ? '<span></span>' : '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="h" value="' + esc(r.h) + '" placeholder="Height ' + (si ? 'mm' : 'in') + '" aria-label="Duct ' + (i + 1) + ' height">') +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="l" value="' + esc(r.l) + '" placeholder="Length ' + (si ? 'm' : 'ft') + '" aria-label="Duct ' + (i + 1) + ' length"></div>').join('') + btns()) +
+        card('Sheet', pick('Sheet thickness', 'g', GAUGE, d.g) + num('Wastage and joints', 'ws', '%', d.ws, 'Cutting waste, flanges, joints') + num('Steel density', 'rho', 'kg/m³', d.rho)) +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Rectangular duct area = 2 × (width + height) × length. Round duct area = π × diameter × length.<br>Weight = area × thickness × density, then plus the wastage.<br>Automatic thickness (typical low pressure duct): 0.6 mm up to 750 mm, 0.8 mm up to 1350 mm, 1.0 mm up to 2100 mm and 1.2 mm above. The longest side decides. Check your own specification (SMACNA or DW 144) and the pressure class.<br>The insulation area on the outside of the duct is the same as the sheet area.') + '</div>';
+      wire(view, 'dsheet', draw, calc, last => ({ s: last ? last.s : 'r', w: '', h: '', l: '' }));
+      view.querySelectorAll('select[data-f="s"]').forEach(el => el.addEventListener('change', draw));
+    };
+    const calc = () => {
+      const rho = n(d.rho) > 0 ? n(d.rho) : 7850, ws = n(d.ws) > 0 ? 1 + n(d.ws) / 100 : 1; let A = 0, W = 0; const lines = [];
+      d.rows.forEach(r => {
+        const w = n(r.w) * (si ? 1 : 25.4), hh = n(r.h) * (si ? 1 : 25.4), l = n(r.l) * (si ? 1 : 0.3048), c = r.s === 'c';
+        if (!(w > 0 && l > 0) || (!c && !(hh > 0))) return;
+        const a = (c ? Math.PI * w / 1000 : 2 * (w + hh) / 1000) * l, t = d.g === 'auto' ? autoT(c ? w : Math.max(w, hh)) : +d.g, kg = a * t / 1000 * rho;
+        A += a; W += kg; lines.push([c ? 'Ø ' + f2(si ? w : w / 25.4, si ? 0 : 1) : f2(si ? w : w / 25.4, si ? 0 : 1) + ' × ' + f2(si ? hh : hh / 25.4, si ? 0 : 1), f2(si ? l : l / 0.3048, 1), f2(si ? a : a / M2, 1), f2(t, 1), f2(kg, 1)]);
+      });
+      if (!(A > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the size and the length of at least one duct.</span>'; return; }
+      $('#pl-res').innerHTML = rl('Sheet area', si ? f2(A, 2) : f2(A / M2, 1), si ? 'm²' : 'ft²', 'big') + rl('Sheet area with wastage', si ? f2(A * ws, 2) : f2(A * ws / M2, 1), si ? 'm²' : 'ft²') + rl('Weight', f2(W, 1), 'kg (' + f2(W * 2.20462, 0) + ' lb)') + rl('Weight with wastage', f2(W * ws, 1), 'kg (' + f2(W * ws * 2.20462, 0) + ' lb)', 'big') +
+        tbl(['Duct ' + (si ? 'mm' : 'in'), si ? 'm' : 'ft', si ? 'm²' : 'ft²', 'mm', 'kg'], lines);
+    };
+    draw();
+  }
+
+  /* ----- drawing scale converter ----- */
+  const SCALE_SI = [1, 2, 5, 10, 20, 25, 50, 75, 100, 125, 150, 200, 250, 500, 1000, 2000, 5000];
+  const SCALE_IP = [[4, '3" = 1\'-0"'], [8, '1½" = 1\'-0"'], [12, '1" = 1\'-0"'], [16, '¾" = 1\'-0"'], [24, '½" = 1\'-0"'], [32, '3/8" = 1\'-0"'], [48, '¼" = 1\'-0"'], [64, '3/16" = 1\'-0"'], [96, '⅛" = 1\'-0"'], [128, '3/32" = 1\'-0"'], [192, '1/16" = 1\'-0"'], [120, '1" = 10\''], [240, '1" = 20\''], [480, '1" = 40\''], [600, '1" = 50\''], [720, '1" = 60\''], [1200, '1" = 100\'']];
+  function scale(view) {
+    const d = P.scale, si = siU();
+    const draw = () => {
+      const r2d = d.mode === 'r2d';
+      let opts = si ? SCALE_SI.map(x => [String(x), '1 : ' + x]) : SCALE_IP.map(x => [String(x[0]), x[1]]);
+      if (d.sc !== 'c' && !opts.some(o => o[0] === d.sc) && +d.sc > 0) opts = opts.concat([[d.sc, '1 : ' + d.sc]]);
+      opts = opts.concat([['c', 'Custom']]);
+      view.innerHTML = '<div class="tool-x">' +
+        card('Scale', pick('Drawing scale', 'sc', opts, d.sc, true) + (d.sc === 'c' ? num('Custom scale 1 :', 'scc', 'n', d.scc, 'For example 150 for 1 : 150') : '')) +
+        card('Length', rad('Convert', 'mode', [['r2d', 'Real to drawing'], ['d2r', 'Drawing to real']], d.mode) + num(r2d ? 'Real length' : 'Drawing length', 'v', r2d ? (si ? 'm' : 'ft') : (si ? 'mm' : 'in'), d.v)) +
+        '<section class="card res" id="pl-res"></section>' +
+        more('Real length on the drawing', '<div id="pl-tab"></div>') +
+        formula('Scale 1 : n means 1 unit on the drawing is n units in real life.<br>Drawing length = real length ÷ n. Real length = drawing length × n.<br>In CAD, a viewport scale factor of 1 ÷ n (for example 0.02 for 1 : 50) shows a model in millimetres at the right size on the sheet, and the text height on the drawing = paper text height × n.<br>Inch scales: 1/8" = 1\'-0" is 1 : 96, 1/4" = 1\'-0" is 1 : 48, and 1" = 10\' is 1 : 120.') + '</div>';
+      wire(view, 'scale', draw, calc);
+    };
+    const calc = () => {
+      const r2d = d.mode === 'r2d';
+      const nn = d.sc === 'c' ? n(d.scc) : +d.sc, v = n(d.v);
+      if (!(nn > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the custom scale.</span>'; $('#pl-tab').innerHTML = ''; return; }
+      const real = si ? 1000 : 12;   // mm of paper in 1 m of real life; inch of paper in 1 ft
+      $('#pl-tab').innerHTML = tbl(si ? ['Real', 'On the drawing'] : ['Real', 'On the drawing'], (si ? [0.1, 0.5, 1, 2, 3, 5, 10] : [1, 2, 5, 10, 20, 50]).map(x => [si ? x + ' m' : x + ' ft', si ? f2(x * 1000 / nn, 1) + ' mm' : f2(x * 12 / nn, 3) + ' in']));
+      let h = rl('Scale', '1 : ' + f2(nn, nn % 1 ? 2 : 0), '', 'big') + rl('Scale factor', f2(1 / nn, 5), '');
+      if (v > 0) {
+        if (r2d) h += rl('Drawing length', si ? f2(v * 1000 / nn, 2) : f2(v * 12 / nn, 3), si ? 'mm' : 'in', 'big') + (si ? '' : rl('Drawing length', f2(v * 12 / nn * 25.4, 1), 'mm'));
+        else h += rl('Real length', si ? f2(v * nn / 1000, 3) : f2(v * nn / 12, 2), si ? 'm' : 'ft', 'big') + (si ? rl('Real length', f2(v * nn, 0), 'mm') : rl('Real length', f2(v * nn / 12 * 0.3048, 3), 'm'));
+      }
+      $('#pl-res').innerHTML = h;
+    };
+    draw();
+  }
+
+  const MOUNT = { fillc: fillc, xfmr: xfmr, hang: hang, dsheet: dsheet, scale: scale, cload: cload, fresh: fresh, psy: psyTool, affin: affin, heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { P[id] = d[id]; if (S.units === 'ip' && CONV[id]) CONV[id]('si', true); save(); } }
   return { mount: mount, clear: clear, convert: convert };
@@ -4541,6 +4729,7 @@ const CATEGORIES = [
         onExcel: () => { AB.excel(S.mode); }, onClear: () => { AB.clear(S.mode); render(); }, confirmClear: () => AB.hasData(S.mode),
         modes: [ { id: 'round', label: 'Round', mount: AB.mount('round') }, { id: 'rect', label: 'Rectangular', mount: AB.mount('rect') } ] },
       { id: 'hv-cload', label: 'Cooling Load Estimate', icon: svg('<path d="M12 2v20M5 6l14 12M19 6L5 18"/><circle cx="12" cy="12" r="2"/>'), actions: ACTIONS, printTitle: 'Cooling load estimate', mount: PLB.mount('cload'), onClear: () => { PLB.clear('cload'); render(); }, refresh: () => render() },
+      { id: 'hv-dsheet', label: 'Duct Sheet Area & Weight', icon: svg('<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M3 12h18M8 7v10M16 7v10"/>'), actions: ACTIONS, printTitle: 'Duct sheet area and weight', mount: PLB.mount('dsheet'), onClear: () => { PLB.clear('dsheet'); render(); }, refresh: () => render() },
       { id: 'hv-fresh', label: 'Fresh Air (ASHRAE 62.1)', icon: svg('<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/>'), actions: ACTIONS, printTitle: 'Fresh air ventilation', mount: PLB.mount('fresh'), onClear: () => { PLB.clear('fresh'); render(); }, refresh: () => render() },
       { id: 'hv-psy', label: 'Psychrometric Calculator', icon: svg('<path d="M3 20h18M3 20V5M6 17c4 0 9-3 12-11"/><path d="M6 13c4 0 7-2 10-8" stroke-dasharray="2 2"/>'), actions: ACTIONS, printTitle: 'Psychrometric calculator', mount: PLB.mount('psy'), onClear: () => { PLB.clear('psy'); render(); }, refresh: () => render() },
       { id: 'hv-affin', label: 'Fan & Pump Laws', icon: svg('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-6 4-6 1 3-1 5-4 6zM14 12c4 0 6 1 6 4-3 1-5-1-6-4zM12 14c0 4-1 6-4 6-1-3 1-5 4-6zM10 12c-4 0-6-1-6-4 3-1 5 1 6 4z"/>'), actions: ACTIONS, printTitle: 'Fan and pump affinity laws', mount: PLB.mount('affin'), onClear: () => { PLB.clear('affin'); render(); }, refresh: () => render() } ]) },
@@ -4563,6 +4752,7 @@ const CATEGORIES = [
       { id: 'pl-heater', label: 'Water Heater Size', icon: svg('<rect x="6" y="3" width="12" height="18" rx="4"/><path d="M12 8c-2 2 2 3 0 6"/>'), actions: ACTIONS, printTitle: 'Water heater size', mount: PLB.mount('heater'), onClear: () => { PLB.clear('heater'); render(); }, refresh: () => render() },
       { id: 'pl-grease', label: 'Grease Trap Size', icon: svg('<path d="M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M5 12h14M9 4h6"/>'), actions: ACTIONS, printTitle: 'Grease trap size', mount: PLB.mount('grease'), onClear: () => { PLB.clear('grease'); render(); }, refresh: () => render() },
       { id: 'pl-septic', label: 'Septic Tank Size', icon: svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M12 7v13M3 12h18"/>'), actions: ACTIONS, printTitle: 'Septic tank size', mount: PLB.mount('septic'), onClear: () => { PLB.clear('septic'); render(); }, refresh: () => render() },
+      { id: 'pl-hang', label: 'Pipe Support Spacing', icon: svg('<path d="M4 6h16M8 6v6M16 6v6"/><rect x="5" y="12" width="14" height="5" rx="2.5"/>'), actions: ACTIONS, printTitle: 'Pipe support spacing', mount: PLB.mount('hang'), onClear: () => { PLB.clear('hang'); render(); }, refresh: () => render() },
       { id: 'ff-heads', label: 'Sprinkler Head Count', icon: svg('<circle cx="12" cy="7" r="3"/><path d="M12 10v3M8 16l-2 3M12 16v4M16 16l2 3"/>'), actions: ACTIONS, printTitle: 'Sprinkler head count', mount: PLB.mount('heads'), onClear: () => { PLB.clear('heads'); render(); }, refresh: () => render() },
       { id: 'ff-hyd', label: 'Sprinkler Hydraulic', icon: svg('<path d="M3 6h10v6h8M13 12v8"/><circle cx="3" cy="6" r="1.5"/>'), actions: ACTIONS, printTitle: 'Sprinkler hydraulic calculation', mount: PLB.mount('hyd'), onClear: () => { PLB.clear('hyd'); render(); }, refresh: () => render() },
       { id: 'ff-pump', label: 'Fire Pump & Tank', icon: svg('<circle cx="10" cy="13" r="6"/><path d="M16 13h5M10 7V3h4M7 16l6-6"/>'), actions: ACTIONS, printTitle: 'Fire pump and tank', mount: PLB.mount('fpump'), onClear: () => { PLB.clear('fpump'); render(); }, refresh: () => render() } ] },
@@ -4573,6 +4763,8 @@ const CATEGORIES = [
       { id: 'el-gland', label: 'Cable Gland Size', icon: svg('<path d="M8 3h8v4H8zM6 7h12v4H6zM9 11h6v10H9z"/>'), actions: ['clear', 'print'], printTitle: 'Cable gland size', mount: X2.mount('gland'), onClear: () => { X2.clear('gland'); render(); } },
       { id: 'el-ecc', label: 'ECC Size', icon: svg('<path d="M12 3v10M6 13h12M8 17h8M10 21h4"/>'), actions: ['clear', 'print'], printTitle: 'Earth continuity conductor size', mount: X2.mount('ecc'), onClear: () => { X2.clear('ecc'); render(); } },
       { id: 'el-cond', label: 'Conduit Size', icon: svg('<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.6"/><circle cx="15" cy="10" r="1.6"/><circle cx="12" cy="15" r="1.6"/>'), actions: ['clear', 'print'], printTitle: 'Conduit size', mount: X2.mount('cond'), onClear: () => { X2.clear('cond'); render(); } },
+      { id: 'el-fill', label: 'Cable Fill (Conduit & Tray)', icon: svg('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="14" cy="12" r="2"/><circle cx="18" cy="12" r="1"/>'), actions: ACTIONS, printTitle: 'Cable fill in conduit and cable tray', mount: PLB.mount('fillc'), onClear: () => { PLB.clear('fillc'); render(); }, refresh: () => render() },
+      { id: 'el-xfmr', label: 'Transformer & Generator', icon: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9v6M16 9v6M8 12h8"/>'), actions: ACTIONS, printTitle: 'Transformer and generator size', mount: PLB.mount('xfmr'), onClear: () => { PLB.clear('xfmr'); render(); }, refresh: () => render() },
       { id: 'el-vd', label: 'Voltage Drop', icon: svg('<path d="M3 6h7l4 12h7"/><path d="M17 14l4 4-4 4" transform="translate(0 -4)"/>'), actions: ACTIONS, printTitle: 'Voltage drop', mount: X2.mount('vd'), onClear: () => { X2.clear('vd'); render(); }, refresh: () => render() } ] },
   { id: 'convertors', label: 'Converters', color: '#8e6bff', icon: ICON.convertors, min: 4, cols: 3, tools: CONV.cats.map(c => ({
       id: 'cv-' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), label: c.name, icon: svg(c.icon), color: c.color,
@@ -4581,6 +4773,7 @@ const CATEGORIES = [
       { id: 'ms-pct', label: 'Percentage', icon: svg('<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>'), actions: ['clear', 'print'], printTitle: 'Percentage', mount: X2.mount('pct'), onClear: () => { X2.clear('pct'); render(); } },
       { id: 'ms-car', label: 'Car Average', icon: svg('<path d="M5 16l1.5-5h11l1.5 5"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>'), actions: ['units', 'clear', 'print'], printTitle: 'Car average', mount: X2.mount('car'), onUnits: (from, to) => X2.convert(from, to), refresh: () => render(), onClear: () => { X2.clear('car'); render(); } },
       { id: 'ms-paper', label: 'Paper Size & Scale', icon: svg('<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>'), actions: ['units', 'clear', 'print'], printTitle: 'Paper size and scale', mount: X2.mount('paper'), refresh: () => render(), onClear: () => { X2.clear('paper'); render(); } },
+      { id: 'ms-scale', label: 'Drawing Scale', icon: svg('<path d="M3 17h18M3 17V9M7 17v-3M11 17v-5M15 17v-3M19 17v-5"/>'), actions: ACTIONS, printTitle: 'Drawing scale converter', mount: PLB.mount('scale'), onClear: () => { PLB.clear('scale'); render(); }, refresh: () => render() },
       { id: 'ms-tv', label: 'TV Size', icon: svg('<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'), actions: ['units', 'clear', 'print'], printTitle: 'TV size', mount: X2.mount('tv'), refresh: () => render(), onClear: () => { X2.clear('tv'); render(); } },
       { id: 'ms-sym', label: 'Symbols (Alt Codes)', icon: svg('<circle cx="12" cy="12" r="7"/><path d="M5 19L19 5"/>'), actions: ['print'], printTitle: 'Symbols (Alt codes)', mount: X2.mount('symbols') } ] },
   { id: 'stddoc', label: 'Standards & References', color: '#ef6a5b', icon: ICON.stddoc, min: 4, tools: [
@@ -4614,6 +4807,7 @@ const SEARCH = (function () {
     'hv-airbal': 'air balancing balance report tab testing terminal diffuser grille measured design flow velocity round rectangular excel',
     'pipe-sizer': 'pipe size velocity friction head loss water', 'pipe-slope': 'manhole schedule drainage invert level il slope cover', 'rw-calci': 'rain water rwo outlet ipc storm',
     'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
+    'el-fill': 'cable fill conduit cable tray fill percentage capacity containment space factor', 'el-xfmr': 'transformer generator kva sizing genset diesel standby motor starting fault current', 'pl-hang': 'pipe support spacing hanger rod span clamp mss sp-69 b31.1 steel copper', 'hv-dsheet': 'duct sheet area weight gauge kg thickness steel galvanized surface insulation area', 'ms-scale': 'drawing scale converter cad viewport plot scale 1:50 architectural',
     'hv-cload': 'cooling load estimate tr ton refrigeration w/m2 sq ft per ton capacity chiller air conditioning rule of thumb', 'hv-fresh': 'fresh air outdoor air ventilation ashrae 62.1 rp ra vbz vot ez ev oa load', 'hv-psy': 'psychrometric psychrometrics wet bulb dry bulb dew point humidity ratio enthalpy rh coil sensible latent', 'hv-affin': 'fan law pump law affinity speed rpm vfd impeller trim flow pressure head power cube',
     'pl-wsfu': 'water supply fixture unit wsfu hunter curve gpm flush valve flush tank domestic cold hot pipe size ipc', 'pl-dfu': 'drain drainage fixture unit dfu soil waste stack branch building drain sewer pipe size slope ipc',
     'pl-tank': 'water tank storage underground roof capacity demand litre gallon', 'pl-pump': 'booster pump head kw motor power flow pressure', 'pl-heater': 'water heater geyser boiler kw storage hot water calorifier',
@@ -5096,6 +5290,10 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['New', 'Electrical: Cable Fill for conduit and cable tray (fill percentage and the smallest size) and Transformer & Generator sizing (running kVA, standard size, current, fault level and motor start)'],
+    ['New', 'Plumbing: Pipe Support Spacing (steel and copper, hanger rod and number of hangers). HVAC: Duct Sheet Area & Weight (rectangular and round, thickness, wastage). Misc: Drawing Scale converter (metric and inch scales, real to drawing and back)']
+  ] },
+  { v: 'v2026.11.26.5', date: '26 Nov 2026', items: [
     ['New', 'HVAC: Cooling Load Estimate (typical W/m² by space type with diversity, margin, supply air and chilled water flow), Fresh Air (ASHRAE 62.1 Table 6-1, Ez, Ev and the outdoor air load), Psychrometric Calculator (dry bulb with RH, wet bulb or dew point, plus the heat load between two states) and Fan & Pump Laws (speed, flow or diameter change), all with Metric / IP and Print'],
   ] },
   { v: 'v2026.11.26.4', date: '26 Nov 2026', items: [
