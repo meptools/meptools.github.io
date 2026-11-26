@@ -280,6 +280,8 @@ table.auth-table .shape-ci{display:inline-block;width:10px;height:10px;backgroun
 .plseg button.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .plgb{margin:8px 0 12px}
 .plgb>input{width:100%;min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px}
+.plsec{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:4px}
+.plgb>select{width:100%;min-width:0;font:inherit;font-size:15px;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .plg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px}
 .plg4 label span{display:block;font-size:11.5px;font-weight:700;color:var(--ink2);margin-bottom:2px}
 .plg4 input{width:100%;min-width:0;padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px;text-align:right}
@@ -815,7 +817,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.2';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3851,7 +3853,10 @@ const PLB = (function () {
     pump: { flow: '', stat: '', fric: '', press: '1.5', margin: '10', eff: '60', mm: '15' },
     heater: { mode: 'store', cold: '25', hot: '60', vol: '', flow: '', time: '2', eff: '95' },
     grease: { mode: 'fix', rows: [{ n: '', l: '', w: '', d: '', q: '1' }], time: '1', flow: '', ret: '30' },
-    septic: { method: 'ret', p: '', lpp: '150', ret: '1', sludge: '40', years: '1', depth: '1.5', free: '0.3' }
+    septic: { method: 'ret', p: '', lpp: '150', ret: '1', sludge: '40', years: '1', depth: '1.5', free: '0.3' },
+    heads: { haz: 'ord1', area: '', cover: '', k: '5.6', dur: '60' },
+    hyd: { sch: '40', c: '0', k: '5.6', p0: '', n0: '1', rows: [{ s: '0', l: '', e: '', h: '0', n: '1' }, { s: '3', l: '', e: '', h: '0', n: '0' }] },
+    fpump: { flow: '', hose: '', dur: '60', stat: '', fric: '', press: '', margin: '5', eff: '65', depth: '3', free: '0.3' }
   });
   const P = S.plb = DEF();
   let hadSaved = false;
@@ -3869,6 +3874,7 @@ const PLB = (function () {
         });
       });
       P.wsfu.rows.forEach(r => { if (!WS[+r.f]) r.f = '5'; }); P.dfu.rows.forEach(r => { if (!DF[+r.f]) r.f = '4'; });
+      P.hyd.rows.forEach(r => { if (!(+r.s >= 0 && +r.s < 9)) r.s = '0'; }); if (!(+P.hyd.c >= 0 && +P.hyd.c < 7)) P.hyd.c = '0';
     } catch (e) {}
   })();
 
@@ -3897,7 +3903,7 @@ const PLB = (function () {
     const d = P[tool];
     view.querySelectorAll('[data-p]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
       d[el.dataset.p] = el.value; save();
-      if (el.dataset.redraw) { if (tool === 'tank' && el.dataset.p === 'type') tankType(); draw(); } else calc();
+      if (el.dataset.redraw) { if (tool === 'tank' && el.dataset.p === 'type') tankType(); if (tool === 'heads' && el.dataset.p === 'haz') headsHaz(); draw(); } else calc();
     }));
     view.querySelectorAll('[data-seg]').forEach(b => b.addEventListener('click', () => { d[b.dataset.seg] = b.dataset.v; save(); draw(); }));
     view.querySelectorAll('[data-r]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => { d.rows[+el.dataset.r][el.dataset.f] = el.value; save(); calc(); }));
@@ -3986,6 +3992,7 @@ const PLB = (function () {
 
   /* ===== Water Tank Size ===== */
   const dflt = (v, si) => si ? String(v) : String(Number((v / USG).toFixed(1)));
+  function headsHaz() { const h = HAZ.find(x => x[0] === P.heads.haz); if (h) P.heads.dur = String(h[12]); }
   function tankType() { const b = BTYPES.find(x => x[0] === P.tank.type); if (b && b[0] !== 'other') P.tank.lpu = dflt(b[2], siU()); }
   function tank(view) {
     const d = P.tank, si = siU();
@@ -4140,6 +4147,127 @@ const PLB = (function () {
     draw();
   }
 
+  /* ===== Fire Fighting (NFPA 13 sprinklers): Sprinkler Head Count, Sprinkler Hydraulic, Fire Pump & Tank ===== */
+  /* hazard classes: [id, name, max coverage m², ft², max spacing m, ft, density mm/min, gpm/ft², design area m², ft², hose allowance L/min, gpm, duration min] */
+  const HAZ = [
+    ['light', 'Light hazard', 20.9, 225, 4.6, 15, 4.1, 0.10, 139, 1500, 379, 100, 30],
+    ['ord1', 'Ordinary hazard, Group 1', 12.1, 130, 4.6, 15, 6.1, 0.15, 139, 1500, 946, 250, 60],
+    ['ord2', 'Ordinary hazard, Group 2', 12.1, 130, 4.6, 15, 8.2, 0.20, 139, 1500, 946, 250, 60],
+    ['ext1', 'Extra hazard, Group 1', 9.3, 100, 3.7, 12, 12.2, 0.30, 232, 2500, 1893, 500, 90],
+    ['ext2', 'Extra hazard, Group 2', 9.3, 100, 3.7, 12, 16.3, 0.40, 232, 2500, 1893, 500, 90]
+  ];
+  const KS = [['4.2', 'K 4.2 (K60)'], ['5.6', 'K 5.6 (K80)'], ['8', 'K 8.0 (K115)'], ['11.2', 'K 11.2 (K160)'], ['14', 'K 14.0 (K200)']];
+  const KM = { '4.2': 60, '5.6': 80, '8': 115, '11.2': 160, '14': 200 };   // metric K: L/min per √bar
+  const M2 = 0.09290304, BAR_M = 0.0980665;
+  const spkP = (q, km) => Math.max(Math.pow(q / km, 2), 0.5);   // bar; not less than 0.5 bar (7 psi) at a sprinkler
+  function heads(view) {
+    const d = P.heads, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Area', pick('Hazard class', 'haz', HAZ.map(h => [h[0], h[1]]), d.haz, true) + num('Floor area to protect', 'area', si ? 'm²' : 'ft²', d.area) +
+          num('Coverage per sprinkler', 'cover', si ? 'm²' : 'ft²', d.cover, 'Leave empty for the maximum of the hazard class')) +
+        card('Sprinkler', pick('Sprinkler K-factor', 'k', KS, d.k) + num('Water supply duration', 'dur', 'min', d.dur)) +
+        '<section class="card res" id="pl-res"></section>' +
+        more('Hazard class table', tbl(['Hazard', 'Max. area per sprinkler', 'Max. spacing', 'Density', 'Design area', 'Hose allowance', 'Duration'], HAZ.map(h => [h[1],
+          si ? h[2] + ' m²' : h[3] + ' ft²', si ? h[4] + ' m' : h[5] + ' ft', si ? h[6] + ' mm/min' : f2(h[7]) + ' gpm/ft²', si ? h[8] + ' m²' : h[9] + ' ft²', si ? h[10] + ' L/min' : h[11] + ' gpm', h[12] + ' min']))) +
+        formula('Sprinklers needed = floor area ÷ coverage per sprinkler (rounded up).<br>Sprinklers in the design area = design area ÷ coverage (rounded up).<br>Flow per sprinkler (L/min) = density (mm/min) × coverage (m²).<br>Pressure per sprinkler (bar) = (flow ÷ K)², not less than 0.5 bar.<br>System flow = density × design area; hose allowance is added; storage = total flow × duration.<br>Coverage and spacing are the maximum for a standard spray sprinkler, so check the layout on the drawing.') + '</div>';
+      wire(view, 'heads', draw, calc);
+    };
+    const calc = () => {
+      const h = HAZ.find(x => x[0] === d.haz) || HAZ[1], a = n(d.area), cv_ = n(d.cover), km = KM[d.k] || 80, dur = n(d.dur);
+      const am2 = a > 0 ? (si ? a : a * M2) : NaN, cov = cv_ > 0 ? (si ? cv_ : cv_ * M2) : h[2];
+      if (!(am2 > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the floor area.</span>'; return; }
+      const cnt = Math.ceil(am2 / cov - 1e-9), da = Math.min(am2, h[8]), inDa = Math.min(cnt, Math.ceil(da / cov - 1e-9));
+      const dens = h[6], q = dens * cov, p = spkP(q, km), flow = dens * da, tot = flow + h[10], vol = dur > 0 ? tot * dur / 1000 : NaN;
+      const ar = m2 => f2(si ? m2 : m2 / M2, si ? 1 : 0) + (si ? ' m²' : ' ft²'), fl = l => f2(l, 0) + ' L/min (' + f2(l / 3.785411784, 0) + ' gpm)';
+      $('#pl-res').innerHTML = rl('Sprinklers needed', f2(cnt, 0), 'Nos.', 'big') + rl('Sprinklers in the design area', f2(inDa, 0), 'Nos.') +
+        rl('Coverage per sprinkler', ar(cov), '') + rl('Max. spacing', si ? h[4] + ' m' : h[5] + ' ft', '') +
+        rl('Design density', si ? f2(dens, 1) : f2(h[7]), si ? 'mm/min' : 'gpm/ft²') + rl('Design area', ar(da), '') +
+        rl('Flow per sprinkler', f2(q, 1) + ' L/min', f2(q / 3.785411784, 1) + ' gpm') + rl('Pressure per sprinkler', f2(p, 2), 'bar (' + f2(p * BAR_PSI, 1) + ' psi)') +
+        rl('Sprinkler flow (design area)', fl(flow), '', 'big') + rl('Hose allowance', fl(h[10]), '') + rl('Total demand', fl(tot), '', 'big') +
+        (vol > 0 ? rl('Water storage (' + dur + ' min)', f2(vol, 1), 'm³ (' + f2(vol * 1000 / 3.785411784, 0) + ' US gal)', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
+        (da < h[8] ? '<p class="hint">The floor is smaller than the design area, so the whole floor is used.</p>' : '');
+    };
+    draw();
+  }
+
+  /* ===== Sprinkler Hydraulic (Hazen-Williams, from the remote sprinkler to the riser) ===== */
+  const SCH = { '40': [['1', 25, 1.315, 0.133], ['1-1/4', 32, 1.660, 0.140], ['1-1/2', 40, 1.900, 0.145], ['2', 50, 2.375, 0.154], ['2-1/2', 65, 2.875, 0.203], ['3', 80, 3.5, 0.216], ['4', 100, 4.5, 0.237], ['6', 150, 6.625, 0.280], ['8', 200, 8.625, 0.322]],
+    '10': [['1', 25, 1.315, 0.109], ['1-1/4', 32, 1.660, 0.109], ['1-1/2', 40, 1.900, 0.109], ['2', 50, 2.375, 0.109], ['2-1/2', 65, 2.875, 0.120], ['3', 80, 3.5, 0.120], ['4', 100, 4.5, 0.120], ['6', 150, 6.625, 0.134], ['8', 200, 8.625, 0.148]] };
+  const CFAC = [['120', 'Black steel, wet (C 120)'], ['100', 'Steel, dry (C 100)'], ['120', 'Galvanized (C 120)'], ['150', 'Copper / SS (C 150)'], ['150', 'CPVC (C 150)'], ['140', 'Cement-lined (C 140)'], ['100', 'Cast iron (C 100)']];
+  const pipeList = sch => (SCH[sch] || SCH['40']).map((a, i) => [String(i), 'DN ' + a[1] + ' (' + fr(a[0]) + '")']);
+  function hyd(view) {
+    const d = P.hyd, si = siU(), lu = si ? 'm' : 'ft', pu = si ? 'bar' : 'psi';
+    const draw = () => {
+      const pl = pipeList(d.sch);
+      const rows = d.rows.map((r, i) => '<div class="plgb"><div class="plsec">Pipe ' + (i + 1) + '</div><select data-r="' + i + '" data-f="s" aria-label="Pipe ' + (i + 1) + ' size">' + pl.map(o => '<option value="' + o[0] + '"' + (o[0] === String(r.s) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
+        '<div class="plg4">' + [['l', 'Length (' + lu + ')'], ['e', 'Fittings (' + lu + ')'], ['h', 'Drop (' + lu + ')'], ['n', 'Sprinklers']].map(k => '<label><span>' + k[1] + '</span><input type="number" step="any" inputmode="decimal" class="num" data-r="' + i + '" data-f="' + k[0] + '" value="' + esc(r[k[0]]) + '" aria-label="Pipe ' + (i + 1) + ' ' + k[1] + '"></label>').join('') + '</div></div>').join('');
+      view.innerHTML = '<div class="tool-x">' +
+        card('Start (remote sprinkler)', num('Pressure at the first sprinkler', 'p0', pu, d.p0) + num('Sprinklers at the first point', 'n0', 'Nos.', d.n0) + pick('Sprinkler K-factor', 'k', KS, d.k)) +
+        card('Pipe', pick('Pipe schedule', 'sch', [['40', 'Schedule 40'], ['10', 'Schedule 10']], d.sch, true) + pick('Pipe material (C factor)', 'c', CFAC.map((c, i) => [String(i), c[1]]), d.c)) +
+        card('Pipes from the remote sprinkler to the riser', rows + btns() + '<p class="hint">Fittings = equivalent length of the fittings. Drop = how much lower the next point (towards the riser) is; use a minus sign if it is higher. Sprinklers = number of sprinklers at the end of that pipe.</p>') +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Friction loss (bar) = 6.05 × 10⁵ × Q<sup>1.85</sup> ÷ (C<sup>1.85</sup> × d<sup>4.87</sup>) × (length + fittings length), with Q in L/min and d (inside diameter) in mm.<br>Pressure at the end of a pipe = pressure at its start + friction loss + drop × 0.0981 bar per m.<br>Flow of a sprinkler = K × √pressure; the flow of the sprinklers at a point is added to the pipe flow before the next pipe.<br>Velocity = Q ÷ pipe area.') + '</div>';
+      wire(view, 'hyd', draw, calc, () => ({ s: '1', l: '', e: '', h: '0', n: '1' }));
+    };
+    const calc = () => {
+      const km = KM[d.k] || 80, cf = n((CFAC[+d.c] || CFAC[0])[0]), pin = n(d.p0), n0 = n(d.n0), L = si ? 1 : FT;
+      let Pc = pin > 0 ? (si ? pin : pin / BAR_PSI) : NaN;
+      if (!(Pc > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the pressure at the first sprinkler.</span>'; return; }
+      let Q = n0 > 0 ? n0 * km * Math.sqrt(Pc) : 0; const out = []; let bad = '';
+      d.rows.forEach((r, i) => {
+        if (bad) return;
+        const len = n(r.l), pp = (SCH[d.sch] || SCH['40'])[+r.s]; if (!(len > 0) || !pp) return;
+        const id = mm(pp[2] - 2 * pp[3]), eq = n(r.e) > 0 ? n(r.e) : 0, lt = (len + eq) * L, fall = (Number.isFinite(n(r.h)) ? n(r.h) : 0) * L, nn = n(r.n) > 0 ? n(r.n) : 0;
+        const v = Q / 60000 / (Math.PI / 4 * Math.pow(id / 1000, 2)), loss = Q > 0 ? 6.05e5 * Math.pow(Q, 1.85) / (Math.pow(cf, 1.85) * Math.pow(id, 4.87)) * lt : 0, pe = Pc + loss + fall * BAR_M;
+        if (!(pe > 0)) { bad = 'Pipe ' + (i + 1) + ': the pressure falls below zero. Check the drop.'; return; }
+        out.push({ i: i + 1, name: 'DN ' + pp[1], q: Q, v: v, loss: loss, p: pe }); Pc = pe; Q += nn * km * Math.sqrt(pe);
+      });
+      if (!out.length) { $('#pl-res').innerHTML = '<span class="hint">Enter the length of the pipes.</span>' + (bad ? '<p class="hint red">' + bad + '</p>' : ''); return; }
+      const fq = x => si ? f2(x, 1) : f2(x / 3.785411784, 1), fp = x => si ? f2(x, 3) : f2(x * BAR_PSI, 2), fv = x => si ? f2(x, 2) : f2(x / FT, 2);
+      const last = out[out.length - 1], hi = out.some(o => o.v > 6);
+      $('#pl-res').innerHTML = rl('Pressure needed at the end', fp(last.p), pu + (si ? ' (' + f2(last.p * BAR_PSI, 1) + ' psi)' : ' (' + f2(last.p, 3) + ' bar)'), 'big') + rl('Flow at the end', f2(Q, 0), 'L/min (' + f2(Q / 3.785411784, 0) + ' gpm)', 'big') +
+        tbl(['Pipe', 'Size', si ? 'L/min' : 'gpm', si ? 'm/s' : 'ft/s', 'Loss (' + pu + ')', 'End (' + pu + ')'], out.map(o => [o.i, o.name, fq(o.q), fv(o.v), fp(o.loss), fp(o.p)])) +
+        (hi ? '<p class="hint red">Velocity is above 6 m/s (20 ft/s) in some pipes. Use a bigger pipe size.</p>' : '') + (bad ? '<p class="hint red">' + bad + '</p>' : '');
+    };
+    draw();
+  }
+
+  /* ===== Fire Pump & Tank ===== */
+  const FPUMPS = [25, 50, 100, 150, 200, 250, 300, 400, 450, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000];   // standard rated flows, gpm
+  function fpump(view) {
+    const d = P.fpump, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Demand', num('Sprinkler flow', 'flow', si ? 'L/min' : 'gpm', d.flow, 'From the hydraulic calculation or the hazard class') + num('Hose allowance', 'hose', si ? 'L/min' : 'gpm', d.hose) + num('Water supply duration', 'dur', 'min', d.dur)) +
+        card('Pressure', num('Height of the highest sprinkler above the pump', 'stat', si ? 'm' : 'ft', d.stat) + num('Pipe friction and fittings loss', 'fric', si ? 'bar' : 'psi', d.fric) +
+          num('Pressure at the highest sprinkler', 'press', si ? 'bar' : 'psi', d.press) + num('Margin on total head', 'margin', '%', d.margin)) +
+        card('Pump motor and tank', num('Pump efficiency', 'eff', '%', d.eff) + num('Tank water depth', 'depth', si ? 'm' : 'ft', d.depth) + num('Tank free board', 'free', si ? 'm' : 'ft', d.free)) +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Total demand = sprinkler flow + hose allowance. Rated pump flow = the next standard size (25, 50, 100 … 5000 gpm) that is not less than the demand.<br>Total head (m) = (height + friction loss × 10.197 per bar + pressure × 10.197 per bar) × (1 + margin).<br>Shaft power (kW) = 9.81 × rated flow (m³/s) × head (m) ÷ efficiency; motor = shaft power × 1.15, then the next standard motor size.<br>Tank volume = total demand × duration. Plan area = volume ÷ water depth.<br>The pump must also give at least 65 % of the rated pressure at 150 % of the rated flow.') + '</div>';
+      wire(view, 'fpump', draw, calc);
+    };
+    const calc = () => {
+      const g = x => { const v = n(x); return v > 0 ? (si ? v : v * 3.785411784) : 0; };
+      const sp = g(d.flow), hs = g(d.hose), tot = sp + hs, dur = n(d.dur), st = n(d.stat), fr_ = n(d.fric), pr = n(d.press), mg = n(d.margin), ef = n(d.eff), dep = n(d.depth), fb = n(d.free);
+      if (!(tot > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the sprinkler flow.</span>'; return; }
+      if (!Number.isFinite(st) || !(pr >= 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the height and the pressure at the highest sprinkler.</span>'; return; }
+      if (!(ef > 0 && ef <= 100)) { $('#pl-res').innerHTML = '<p class="hint red">Pump efficiency must be more than 0 and not more than 100 %.</p>'; return; }
+      const stm = si ? st : st * FT, frb = Number.isFinite(fr_) && fr_ > 0 ? (si ? fr_ : fr_ / BAR_PSI) : 0, prb = si ? pr : pr / BAR_PSI;
+      const H = (stm + frb * M_PER_BAR + prb * M_PER_BAR) * (1 + (mg > 0 ? mg / 100 : 0)), rg = FPUMPS.find(x => x * 3.785411784 >= tot - 1e-9), rq = rg ? rg * 3.785411784 : NaN;
+      const shaft = 9.80665 * rq / 60000 * H / (ef / 100), motor = shaft * 1.15, std = MOTORS.find(m => m >= motor - 1e-9);
+      const vol = dur > 0 ? tot * dur / 1000 : NaN, dm = dep > 0 ? (si ? dep : dep * FT) : NaN, fm = fb >= 0 ? (si ? fb : fb * FT) : 0, len = m => f2(si ? m : m / FT, 2) + (si ? ' m' : ' ft');
+      $('#pl-res').innerHTML = rl('Total demand', f2(tot, 0), 'L/min (' + f2(tot / 3.785411784, 0) + ' gpm)', 'big') +
+        (rg ? rl('Rated pump flow', f2(rq, 0), 'L/min (' + rg + ' gpm)', 'big') : '<div class="rl big"><span>Rated pump flow</span><span><b class="red">Above 5000 gpm</b></span></div>') +
+        rl('Total head', f2(H, 1), 'm (' + f2(H / FT, 1) + ' ft)', 'big') + rl('Pressure', f2(H / M_PER_BAR, 2), 'bar (' + f2(H / M_PER_BAR * BAR_PSI, 1) + ' psi)') +
+        (rg ? rl('Shaft power', f2(shaft, 1), 'kW') + rl('Motor power needed', f2(motor, 1), 'kW') + rl('Standard motor', std ? f2(std, std < 1 ? 2 : 1) : 'Above 250', std ? 'kW (' + f2(std * 1.34102, 1) + ' hp)' : '', 'big') : '') +
+        (vol > 0 ? rl('Tank volume (' + dur + ' min)', f2(vol, 1), 'm³ (' + f2(vol * 1000 / 3.785411784, 0) + ' US gal)', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
+        (vol > 0 && dm > 0 ? rl('Tank plan area', f2(si ? vol / dm : vol / dm / (FT * FT), 2), si ? 'm²' : 'ft²') + rl('Square tank size', len(Math.sqrt(vol / dm)), '') + rl('Overall height', len(dm + fm), '') : '') +
+        '<p class="hint">At 150 % of the rated flow the pump must still give at least 65 % of the rated pressure.</p>';
+    };
+    draw();
+  }
+
   /* ----- Metric <-> IP: every PLB value that has a unit is converted in one go (called from one tool only) ----- */
   const cv = (v, f) => { const x = n(v); return Number.isFinite(x) ? String(Number((x * f).toPrecision(6))) : v; };
   const ct = (v, toIp) => { const x = n(v); return Number.isFinite(x) ? String(Number((toIp ? x * 9 / 5 + 32 : (x - 32) * 5 / 9).toPrecision(6))) : v; };
@@ -4150,11 +4278,14 @@ const PLB = (function () {
     pump: (a, b) => { const k = P.pump; k.flow = cv(k.flow, b ? 1 / GPM : GPM); k.stat = cv(k.stat, b ? 1 / FT : FT); k.fric = cv(k.fric, b ? 1 / FT : FT); k.press = cv(k.press, b ? BAR_PSI : 1 / BAR_PSI); },
     heater: (a, b) => { const k = P.heater; k.cold = ct(k.cold, b); k.hot = ct(k.hot, b); k.vol = cv(k.vol, b ? 1 / USG : USG); k.flow = cv(k.flow, b ? 1 / USG : USG); },
     grease: (a, b) => { const k = P.grease; k.rows.forEach(r => { ['l', 'w', 'd'].forEach(f => { r[f] = cv(r[f], b ? 1 / 25.4 : 25.4); }); }); k.flow = cv(k.flow, b ? 1 / GPM : GPM); },
+    heads: (a, b) => { const k = P.heads; k.area = cv(k.area, b ? 1 / M2 : M2); k.cover = cv(k.cover, b ? 1 / M2 : M2); },
+    hyd: (a, b) => { const k = P.hyd; k.p0 = cv(k.p0, b ? BAR_PSI : 1 / BAR_PSI); k.rows.forEach(r => { ['l', 'e', 'h'].forEach(f => { r[f] = cv(r[f], b ? 1 / FT : FT); }); }); },
+    fpump: (a, b) => { const k = P.fpump; k.flow = cv(k.flow, b ? 1 / USG : USG); k.hose = cv(k.hose, b ? 1 / USG : USG); k.stat = cv(k.stat, b ? 1 / FT : FT); k.fric = cv(k.fric, b ? BAR_PSI : 1 / BAR_PSI); k.press = cv(k.press, b ? BAR_PSI : 1 / BAR_PSI); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); },
     septic: (a, b) => { const k = P.septic; k.lpp = cv(k.lpp, b ? 1 / USG : USG); k.sludge = cv(k.sludge, b ? 1 / USG : USG); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); }
   };
   function convert(from, to) { if (from === to) return; Object.keys(CONV).forEach(k => CONV[k](from, to === 'ip')); }
   if (!hadSaved && S.units === 'ip') convert('si', 'ip');
-  const MOUNT = { wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
+  const MOUNT = { heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { P[id] = d[id]; if (S.units === 'ip' && CONV[id]) CONV[id]('si', true); save(); } }
   return { mount: mount, clear: clear, convert: convert };
@@ -4219,7 +4350,10 @@ const CATEGORIES = [
       { id: 'pl-pump', label: 'Booster Pump Size', icon: svg('<circle cx="10" cy="13" r="6"/><circle cx="10" cy="13" r="1.5"/><path d="M16 13h5M10 7V3h4"/>'), actions: ACTIONS, printTitle: 'Booster pump size', mount: PLB.mount('pump'), onUnits: (from, to) => PLB.convert(from, to), onClear: () => { PLB.clear('pump'); render(); }, refresh: () => render() },
       { id: 'pl-heater', label: 'Water Heater Size', icon: svg('<rect x="6" y="3" width="12" height="18" rx="4"/><path d="M12 8c-2 2 2 3 0 6"/>'), actions: ACTIONS, printTitle: 'Water heater size', mount: PLB.mount('heater'), onClear: () => { PLB.clear('heater'); render(); }, refresh: () => render() },
       { id: 'pl-grease', label: 'Grease Trap Size', icon: svg('<path d="M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M5 12h14M9 4h6"/>'), actions: ACTIONS, printTitle: 'Grease trap size', mount: PLB.mount('grease'), onClear: () => { PLB.clear('grease'); render(); }, refresh: () => render() },
-      { id: 'pl-septic', label: 'Septic Tank Size', icon: svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M12 7v13M3 12h18"/>'), actions: ACTIONS, printTitle: 'Septic tank size', mount: PLB.mount('septic'), onClear: () => { PLB.clear('septic'); render(); }, refresh: () => render() } ] },
+      { id: 'pl-septic', label: 'Septic Tank Size', icon: svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M12 7v13M3 12h18"/>'), actions: ACTIONS, printTitle: 'Septic tank size', mount: PLB.mount('septic'), onClear: () => { PLB.clear('septic'); render(); }, refresh: () => render() },
+      { id: 'ff-heads', label: 'Sprinkler Head Count', icon: svg('<circle cx="12" cy="7" r="3"/><path d="M12 10v3M8 16l-2 3M12 16v4M16 16l2 3"/>'), actions: ACTIONS, printTitle: 'Sprinkler head count', mount: PLB.mount('heads'), onClear: () => { PLB.clear('heads'); render(); }, refresh: () => render() },
+      { id: 'ff-hyd', label: 'Sprinkler Hydraulic', icon: svg('<path d="M3 6h10v6h8M13 12v8"/><circle cx="3" cy="6" r="1.5"/>'), actions: ACTIONS, printTitle: 'Sprinkler hydraulic calculation', mount: PLB.mount('hyd'), onClear: () => { PLB.clear('hyd'); render(); }, refresh: () => render() },
+      { id: 'ff-pump', label: 'Fire Pump & Tank', icon: svg('<circle cx="10" cy="13" r="6"/><path d="M16 13h5M10 7V3h4M7 16l6-6"/>'), actions: ACTIONS, printTitle: 'Fire pump and tank', mount: PLB.mount('fpump'), onClear: () => { PLB.clear('fpump'); render(); }, refresh: () => render() } ] },
   { id: 'electrical', label: 'Electrical', color: '#f5a623', icon: ICON.electrical, min: 4, tools: [
       { id: 'el-amp', label: 'kW to Amp', icon: svg('<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'), actions: ['clear', 'print'], printTitle: 'kW to Amp', mount: X2.mount('amp'), onClear: () => { X2.clear('amp'); render(); } },
       { id: 'el-cable', label: 'Cable Size by kW', icon: svg('<path d="M4 20c0-6 4-6 8-6s8 0 8-6"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="6" r="2"/>'), actions: ['clear', 'print'], printTitle: 'Cable size by kW', mount: X2.mount('cable'), onClear: () => { X2.clear('cable'); render(); } },
@@ -4270,7 +4404,7 @@ const SEARCH = (function () {
     'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
     'pl-wsfu': 'water supply fixture unit wsfu hunter curve gpm flush valve flush tank domestic cold hot pipe size ipc', 'pl-dfu': 'drain drainage fixture unit dfu soil waste stack branch building drain sewer pipe size slope ipc',
     'pl-tank': 'water tank storage underground roof capacity demand litre gallon', 'pl-pump': 'booster pump head kw motor power flow pressure', 'pl-heater': 'water heater geyser boiler kw storage hot water calorifier',
-    'pl-grease': 'grease trap interceptor kitchen sink', 'pl-septic': 'septic tank sewage persons capacity soak',
+    'pl-grease': 'grease trap interceptor kitchen sink', 'ff-heads': 'sprinkler head count nfpa 13 hazard light ordinary extra coverage density design area fire fighting', 'ff-hyd': 'sprinkler hydraulic calculation hazen williams friction loss pressure flow k factor fire fighting', 'ff-pump': 'fire pump tank storage nfpa 20 rated flow gpm head motor fire fighting', 'pl-septic': 'septic tank sewage persons capacity soak',
     'el-amp': 'kw amp ampere current 3 phase 1 phase', 'el-cable': 'cable size kw amp breaker mccb mcb rating xlpe', 'el-db': 'db distribution board load diversity df amp cable schedule excel',
     'el-gland': 'gland pg bicc cable diameter cores', 'lib-electrical/glands': 'gland pg bicc', 'lib-electrical/xlpe': 'xlpe cable kw mcb mccb breaker',
     'el-ecc': 'ecc earth earthing bonding conductor', 'el-cond': 'conduit wires', 'el-vd': 'voltage drop vd volt cable length',
@@ -4749,6 +4883,9 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['New', 'Plumbing, Fire Fighting: Sprinkler Head Count (hazard class, coverage, density, design area, flow, pressure and water storage), Sprinkler Hydraulic (pipe by pipe from the remote sprinkler to the riser, Hazen-Williams) and Fire Pump & Tank (rated pump flow, head, motor and tank size), with Metric / IP and Print']
+  ] },
+  { v: 'v2026.11.26', date: '26 Nov 2026', items: [
     ['New', 'Plumbing: Water Supply (WSFU) with the load to flow table, cold, hot and total lines, flush valve or flush tank and pipe size by velocity (PPR, copper, steel)'],
     ['New', 'Plumbing: Drain Pipe Size (DFU) for fixture branches, stacks and building drains at 1/16, 1/8, 1/4 or 1/2 inch per foot'],
     ['New', 'Plumbing: Water Tank Size, Booster Pump Size, Water Heater Size (storage or peak demand), Grease Trap Size and Septic Tank Size, all with Metric / IP and Print']
