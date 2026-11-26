@@ -826,7 +826,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.7';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.8';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3911,7 +3911,7 @@ const PLB = (function () {
 
   /* ----- small helpers ----- */
   const n = s => (s === undefined || s === null || String(s).trim() === '') ? NaN : Number(s);
-  const f2 = (x, dp) => Number.isFinite(x) ? x.toLocaleString('en-US', { minimumFractionDigits: dp === undefined ? 2 : dp, maximumFractionDigits: dp === undefined ? 2 : dp }) : '—';
+  const f2 = (x, dp) => Number.isFinite(x) ? (x * (1 + 1e-6)).toLocaleString('en-US', { minimumFractionDigits: dp === undefined ? 2 : dp, maximumFractionDigits: dp === undefined ? 2 : dp }) : '—';
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const card = (title, body) => '<section class="card">' + (title ? '<h2 class="section-title">' + title + '</h2>' : '') + body + '</section>';
   const num = (label, key, unit, val, small) => '<div class="row"><label class="lbl">' + label + (small ? '<small>' + small + '</small>' : '') + '</label><input type="number" step="any" inputmode="decimal" class="num" data-p="' + key + '" value="' + esc(val) + '"><span class="unit">' + (unit || '') + '</span></div>';
@@ -3944,6 +3944,8 @@ const PLB = (function () {
     calc();
   }
   const siU = () => S.units !== 'ip';
+  /* a result in both unit systems: the unit of the Metric / IP button comes first, the other one in brackets */
+  const rld = (label, a, au, b, bu, cls) => siU() ? rl(label, a, au + ' (' + b + ' ' + bu + ')', cls) : rl(label, b, bu + ' (' + a + ' ' + au + ')', cls);
 
   /* ===== Water Supply (WSFU) ===== */
   function wsfu(view) {
@@ -4050,9 +4052,11 @@ const PLB = (function () {
       if (!(q > 0) || !(L > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the quantity and the demand per day.</span>'; return; }
       const dayM3 = q * L / 1000, ug = dayM3 * (days > 0 ? days : 0), rf = dayM3 * (roof > 0 ? roof / 100 : 0), dm = dep > 0 ? (si ? dep : dep * FT) : NaN, fm = fb >= 0 ? (si ? fb : fb * FT) : 0;
       const len = m => f2(si ? m : m / FT, 2) + (si ? ' m' : ' ft'), area = m3 => dm > 0 ? f2(si ? m3 / dm : m3 / dm / (FT * FT), 2) + (si ? ' m²' : ' ft²') : '—', side = m3 => dm > 0 ? len(Math.sqrt(m3 / dm)) : '—';
-      $('#pl-res').innerHTML = rl('Daily demand', f2(dayM3, 2), 'm³ (' + f2(dayM3 * 1000 / USG, 0) + ' US gal)', 'big') +
-        tbl(['Tank', 'Volume (m³)', 'Volume (US gal)', 'Plan area', 'Square size'], [
-          ['Underground', f2(ug, 2), f2(ug * 1000 / USG, 0), area(ug), side(ug)], ['Roof', f2(rf, 2), f2(rf * 1000 / USG, 0), area(rf), side(rf)]]) +
+      $('#pl-res').innerHTML = rld('Daily demand', f2(dayM3, 2), 'm³', f2(dayM3 * 1000 / USG, 0), 'US gal', 'big') +
+        (si ? tbl(['Tank', 'Volume (m³)', 'Volume (US gal)', 'Plan area', 'Square size'], [
+          ['Underground', f2(ug, 2), f2(ug * 1000 / USG, 0), area(ug), side(ug)], ['Roof', f2(rf, 2), f2(rf * 1000 / USG, 0), area(rf), side(rf)]]) :
+          tbl(['Tank', 'Volume (US gal)', 'Volume (m³)', 'Plan area', 'Square size'], [
+          ['Underground', f2(ug * 1000 / USG, 0), f2(ug, 2), area(ug), side(ug)], ['Roof', f2(rf * 1000 / USG, 0), f2(rf, 2), area(rf), side(rf)]])) +
         (dm > 0 ? '<p class="hint">Overall height = ' + len(dm + fm) + ' (water depth + free board). Use the volume as the usable water volume.</p>' : '<p class="hint red">Water depth must be more than 0.</p>');
     };
     draw();
@@ -4077,9 +4081,9 @@ const PLB = (function () {
       if (!(ef > 0 && ef <= 100)) { $('#pl-res').innerHTML = '<p class="hint red">Pump efficiency must be more than 0 and not more than 100 %.</p>'; return; }
       const H = (stm + frm + prb * M_PER_BAR) * (1 + (mg > 0 ? mg / 100 : 0)), hyd = 9.80665 * q / 1000 * H, shaft = hyd / (ef / 100), motor = shaft * (1 + (mm_ > 0 ? mm_ / 100 : 0));
       const std = MOTORS.find(m => m >= motor - 1e-9);
-      $('#pl-res').innerHTML = rl('Flow', f2(q, 2) + ' L/s', f2(q / GPM, 1) + ' gpm') + rl('Total head', f2(H, 1), 'm (' + f2(H / FT, 1) + ' ft)', 'big') + rl('Pressure', f2(H / M_PER_BAR, 2), 'bar (' + f2(H / M_PER_BAR * BAR_PSI, 1) + ' psi)') +
+      $('#pl-res').innerHTML = rld('Flow', f2(q, 2), 'L/s', f2(q / GPM, 1), 'gpm') + rld('Total head', f2(H, 1), 'm', f2(H / FT, 1), 'ft', 'big') + rld('Pressure', f2(H / M_PER_BAR, 2), 'bar', f2(H / M_PER_BAR * BAR_PSI, 1), 'psi') +
         rl('Hydraulic power', f2(hyd, 2), 'kW') + rl('Shaft power', f2(shaft, 2), 'kW') + rl('Motor power needed', f2(motor, 2), 'kW', 'big') +
-        rl('Standard motor', std ? f2(std, std < 1 ? 2 : 1) : 'Above 250', std ? 'kW (' + f2(std * 1.34102, 1) + ' hp)' : '', 'big');
+        (std ? rld('Standard motor', f2(std, std < 1 ? 2 : 1), 'kW', f2(std * 1.34102, 1), 'hp', 'big') : rl('Standard motor', 'Above 250', '', 'big'));
     };
     draw();
   }
@@ -4105,11 +4109,11 @@ const PLB = (function () {
         if (!(v > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the tank volume.</span>'; return; }
         if (!(t > 0)) { $('#pl-res').innerHTML = '<p class="hint red">Heat-up time must be more than 0.</p>'; return; }
         const L = si ? v : v * USG, E = L * 4.186 * dT / 3600, kw = E / t / (ef / 100);
-        $('#pl-res').innerHTML = rl('Temperature rise', f2(dT, 1), '°C (' + f2(dT * 9 / 5, 1) + ' °F)') + rl('Energy to heat the tank', f2(E, 1), 'kWh') + rl('Heater power', f2(kw, 1), 'kW', 'big') + rl('Heater power', f2(kw * 3.41214, 1), 'kBtu/h', 'big');
+        $('#pl-res').innerHTML = rld('Temperature rise', f2(dT, 1), '°C', f2(dT * 9 / 5, 1), '°F') + rl('Energy to heat the tank', f2(E, 1), 'kWh') + rl('Heater power', f2(kw, 1), 'kW', 'big') + rl('Heater power', f2(kw * 3.41214, 1), 'kBtu/h', 'big');
       } else {
         if (!(fl > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the peak hot water demand.</span>'; return; }
         const L = si ? fl : fl * USG, kw = L * 4.186 * dT / 3600 / (ef / 100);
-        $('#pl-res').innerHTML = rl('Temperature rise', f2(dT, 1), '°C (' + f2(dT * 9 / 5, 1) + ' °F)') + rl('Heater power', f2(kw, 1), 'kW', 'big') + rl('Heater power', f2(kw * 3.41214, 1), 'kBtu/h', 'big');
+        $('#pl-res').innerHTML = rld('Temperature rise', f2(dT, 1), '°C', f2(dT * 9 / 5, 1), '°F') + rl('Heater power', f2(kw, 1), 'kW', 'big') + rl('Heater power', f2(kw * 3.41214, 1), 'kBtu/h', 'big');
       }
     };
     draw();
@@ -4146,9 +4150,9 @@ const PLB = (function () {
         lpm = (si ? f : f * GPM) * 60;
       }
       const gpm = lpm / 3.785411784, lb = 2 * gpm;
-      $('#pl-res').innerHTML = (fix ? rl('Fixture volume', f2(vol, 0), 'L (' + f2(vol / USG, 1) + ' US gal)') : '') + rl('Flow', f2(lpm, 1), 'L/min', 'big') + rl('Flow', f2(gpm, 1), 'gpm', 'big') +
-        rl('Grease holding capacity', f2(lb * 0.45359237, 1), 'kg (' + f2(lb, 1) + ' lb)', 'big') +
-        (ret > 0 ? rl('Trap liquid capacity', f2(lpm * ret, 0), 'L (' + f2(lpm * ret / USG, 0) + ' US gal)', 'big') : '<p class="hint red">Retention time must be more than 0.</p>');
+      $('#pl-res').innerHTML = (fix ? rld('Fixture volume', f2(vol, 0), 'L', f2(vol / USG, 1), 'US gal') : '') + (si ? rl('Flow', f2(lpm, 1), 'L/min', 'big') + rl('Flow', f2(gpm, 1), 'gpm', 'big') : rl('Flow', f2(gpm, 1), 'gpm', 'big') + rl('Flow', f2(lpm, 1), 'L/min', 'big')) +
+        rld('Grease holding capacity', f2(lb * 0.45359237, 1), 'kg', f2(lb, 1), 'lb', 'big') +
+        (ret > 0 ? rld('Trap liquid capacity', f2(lpm * ret, 0), 'L', f2(lpm * ret / USG, 0), 'US gal', 'big') : '<p class="hint red">Retention time must be more than 0.</p>');
     };
     draw();
   }
@@ -4179,7 +4183,7 @@ const PLB = (function () {
       const m3 = L / 1000, dm = dep > 0 ? (si ? dep : dep * FT) : NaN, fm = fb >= 0 ? (si ? fb : fb * FT) : 0, len = m => f2(si ? m : m / FT, 2) + (si ? ' m' : ' ft');
       let size = '';
       if (dm > 0) { const a = m3 / dm, w = Math.sqrt(a / 2); size = rl('Plan area', f2(si ? a : a / (FT * FT), 2), si ? 'm²' : 'ft²') + rl('Size (L × W)', len(2 * w) + ' × ' + len(w), '', 'big') + rl('Overall height', len(dm + fm), ''); }
-      $('#pl-res').innerHTML = rl('Tank capacity', f2(m3, 2), 'm³ (' + f2(L, 0) + ' L, ' + f2(L / USG, 0) + ' US gal)', 'big') + rl('Compartment 1 (⅔)', f2(m3 * 2 / 3, 2), 'm³') + rl('Compartment 2 (⅓)', f2(m3 / 3, 2), 'm³') + size +
+      $('#pl-res').innerHTML = (si ? rl('Tank capacity', f2(m3, 2), 'm³ (' + f2(L, 0) + ' L, ' + f2(L / USG, 0) + ' US gal)', 'big') : rl('Tank capacity', f2(L / USG, 0), 'US gal (' + f2(m3, 2) + ' m³, ' + f2(L, 0) + ' L)', 'big')) + rld('Compartment 1 (⅔)', f2(m3 * 2 / 3, 2), 'm³', f2(m3 * 2000 / 3 / USG, 0), 'US gal') + rld('Compartment 2 (⅓)', f2(m3 / 3, 2), 'm³', f2(m3 * 1000 / 3 / USG, 0), 'US gal') + size +
         (dm > 0 ? '' : '<p class="hint red">Liquid depth must be more than 0.</p>');
     };
     draw();
@@ -4217,13 +4221,13 @@ const PLB = (function () {
       if (!(am2 > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the floor area.</span>'; return; }
       const cnt = Math.ceil(am2 / cov - 1e-9), da = Math.min(am2, h[8]), inDa = Math.min(cnt, Math.ceil(da / cov - 1e-9));
       const dens = h[6], q = dens * cov, p = spkP(q, km), flow = dens * da, tot = flow + h[10], vol = dur > 0 ? tot * dur / 1000 : NaN;
-      const ar = m2 => f2(si ? m2 : m2 / M2, si ? 1 : 0) + (si ? ' m²' : ' ft²'), fl = l => f2(l, 0) + ' L/min (' + f2(l / 3.785411784, 0) + ' gpm)';
+      const ar = m2 => f2(si ? m2 : m2 / M2, si ? 1 : 0) + (si ? ' m²' : ' ft²'), fl = l => si ? f2(l, 0) + ' L/min (' + f2(l / 3.785411784, 0) + ' gpm)' : f2(l / 3.785411784, 0) + ' gpm (' + f2(l, 0) + ' L/min)';
       $('#pl-res').innerHTML = rl('Sprinklers needed', f2(cnt, 0), 'Nos.', 'big') + rl('Sprinklers in the design area', f2(inDa, 0), 'Nos.') +
         rl('Coverage per sprinkler', ar(cov), '') + rl('Max. spacing', si ? h[4] + ' m' : h[5] + ' ft', '') +
         rl('Design density', si ? f2(dens, 1) : f2(h[7]), si ? 'mm/min' : 'gpm/ft²') + rl('Design area', ar(da), '') +
-        rl('Flow per sprinkler', f2(q, 1) + ' L/min', f2(q / 3.785411784, 1) + ' gpm') + rl('Pressure per sprinkler', f2(p, 2), 'bar (' + f2(p * BAR_PSI, 1) + ' psi)') +
+        rld('Flow per sprinkler', f2(q, 1), 'L/min', f2(q / 3.785411784, 1), 'gpm') + rld('Pressure per sprinkler', f2(p, 2), 'bar', f2(p * BAR_PSI, 1), 'psi') +
         rl('Sprinkler flow (design area)', fl(flow), '', 'big') + rl('Hose allowance', fl(h[10]), '') + rl('Total demand', fl(tot), '', 'big') +
-        (vol > 0 ? rl('Water storage (' + dur + ' min)', f2(vol, 1), 'm³ (' + f2(vol * 1000 / 3.785411784, 0) + ' US gal)', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
+        (vol > 0 ? rld('Water storage (' + dur + ' min)', f2(vol, 1), 'm³', f2(vol * 1000 / 3.785411784, 0), 'US gal', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
         (da < h[8] ? '<p class="hint">The floor is smaller than the design area, so the whole floor is used.</p>' : '');
     };
     draw();
@@ -4264,7 +4268,7 @@ const PLB = (function () {
       if (!out.length) { $('#pl-res').innerHTML = '<span class="hint">Enter the length of the pipes.</span>' + (bad ? '<p class="hint red">' + bad + '</p>' : ''); return; }
       const fq = x => si ? f2(x, 1) : f2(x / 3.785411784, 1), fp = x => si ? f2(x, 3) : f2(x * BAR_PSI, 2), fv = x => si ? f2(x, 2) : f2(x / FT, 2);
       const last = out[out.length - 1], hi = out.some(o => o.v > 6);
-      $('#pl-res').innerHTML = rl('Pressure needed at the end', fp(last.p), pu + (si ? ' (' + f2(last.p * BAR_PSI, 1) + ' psi)' : ' (' + f2(last.p, 3) + ' bar)'), 'big') + rl('Flow at the end', f2(Q, 0), 'L/min (' + f2(Q / 3.785411784, 0) + ' gpm)', 'big') +
+      $('#pl-res').innerHTML = rl('Pressure needed at the end', fp(last.p), pu + (si ? ' (' + f2(last.p * BAR_PSI, 1) + ' psi)' : ' (' + f2(last.p, 3) + ' bar)'), 'big') + rld('Flow at the end', f2(Q, 0), 'L/min', f2(Q / 3.785411784, 0), 'gpm', 'big') +
         tbl(['Pipe', 'Size', si ? 'L/min' : 'gpm', si ? 'm/s' : 'ft/s', 'Loss (' + pu + ')', 'End (' + pu + ')'], out.map(o => [o.i, o.name, fq(o.q), fv(o.v), fp(o.loss), fp(o.p)])) +
         (hi ? '<p class="hint red">Velocity is above 6 m/s (20 ft/s) in some pipes. Use a bigger pipe size.</p>' : '') + (bad ? '<p class="hint red">' + bad + '</p>' : '');
     };
@@ -4295,11 +4299,11 @@ const PLB = (function () {
       const H = (stm + frb * M_PER_BAR + prb * M_PER_BAR) * (1 + (mg > 0 ? mg / 100 : 0)), rg = FPUMPS.find(x => x * 3.785411784 >= tot - 1e-9), rq = rg ? rg * 3.785411784 : NaN;
       const shaft = 9.80665 * rq / 60000 * H / (ef / 100), motor = shaft * 1.15, std = MOTORS.find(m => m >= motor - 1e-9);
       const vol = dur > 0 ? tot * dur / 1000 : NaN, dm = dep > 0 ? (si ? dep : dep * FT) : NaN, fm = fb >= 0 ? (si ? fb : fb * FT) : 0, len = m => f2(si ? m : m / FT, 2) + (si ? ' m' : ' ft');
-      $('#pl-res').innerHTML = rl('Total demand', f2(tot, 0), 'L/min (' + f2(tot / 3.785411784, 0) + ' gpm)', 'big') +
-        (rg ? rl('Rated pump flow', f2(rq, 0), 'L/min (' + rg + ' gpm)', 'big') : '<div class="rl big"><span>Rated pump flow</span><span><b class="red">Above 5000 gpm</b></span></div>') +
-        rl('Total head', f2(H, 1), 'm (' + f2(H / FT, 1) + ' ft)', 'big') + rl('Pressure', f2(H / M_PER_BAR, 2), 'bar (' + f2(H / M_PER_BAR * BAR_PSI, 1) + ' psi)') +
-        (rg ? rl('Shaft power', f2(shaft, 1), 'kW') + rl('Motor power needed', f2(motor, 1), 'kW') + rl('Standard motor', std ? f2(std, std < 1 ? 2 : 1) : 'Above 250', std ? 'kW (' + f2(std * 1.34102, 1) + ' hp)' : '', 'big') : '') +
-        (vol > 0 ? rl('Tank volume (' + dur + ' min)', f2(vol, 1), 'm³ (' + f2(vol * 1000 / 3.785411784, 0) + ' US gal)', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
+      $('#pl-res').innerHTML = rld('Total demand', f2(tot, 0), 'L/min', f2(tot / 3.785411784, 0), 'gpm', 'big') +
+        (rg ? rld('Rated pump flow', f2(rq, 0), 'L/min', String(rg), 'gpm', 'big') : '<div class="rl big"><span>Rated pump flow</span><span><b class="red">Above 5000 gpm</b></span></div>') +
+        rld('Total head', f2(H, 1), 'm', f2(H / FT, 1), 'ft', 'big') + rld('Pressure', f2(H / M_PER_BAR, 2), 'bar', f2(H / M_PER_BAR * BAR_PSI, 1), 'psi') +
+        (rg ? rl('Shaft power', f2(shaft, 1), 'kW') + rl('Motor power needed', f2(motor, 1), 'kW') + (std ? rld('Standard motor', f2(std, std < 1 ? 2 : 1), 'kW', f2(std * 1.34102, 1), 'hp', 'big') : rl('Standard motor', 'Above 250', '', 'big')) : '') +
+        (vol > 0 ? rld('Tank volume (' + dur + ' min)', f2(vol, 1), 'm³', f2(vol * 1000 / 3.785411784, 0), 'US gal', 'big') : '<p class="hint red">Duration must be more than 0.</p>') +
         (vol > 0 && dm > 0 ? rl('Tank plan area', f2(si ? vol / dm : vol / dm / (FT * FT), 2), si ? 'm²' : 'ft²') + rl('Square tank size', len(Math.sqrt(vol / dm)), '') + rl('Overall height', len(dm + fm), '') : '') +
         '<p class="hint">At 150 % of the rated flow the pump must still give at least 65 % of the rated pressure.</p>';
     };
@@ -4311,7 +4315,12 @@ const PLB = (function () {
   const ct = (v, toIp) => { const x = n(v); return Number.isFinite(x) ? String(Number((toIp ? x * 9 / 5 + 32 : (x - 32) * 5 / 9).toPrecision(6))) : v; };
   const CONV = {
     wsfu: (a, b) => { P.wsfu.vmax = cv(P.wsfu.vmax, b ? 1 / FT : FT); P.wsfu.cont = cv(P.wsfu.cont, b ? 1 / GPM : GPM); },
-    dfu: (a, b) => { P.dfu.cont = cv(P.dfu.cont, b ? 1 / GPM : GPM); },
+    dfu: (a, b) => {
+      const k = P.dfu; k.cont = cv(k.cont, b ? 1 / GPM : GPM);
+      const KEY = { 2: '1/16', 3: '1/8', 4: '1/4', 5: '1/2' }, RATIO = { '1/16': 192, '1/8': 96, '1/4': 48, '1/2': 24 };
+      if (b) { const c = slopeCol(k.sl === 'c' ? n(k.slc) : +k.sl); if (c.col) k.slope = KEY[c.col]; }                    // Metric 1 : n becomes the table column that is used
+      else { const c = slopeCol(k.sl === 'c' ? n(k.slc) : +k.sl); if (!c.col || KEY[c.col] !== k.slope) { k.sl = 'c'; k.slc = String(RATIO[k.slope] || 96); } }   // the slope was changed in IP: keep it in Metric
+    },
     tank: (a, b) => { P.tank.lpu = cv(P.tank.lpu, b ? 1 / USG : USG); P.tank.depth = cv(P.tank.depth, b ? 1 / FT : FT); P.tank.free = cv(P.tank.free, b ? 1 / FT : FT); },
     pump: (a, b) => { const k = P.pump; k.flow = cv(k.flow, b ? 1 / GPM : GPM); k.stat = cv(k.stat, b ? 1 / FT : FT); k.fric = cv(k.fric, b ? 1 / FT : FT); k.press = cv(k.press, b ? BAR_PSI : 1 / BAR_PSI); },
     heater: (a, b) => { const k = P.heater; k.cold = ct(k.cold, b); k.hot = ct(k.hot, b); k.vol = cv(k.vol, b ? 1 / USG : USG); k.flow = cv(k.flow, b ? 1 / USG : USG); },
@@ -4386,8 +4395,8 @@ const PLB = (function () {
       const shr = n(d.shr), dt = n(d.dt) / (si ? 1 : 1.8), cdt = n(d.cdt) / (si ? 1 : 1.8);
       let h = rl('Cooling load', f2(kW, 1), 'kW', 'big') + rl('Cooling load', f2(kW / TR_KW, 1), 'TR', 'big') + rl('Cooling load', f2(kW * 3412.14, 0), 'Btu/h') +
         rl('Average per area', si ? f2(kW * 1000 / area, 0) : f2(kW * 1000 / area / BTUFT, 1), si ? 'W/m²' : 'Btu/h·ft²') + rl('Area per TR', si ? f2(area / (kW / TR_KW), 1) : f2(area / M2 / (kW / TR_KW), 0), si ? 'm²' : 'ft²');
-      if (shr > 0 && shr <= 1 && dt > 0) { const q = kW * shr / (1.2 * dt) * 1000; h += rl('Supply air', f2(q, 0), 'L/s (' + f2(q * LS_CFM, 0) + ' cfm)'); }
-      if (cdt > 0) { const q = kW / (4.186 * cdt); h += rl('Chilled water', f2(q, 2), 'L/s (' + f2(q / GPM, 1) + ' gpm)'); }
+      if (shr > 0 && shr <= 1 && dt > 0) { const q = kW * shr / (1.2 * dt) * 1000; h += rld('Supply air', f2(q, 0), 'L/s', f2(q * LS_CFM, 0), 'cfm'); }
+      if (cdt > 0) { const q = kW / (4.186 * cdt); h += rld('Chilled water', f2(q, 2), 'L/s', f2(q / GPM, 1), 'gpm'); }
       $('#pl-res').innerHTML = h + tbl(['Space', si ? 'm²' : 'ft²', si ? 'W/m²' : 'Btu/h·ft²', 'kW'], lines);
     };
     draw();
@@ -4428,9 +4437,9 @@ const PLB = (function () {
       const ez = n(d.ez) > 0 ? n(d.ez) : 1, ev = n(d.ev) > 0 ? n(d.ev) : 1;
       if (ev > 1.2) { $('#pl-res').innerHTML = '<p class="hint red">Ev is usually 0.6 to 1.</p>'; return; }
       const voz = vbz / ez, vot = voz / ev, sup = n(d.sup) * (si ? 1 : 1 / LS_CFM);
-      let h = rl('Breathing zone outdoor air (Vbz)', f2(vbz, 1), 'L/s') + rl('Zone outdoor air (Voz)', f2(voz, 1), 'L/s') +
-        rl('Outdoor air intake (Vot)', f2(vot, 1), 'L/s (' + f2(vot * LS_CFM, 0) + ' cfm)', 'big') + rl('Outdoor air intake', f2(vot * 3.6, 0), 'm³/h') +
-        (pp > 0 ? rl('Per person', f2(vot / pp, 1), 'L/s (' + f2(vot / pp * LS_CFM, 1) + ' cfm)') : '') + (aa > 0 ? rl('Per area', si ? f2(vot / aa, 2) : f2(vot / aa * LS_CFM / 10.7639, 3), si ? 'L/s·m²' : 'cfm/ft²') : '');
+      let h = rld('Breathing zone outdoor air (Vbz)', f2(vbz, 1), 'L/s', f2(vbz * LS_CFM, 0), 'cfm') + rld('Zone outdoor air (Voz)', f2(voz, 1), 'L/s', f2(voz * LS_CFM, 0), 'cfm') +
+        rld('Outdoor air intake (Vot)', f2(vot, 1), 'L/s', f2(vot * LS_CFM, 0), 'cfm', 'big') + (si ? rl('Outdoor air intake', f2(vot * 3.6, 0), 'm³/h') : '') +
+        (pp > 0 ? rld('Per person', f2(vot / pp, 1), 'L/s', f2(vot / pp * LS_CFM, 1), 'cfm') : '') + (aa > 0 ? rl('Per area', si ? f2(vot / aa, 2) : f2(vot / aa * LS_CFM / 10.7639, 3), si ? 'L/s·m²' : 'cfm/ft²') : '');
       if (sup > 0) h += rl('Outdoor air share of the supply air', f2(vot / sup * 100, 1), '%') + (vot > sup ? '<p class="hint red">The outdoor air is more than the supply air.</p>' : '');
       const z = n(d.alt) * (si ? 1 : FT) || 0, tc = x => si ? n(x) : (n(x) - 32) * 5 / 9;
       const oa = psy(tc(d.oaDb), 'wb', tc(d.oaWb), z), rm = psy(tc(d.rmDb), 'rh', n(d.rmRh), z);
@@ -5321,6 +5330,10 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['Fixed', 'Plumbing, Fire Fighting, HVAC: in IP mode the results now show the IP unit first (gpm, psi, ft, US gal, cfm) with the Metric value in brackets'],
+    ['Fixed', 'Drain Pipe Size: the slope now follows the Metric / IP button, so the same load gives the same pipe size in both']
+  ] },
+  { v: 'v2026.11.26.7', date: '26 Nov 2026', items: [
     ['New', 'Favourites: tap the star on a tool tile or at the top of a tool, and the tool also shows under Favourites on the Home page']
   ] },
   { v: 'v2026.11.26.6', date: '26 Nov 2026', items: [
