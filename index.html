@@ -273,6 +273,8 @@ table.auth-table .shape-ci{display:inline-block;width:10px;height:10px;backgroun
 .x2db input.num::-webkit-inner-spin-button{display:none}
 .plr{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:center;margin:7px 0}
 .plr select{width:100%;min-width:0;font:inherit;font-size:15px;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.plr3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.plr3 select{grid-column:1/-1}
 .plr input{width:100%;min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px;text-align:right}
 .plrad{margin:8px 0}.plrad .lbl{display:block;font-weight:600;font-size:15px;margin-bottom:6px}
 .plseg{display:flex;gap:6px;flex-wrap:wrap}
@@ -817,7 +819,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.4';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.5';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -3867,6 +3869,10 @@ const PLB = (function () {
     septic: { method: 'ret', p: '', lpp: '150', ret: '1', sludge: '40', years: '1', depth: '1.5', free: '0.3' },
     heads: { haz: 'ord1', area: '', cover: '', k: '5.6', dur: '60' },
     hyd: { sch: '40', c: '0', k: '5.6', p0: '', n0: '1', rows: [{ s: '0', l: '', e: '', h: '0', n: '1' }, { s: '3', l: '', e: '', h: '0', n: '0' }] },
+    cload: { rows: [{ t: '0', a: '', w: '' }, { t: '3', a: '', w: '' }], div: '100', margin: '10', shr: '0.8', dt: '10', cdt: '5.5' },
+    fresh: { rows: [{ t: '0', p: '', a: '' }], ez: '1', ev: '1', sup: '', oaDb: '46', oaWb: '30', rmDb: '24', rmRh: '50', alt: '0' },
+    psy: { mode: 'rh', db: '25', v2: '50', alt: '0', flow: '', db2: '', rh2: '' },
+    affin: { type: 'fan', fq: '', fp: '', fk: '', fn: '', pq: '', ph: '', pk: '', pn: '', by: 'n', n2: '', n2p: '', q2f: '', q2p: '', d1: '', d2: '' },
     fpump: { flow: '', hose: '', dur: '60', stat: '', fric: '', press: '', margin: '5', eff: '65', depth: '3', free: '0.3' }
   });
   const P = S.plb = DEF();
@@ -4299,11 +4305,195 @@ const PLB = (function () {
     heads: (a, b) => { const k = P.heads; k.area = cv(k.area, b ? 1 / M2 : M2); k.cover = cv(k.cover, b ? 1 / M2 : M2); },
     hyd: (a, b) => { const k = P.hyd; k.p0 = cv(k.p0, b ? BAR_PSI : 1 / BAR_PSI); k.rows.forEach(r => { ['l', 'e', 'h'].forEach(f => { r[f] = cv(r[f], b ? 1 / FT : FT); }); }); },
     fpump: (a, b) => { const k = P.fpump; k.flow = cv(k.flow, b ? 1 / USG : USG); k.hose = cv(k.hose, b ? 1 / USG : USG); k.stat = cv(k.stat, b ? 1 / FT : FT); k.fric = cv(k.fric, b ? BAR_PSI : 1 / BAR_PSI); k.press = cv(k.press, b ? BAR_PSI : 1 / BAR_PSI); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); },
+    cload: (a, b) => { const k = P.cload; k.rows.forEach(r => { r.a = cv(r.a, b ? 1 / M2 : M2); r.w = cv(r.w, b ? 1 / BTUFT : BTUFT); }); k.dt = cv(k.dt, b ? 1.8 : 1 / 1.8); k.cdt = cv(k.cdt, b ? 1.8 : 1 / 1.8); },
+    fresh: (a, b) => { const k = P.fresh; k.rows.forEach(r => { r.a = cv(r.a, b ? 1 / M2 : M2); }); k.sup = cv(k.sup, b ? LS_CFM : 1 / LS_CFM); ['oaDb', 'oaWb', 'rmDb'].forEach(f => { k[f] = ct(k[f], b); }); k.alt = cv(k.alt, b ? 1 / FT : FT); },
+    psy: (a, b) => { const k = P.psy; k.db = ct(k.db, b); if (k.mode !== 'rh') k.v2 = ct(k.v2, b); k.db2 = ct(k.db2, b); k.alt = cv(k.alt, b ? 1 / FT : FT); k.flow = cv(k.flow, b ? LS_CFM : 1 / LS_CFM); },
+    affin: (a, b) => { const k = P.affin; ['fq', 'q2f'].forEach(f => { k[f] = cv(k[f], b ? LS_CFM : 1 / LS_CFM); }); ['pq', 'q2p'].forEach(f => { k[f] = cv(k[f], b ? 1 / GPM : GPM); }); k.fp = cv(k.fp, b ? 1 / PA_INWG : PA_INWG); k.ph = cv(k.ph, b ? 1 / FT : FT); ['d1', 'd2'].forEach(f => { k[f] = cv(k[f], b ? 1 / 25.4 : 25.4); }); },
     septic: (a, b) => { const k = P.septic; k.lpp = cv(k.lpp, b ? 1 / USG : USG); k.sludge = cv(k.sludge, b ? 1 / USG : USG); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); }
   };
   function convert(from, to) { if (from === to) return; Object.keys(CONV).forEach(k => CONV[k](from, to === 'ip')); }
   if (!hadSaved && S.units === 'ip') convert('si', 'ip');
-  const MOUNT = { heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
+  /* ===== HVAC tools: cooling load, fresh air, psychrometrics, affinity laws ===== */
+  const BTUFT = 3.15459, LS_CFM = 2.11888, PA_INWG = 249.0889, TR_KW = 3.51685;
+  const ctF = c => c * 9 / 5 + 32;
+  const tUnit = (c, si) => si ? f2(c, 1) : f2(ctF(c), 1);
+  const tSec = (c, si) => si ? '°C (' + f2(ctF(c), 1) + ' °F)' : '°F (' + f2(c, 1) + ' °C)';
+  const pws = T => { const K = T + 273.15; return T >= 0
+    ? Math.exp(-5.8002206e3 / K + 1.3914993 - 4.8640239e-2 * K + 4.1764768e-5 * K * K - 1.4452093e-8 * K * K * K + 6.5459673 * Math.log(K))
+    : Math.exp(-5.6745359e3 / K + 6.3925247 - 9.6778430e-3 * K + 6.2215701e-7 * K * K + 2.0747825e-9 * K * K * K - 9.4840240e-13 * K * K * K * K + 4.1635019 * Math.log(K)); };
+  const atmP = z => 101325 * Math.pow(1 - 2.25577e-5 * (z || 0), 5.2559);
+  const dewOf = pw => { if (!(pw > 0)) return NaN; let lo = -60, hi = 100; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (pws(m) < pw) lo = m; else hi = m; } return (lo + hi) / 2; };
+  const wOfWb = (db, wb, p) => { const ws = 0.621945 * pws(wb) / (p - pws(wb)); return ((2501 - 2.326 * wb) * ws - 1.006 * (db - wb)) / (2501 + 1.86 * db - 4.186 * wb); };
+  /* state of moist air from the dry bulb and one more property: mode rh (%), wb (°C) or dp (°C); z is the height above sea level in m */
+  function psy(db, mode, v, z) {
+    if (!(db > -40 && db < 80) || !Number.isFinite(v)) return null;
+    const p = atmP(z); let pw;
+    if (mode === 'rh') { if (!(v >= 0 && v <= 100)) return null; pw = v / 100 * pws(db); }
+    else if (mode === 'dp') { if (!(v > -60 && v <= db)) return null; pw = pws(v); }
+    else { if (!(v > -40 && v <= db)) return null; const W0 = wOfWb(db, v, p); if (!(W0 >= 0)) return null; pw = p * W0 / (0.621945 + W0); }
+    if (!(pw < p)) return null;
+    const W = 0.621945 * pw / (p - pw), rh = pw / pws(db) * 100; let wb = v;
+    if (mode !== 'wb') { let lo = Math.max(-40, dewOf(pw) || -40), hi = db; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (wOfWb(db, m, p) < W) lo = m; else hi = m; } wb = (lo + hi) / 2; }
+    const vol = 0.287042 * (db + 273.15) * (1 + 1.607858 * W) / (p / 1000);
+    return { db: db, wb: wb, dp: mode === 'dp' ? v : dewOf(pw), rh: rh, W: W, h: 1.006 * db + W * (2501 + 1.86 * db), v: vol, rho: (1 + W) / vol, pw: pw, p: p };
+  }
+
+  /* ----- cooling load estimate: published square foot per ton rules of thumb, in W/m² ----- */
+  const CLD = [['Office', 110], ['Bank', 170], ['Apartment or villa', 100], ['Hotel guest room', 150], ['Restaurant dining', 250], ['Bar or cocktail lounge', 220], ['Shop or retail', 150],
+    ['School classroom', 150], ['Auditorium, theatre or cinema', 350], ['Place of worship', 300], ['Computer or server room', 500], ['Other (type the value)', 0]];
+  function cload(view) {
+    const d = P.cload, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Spaces', d.rows.map((r, i) => '<div class="plr plr3"><select data-r="' + i + '" data-f="t" aria-label="Space ' + (i + 1) + '">' +
+          CLD.map((x, k) => '<option value="' + k + '"' + (String(k) === String(r.t) ? ' selected' : '') + '>' + esc(x[0]) + ' (' + (x[1] ? (si ? x[1] + ' W/m²' : f2(x[1] / BTUFT, 0) + ' Btu/h·ft²') : 'custom') + ')</option>').join('') + '</select>' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="a" value="' + esc(r.a) + '" placeholder="' + (si ? 'm²' : 'ft²') + '" aria-label="Space ' + (i + 1) + ' area">' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="w" value="' + esc(r.w) + '" placeholder="' + (si ? 'W/m²' : 'Btu/h·ft²') + '" aria-label="Space ' + (i + 1) + ' load per area"></div>').join('') + btns() +
+          '<p class="hint">Area first, then a load per area only if you want to replace the typical value of the space.</p>') +
+        card('Allowances and air', num('Diversity', 'div', '%', d.div, 'Use less than 100 for a large building where not every space peaks together') + num('Safety margin', 'margin', '%', d.margin) +
+          num('Sensible heat ratio', 'shr', '', d.shr, 'Typical comfort cooling is 0.7 to 0.9') + num('Supply air temperature difference', 'dt', si ? 'K' : '°F', d.dt) + num('Chilled water temperature difference', 'cdt', si ? 'K' : '°F', d.cdt)) +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Space load = area × load per area. The typical values come from the published square foot per ton rules of thumb (for example 340 ft² per ton for an office is about 110 W/m²).<br>Total = sum of the spaces × diversity × (1 + margin). 1 TR = 3.517 kW = 12,000 Btu/h.<br>Supply air (L/s) = load × sensible heat ratio ÷ (1.2 × supply ΔT) × 1000.<br>Chilled water (L/s) = load ÷ (4.186 × water ΔT).<br>This is a quick estimate for budget and early design. A proper cooling load calculation (for example with the ASHRAE method) is needed for the final selection.') +
+        '</div>';
+      wire(view, 'cload', draw, calc, last => ({ t: last ? last.t : '0', a: '', w: '' }));
+    };
+    const calc = () => {
+      let tot = 0, area = 0; const lines = [];
+      d.rows.forEach((r, i) => {
+        const a = n(r.a) * (si ? 1 : M2), ov = n(r.w) * (si ? 1 : BTUFT), w = ov > 0 ? ov : CLD[+r.t] ? CLD[+r.t][1] : 0;
+        if (a > 0 && w > 0) { tot += a * w; area += a; lines.push([esc(CLD[+r.t][0]), si ? f2(a, 0) : f2(a / M2, 0), si ? f2(w, 0) : f2(w / BTUFT, 1), f2(a * w / 1000, 1)]); }
+      });
+      if (!(tot > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the area of at least one space.</span>'; return; }
+      const dv = n(d.div) > 0 ? n(d.div) / 100 : 1, mg = n(d.margin) > 0 ? n(d.margin) / 100 : 0, kW = tot / 1000 * dv * (1 + mg);
+      const shr = n(d.shr), dt = n(d.dt) / (si ? 1 : 1.8), cdt = n(d.cdt) / (si ? 1 : 1.8);
+      let h = rl('Cooling load', f2(kW, 1), 'kW', 'big') + rl('Cooling load', f2(kW / TR_KW, 1), 'TR', 'big') + rl('Cooling load', f2(kW * 3412.14, 0), 'Btu/h') +
+        rl('Average per area', si ? f2(kW * 1000 / area, 0) : f2(kW * 1000 / area / BTUFT, 1), si ? 'W/m²' : 'Btu/h·ft²') + rl('Area per TR', si ? f2(area / (kW / TR_KW), 1) : f2(area / M2 / (kW / TR_KW), 0), si ? 'm²' : 'ft²');
+      if (shr > 0 && shr <= 1 && dt > 0) { const q = kW * shr / (1.2 * dt) * 1000; h += rl('Supply air', f2(q, 0), 'L/s (' + f2(q * LS_CFM, 0) + ' cfm)'); }
+      if (cdt > 0) { const q = kW / (4.186 * cdt); h += rl('Chilled water', f2(q, 2), 'L/s (' + f2(q / GPM, 1) + ' gpm)'); }
+      $('#pl-res').innerHTML = h + tbl(['Space', si ? 'm²' : 'ft²', si ? 'W/m²' : 'Btu/h·ft²', 'kW'], lines);
+    };
+    draw();
+  }
+
+  /* ----- fresh air, ASHRAE 62.1 Table 6-1 (Rp in L/s per person, Ra in L/s per m²) ----- */
+  const FRESH = [['Office space', 2.5, 0.3], ['Reception area', 2.5, 0.3], ['Break room', 2.5, 0.6], ['Main entry lobby', 2.5, 0.3], ['Conference or meeting room', 2.5, 0.3], ['Classroom (age 9 plus)', 5, 0.6],
+    ['Lecture classroom', 3.8, 0.3], ['Library', 2.5, 0.6], ['Museum or gallery', 3.8, 0.3], ['Retail sales area', 3.8, 0.6], ['Supermarket', 3.8, 0.3], ['Mall common area', 3.8, 0.3],
+    ['Restaurant dining room', 3.8, 0.9], ['Cafeteria or fast food dining', 3.8, 0.9], ['Bar or cocktail lounge', 3.8, 0.9], ['Kitchen (cooking)', 3.8, 0.6], ['Hotel bedroom or living room', 2.5, 0.3],
+    ['Hotel lobby', 3.8, 0.3], ['Multipurpose assembly', 2.5, 0.3], ['Auditorium seating area', 2.5, 0.3], ['Place of worship', 2.5, 0.3], ['Health club or aerobics room', 10, 0.3],
+    ['Weight room', 10, 0.3], ['Gym or sports arena (play area)', 10, 0.9], ['Corridor', 0, 0.3], ['Occupiable storage room', 2.5, 0.3]];
+  const EZ = [['1', '1.0  Ceiling supply of cool air'], ['0.8', '0.8  Ceiling supply of warm air (8 °C or more above room)'], ['0.7', '0.7  Floor supply of warm air, ceiling return'], ['1.2', '1.2  Displacement ventilation']];
+  function fresh(view) {
+    const d = P.fresh, si = siU();
+    const draw = () => {
+      view.innerHTML = '<div class="tool-x">' +
+        card('Spaces', d.rows.map((r, i) => '<div class="plr plr3"><select data-r="' + i + '" data-f="t" aria-label="Space ' + (i + 1) + '">' +
+          FRESH.map((x, k) => '<option value="' + k + '"' + (String(k) === String(r.t) ? ' selected' : '') + '>' + esc(x[0]) + '</option>').join('') + '</select>' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="p" value="' + esc(r.p) + '" placeholder="People" aria-label="Space ' + (i + 1) + ' people">' +
+          '<input type="number" step="any" min="0" inputmode="decimal" class="num" data-r="' + i + '" data-f="a" value="' + esc(r.a) + '" placeholder="' + (si ? 'm²' : 'ft²') + '" aria-label="Space ' + (i + 1) + ' area"></div>').join('') + btns() +
+          '<p class="hint">Type the number of people and the floor area of each space.</p>') +
+        card('System', pick('Air distribution (Ez, Table 6-4)', 'ez', EZ, d.ez) + num('System ventilation efficiency Ev', 'ev', '', d.ev, 'Keep 1 for a single zone. For a multi-zone system take Ev from the standard (Appendix A)') +
+          num('Supply air of the system (optional)', 'sup', si ? 'L/s' : 'cfm', d.sup, 'To get the outdoor air percentage')) +
+        card('Outdoor air load (optional)', num('Outdoor dry bulb', 'oaDb', si ? '°C' : '°F', d.oaDb) + num('Outdoor wet bulb', 'oaWb', si ? '°C' : '°F', d.oaWb) + num('Room dry bulb', 'rmDb', si ? '°C' : '°F', d.rmDb) + num('Room relative humidity', 'rmRh', '%', d.rmRh) + num('Height above sea level', 'alt', si ? 'm' : 'ft', d.alt)) +
+        '<section class="card res" id="pl-res"></section>' +
+        more('Ventilation rates (ASHRAE 62.1 Table 6-1)', tbl(['Space', 'Rp per person', 'Ra per area'], FRESH.map(x => [esc(x[0]), si ? f2(x[1], 1) + ' L/s' : f2(x[1] * LS_CFM, 1) + ' cfm', si ? f2(x[2], 1) + ' L/s·m²' : f2(x[2] * LS_CFM / 10.7639, 2) + ' cfm/ft²']))) +
+        formula('Breathing zone outdoor air Vbz = Rp × people + Ra × area.<br>Zone outdoor air Voz = Vbz ÷ Ez (zone air distribution effectiveness).<br>Outdoor air intake Vot = Voz ÷ Ev. For one zone Ev = 1; for a multi-zone system it depends on the zone ratios, so check it in the standard.<br>Outdoor air load = air mass flow × (outdoor enthalpy − room enthalpy). Moist air properties follow the ASHRAE formulas.<br>The rates are the minimum of ASHRAE 62.1. Check the local authority requirement and the room cooling load as well.') +
+        '</div>';
+      wire(view, 'fresh', draw, calc, last => ({ t: last ? last.t : '0', p: '', a: '' }));
+    };
+    const calc = () => {
+      let vbz = 0, pp = 0, aa = 0; const lines = [];
+      d.rows.forEach(r => {
+        const x = FRESH[+r.t], p = n(r.p) > 0 ? n(r.p) : 0, a = (n(r.a) > 0 ? n(r.a) : 0) * (si ? 1 : M2);
+        if (x && (p > 0 || a > 0)) { const v = x[1] * p + x[2] * a; vbz += v; pp += p; aa += a; lines.push([esc(x[0]), f2(p, 0), si ? f2(a, 0) : f2(a / M2, 0), f2(v, 1), f2(v * LS_CFM, 0)]); }
+      });
+      if (!(vbz > 0)) { $('#pl-res').innerHTML = '<span class="hint">Enter the people and the area of at least one space.</span>'; return; }
+      const ez = n(d.ez) > 0 ? n(d.ez) : 1, ev = n(d.ev) > 0 ? n(d.ev) : 1;
+      if (ev > 1.2) { $('#pl-res').innerHTML = '<p class="hint red">Ev is usually 0.6 to 1.</p>'; return; }
+      const voz = vbz / ez, vot = voz / ev, sup = n(d.sup) * (si ? 1 : 1 / LS_CFM);
+      let h = rl('Breathing zone outdoor air (Vbz)', f2(vbz, 1), 'L/s') + rl('Zone outdoor air (Voz)', f2(voz, 1), 'L/s') +
+        rl('Outdoor air intake (Vot)', f2(vot, 1), 'L/s (' + f2(vot * LS_CFM, 0) + ' cfm)', 'big') + rl('Outdoor air intake', f2(vot * 3.6, 0), 'm³/h') +
+        (pp > 0 ? rl('Per person', f2(vot / pp, 1), 'L/s (' + f2(vot / pp * LS_CFM, 1) + ' cfm)') : '') + (aa > 0 ? rl('Per area', si ? f2(vot / aa, 2) : f2(vot / aa * LS_CFM / 10.7639, 3), si ? 'L/s·m²' : 'cfm/ft²') : '');
+      if (sup > 0) h += rl('Outdoor air share of the supply air', f2(vot / sup * 100, 1), '%') + (vot > sup ? '<p class="hint red">The outdoor air is more than the supply air.</p>' : '');
+      const z = n(d.alt) * (si ? 1 : FT) || 0, tc = x => si ? n(x) : (n(x) - 32) * 5 / 9;
+      const oa = psy(tc(d.oaDb), 'wb', tc(d.oaWb), z), rm = psy(tc(d.rmDb), 'rh', n(d.rmRh), z);
+      if (oa && rm) {
+        const m = vot / 1000 / oa.v, tot = m * (oa.h - rm.h), sen = m * (1.006 + 1.86 * oa.W) * (oa.db - rm.db), lat = tot - sen;
+        if (tot > 0) h += rl('Outdoor air total cooling load', f2(tot, 1), 'kW (' + f2(tot / TR_KW, 1) + ' TR)', 'big') + rl('Sensible', f2(sen, 1), 'kW') + rl('Latent', f2(lat, 1), 'kW');
+        else h += '<p class="hint">The outdoor air is not warmer than the room air in enthalpy, so there is no cooling load.</p>';
+      }
+      $('#pl-res').innerHTML = h + tbl(['Space', 'People', si ? 'm²' : 'ft²', 'Vbz L/s', 'Vbz cfm'], lines);
+    };
+    draw();
+  }
+
+  /* ----- psychrometric calculator ----- */
+  function psyTool(view) {
+    const d = P.psy, si = siU();
+    const draw = () => {
+      const sec = d.mode === 'rh' ? ['Relative humidity', '%'] : d.mode === 'wb' ? ['Wet bulb', si ? '°C' : '°F'] : ['Dew point', si ? '°C' : '°F'];
+      view.innerHTML = '<div class="tool-x">' +
+        card('State of the air', rad('Known with the dry bulb', 'mode', [['rh', 'Relative humidity'], ['wb', 'Wet bulb'], ['dp', 'Dew point']], d.mode) + num('Dry bulb', 'db', si ? '°C' : '°F', d.db) + num(sec[0], 'v2', sec[1], d.v2) + num('Height above sea level', 'alt', si ? 'm' : 'ft', d.alt)) +
+        '<section class="card res" id="pl-res"></section>' +
+        card('Heat load between two states (optional)', '<p class="hint">Find the cooling or heating load of an air flow that goes from the state above to a second state, for example across a coil.</p>' +
+          num('Air flow', 'flow', si ? 'L/s' : 'cfm', d.flow) + num('Second state dry bulb', 'db2', si ? '°C' : '°F', d.db2) + num('Second state relative humidity', 'rh2', '%', d.rh2) + '<div id="pl-res2"></div>') +
+        formula('Saturation pressure follows the Hyland and Wexler equations. Humidity ratio W = 0.62198 × pw ÷ (p − pw).<br>Enthalpy h = 1.006 × t + W × (2501 + 1.86 × t) in kJ/kg of dry air.<br>Specific volume v = 0.287042 × T × (1 + 1.6078 × W) ÷ p, with p from the height above sea level.<br>Wet bulb is found by iteration. Sensible load = mass flow × (1.006 + 1.86 × W) × temperature change; latent load = total − sensible.') +
+        '</div>';
+      wire(view, 'psy', draw, calc);
+    };
+    const tc = x => si ? n(x) : (n(x) - 32) * 5 / 9;
+    const calc = () => {
+      const z = (n(d.alt) || 0) * (si ? 1 : FT), a = psy(tc(d.db), d.mode, d.mode === 'rh' ? n(d.v2) : tc(d.v2), z);
+      if (!a) { $('#pl-res').innerHTML = '<span class="hint">Enter the dry bulb and the second value. The wet bulb and dew point cannot be higher than the dry bulb.</span>'; $('#pl-res2').innerHTML = ''; return; }
+      const T = (l, c, big) => rl(l, tUnit(c, si), tSec(c, si), big);
+      $('#pl-res').innerHTML = T('Dry bulb', a.db) + T('Wet bulb', a.wb) + T('Dew point', a.dp) + rl('Relative humidity', f2(a.rh, 1), '%', 'big') + rl('Humidity ratio', f2(a.W * 1000, 2), 'g/kg (' + f2(a.W * 7000, 1) + ' gr/lb)', 'big') +
+        rl('Enthalpy', f2(a.h, 2), 'kJ/kg (' + f2(a.h * 0.429923, 2) + ' Btu/lb)', 'big') + rl('Specific volume', f2(a.v, 4), 'm³/kg (' + f2(a.v * 16.0185, 3) + ' ft³/lb)') + rl('Density', f2(a.rho, 3), 'kg/m³ (' + f2(a.rho * 0.062428, 4) + ' lb/ft³)') +
+        rl('Vapour pressure', f2(a.pw / 1000, 3), 'kPa') + rl('Atmospheric pressure', f2(a.p / 1000, 2), 'kPa');
+      const q = n(d.flow) * (si ? 1 : 1 / LS_CFM), b = psy(tc(d.db2), 'rh', n(d.rh2), z);
+      if (!(q > 0) || !b) { $('#pl-res2').innerHTML = ''; return; }
+      const m = q / 1000 / a.v, tot = m * (b.h - a.h), sen = m * (1.006 + 1.86 * a.W) * (b.db - a.db), lat = tot - sen, cool = tot < 0, s = cool ? -1 : 1;
+      $('#pl-res2').innerHTML = rl(cool ? 'Cooling load' : 'Heating load', f2(s * tot, 2), 'kW (' + f2(s * tot / TR_KW, 2) + ' TR)', 'big') + rl('Sensible', f2(s * sen, 2), 'kW') + rl('Latent', f2(s * lat, 2), 'kW') + (tot !== 0 ? rl('Sensible heat ratio', f2(sen / tot, 2), '') : '') +
+        rl('Water condensed', f2(Math.max(0, (a.W - b.W) * m * 3600), 1), 'kg/h') + rl('Second state wet bulb', tUnit(b.wb, si), tSec(b.wb, si)) + rl('Second state humidity ratio', f2(b.W * 1000, 2), 'g/kg');
+    };
+    draw();
+  }
+
+  /* ----- fan and pump affinity laws ----- */
+  function affin(view) {
+    const d = P.affin, si = siU(), fan = d.type === 'fan';
+    const draw = () => {
+      const k = fan ? { q: 'fq', p: 'fp', k: 'fk', n: 'fn', q2: 'q2f' } : { q: 'pq', p: 'ph', k: 'pk', n: 'pn', q2: 'q2p' };
+      const qu = fan ? (si ? 'L/s' : 'cfm') : (si ? 'L/s' : 'gpm'), pu = fan ? (si ? 'Pa' : 'in.wg') : (si ? 'm' : 'ft');
+      view.innerHTML = '<div class="tool-x">' +
+        card('Machine', rad('Type', 'type', [['fan', 'Fan'], ['pump', 'Pump']], d.type)) +
+        card('Duty point now', num('Flow', k.q, qu, d[k.q]) + num(fan ? 'Pressure' : 'Head', k.p, pu, d[k.p]) + num('Power (optional)', k.k, 'kW', d[k.k]) + num('Speed (optional)', k.n, 'rpm', d[k.n])) +
+        card('What changes', rad('Change by', 'by', [['n', 'Speed'], ['q', 'Flow'], ['d', 'Diameter']], d.by) + (d.by === 'n' ? num('New speed', 'n2', 'rpm', d.n2, 'Or type the speed as a percentage of the present speed in the next box') + num('New speed in percent', 'n2p', '%', d.n2p) :
+          d.by === 'q' ? num('New flow', k.q2, qu, d[k.q2]) : num('Present impeller diameter', 'd1', si ? 'mm' : 'in', d.d1) + num('New impeller diameter', 'd2', si ? 'mm' : 'in', d.d2, 'Same speed. Trimming is reliable up to about 20 %'))) +
+        '<section class="card res" id="pl-res"></section>' +
+        formula('Flow changes with speed (or diameter): Q2 = Q1 × (N2 ÷ N1).<br>Pressure or head changes with the square: P2 = P1 × (N2 ÷ N1)².<br>Power changes with the cube: kW2 = kW1 × (N2 ÷ N1)³.<br>The laws are for the same machine and the same system curve (the same fluid density). A fan in air of a different density also changes its pressure and power in proportion to the density.') +
+        '</div>';
+      wire(view, 'affin', draw, calc);
+    };
+    const calc = () => {
+      const f = fan ? { q: n(d.fq), p: n(d.fp), kw: n(d.fk), n: n(d.fn), q2: n(d.q2f) } : { q: n(d.pq), p: n(d.ph), kw: n(d.pk), n: n(d.pn), q2: n(d.q2p) };
+      let r = NaN, how = '';
+      if (d.by === 'n') { if (n(d.n2p) > 0) r = n(d.n2p) / 100; else if (n(d.n2) > 0 && f.n > 0) r = n(d.n2) / f.n; how = 'speed'; }
+      else if (d.by === 'q') { if (f.q2 > 0 && f.q > 0) r = f.q2 / f.q; how = 'flow'; }
+      else { if (n(d.d1) > 0 && n(d.d2) > 0) r = n(d.d2) / n(d.d1); how = 'diameter'; }
+      if (!(r > 0)) { $('#pl-res').innerHTML = '<span class="hint">' + (d.by === 'n' ? 'Enter the new speed (with the present speed) or the percentage.' : d.by === 'q' ? 'Enter the present flow and the new flow.' : 'Enter the two diameters.') + '</span>'; return; }
+      const row = (l, a, b, fm, u) => Number.isFinite(a) && a > 0 ? [l, f2(a, fm) + ' ' + u, f2(b, fm) + ' ' + u] : null;
+      const qu = fan ? (si ? 'L/s' : 'cfm') : (si ? 'L/s' : 'gpm'), pu = fan ? (si ? 'Pa' : 'in.wg') : (si ? 'm' : 'ft');
+      const rows = [row('Flow', f.q, f.q * r, si ? 1 : 0, qu), row(fan ? 'Pressure' : 'Head', f.p, f.p * r * r, si ? 1 : 2, pu), row('Power', f.kw, f.kw * r * r * r, 2, 'kW'), row('Power', f.kw * 1.34102, f.kw * r * r * r * 1.34102, 2, 'hp'),
+        d.by === 'd' ? null : row('Speed', f.n, f.n * r, 0, 'rpm')].filter(Boolean);
+      let h = rl('Ratio to the present duty', f2(r * 100, 1), '%', 'big') + rl('Flow', '× ' + f2(r, 3), '') + rl(fan ? 'Pressure' : 'Head', '× ' + f2(r * r, 3), '') + rl('Power', '× ' + f2(r * r * r, 3), '', 'big') + rl('Power saving', f2((1 - r * r * r) * 100, 1), '%');
+      if (rows.length) h += tbl(['', 'Now', 'New'], rows);
+      if (r > 1.2) h += '<p class="hint red">The new duty is more than 120 % of the present one. Check the maximum speed of the machine and the motor power.</p>';
+      if (d.by === 'd' && r < 0.8) h += '<p class="hint red">A trim of more than 20 % is outside the usual range of the affinity laws.</p>';
+      $('#pl-res').innerHTML = h;
+    };
+    draw();
+  }
+
+  const MOUNT = { cload: cload, fresh: fresh, psy: psyTool, affin: affin, heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { P[id] = d[id]; if (S.units === 'ip' && CONV[id]) CONV[id]('si', true); save(); } }
   return { mount: mount, clear: clear, convert: convert };
@@ -4349,7 +4539,11 @@ const CATEGORIES = [
       { id: 'hv-rebal', label: 'Flow Rebalance', icon: svg('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'), actions: ACTIONS, printTitle: 'Flow rebalance', mount: X2.mount('rebal'), onClear: () => { X2.clear('rebal'); render(); }, refresh: () => render() },
       { id: 'hv-airbal', label: 'Air Balancing Report', icon: svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8 11h8M8 15h5"/>'), actions: ['clear', 'print', 'excel'], printTitle: 'Air Balancing Report',
         onExcel: () => { AB.excel(S.mode); }, onClear: () => { AB.clear(S.mode); render(); }, confirmClear: () => AB.hasData(S.mode),
-        modes: [ { id: 'round', label: 'Round', mount: AB.mount('round') }, { id: 'rect', label: 'Rectangular', mount: AB.mount('rect') } ] } ]) },
+        modes: [ { id: 'round', label: 'Round', mount: AB.mount('round') }, { id: 'rect', label: 'Rectangular', mount: AB.mount('rect') } ] },
+      { id: 'hv-cload', label: 'Cooling Load Estimate', icon: svg('<path d="M12 2v20M5 6l14 12M19 6L5 18"/><circle cx="12" cy="12" r="2"/>'), actions: ACTIONS, printTitle: 'Cooling load estimate', mount: PLB.mount('cload'), onClear: () => { PLB.clear('cload'); render(); }, refresh: () => render() },
+      { id: 'hv-fresh', label: 'Fresh Air (ASHRAE 62.1)', icon: svg('<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/>'), actions: ACTIONS, printTitle: 'Fresh air ventilation', mount: PLB.mount('fresh'), onClear: () => { PLB.clear('fresh'); render(); }, refresh: () => render() },
+      { id: 'hv-psy', label: 'Psychrometric Calculator', icon: svg('<path d="M3 20h18M3 20V5M6 17c4 0 9-3 12-11"/><path d="M6 13c4 0 7-2 10-8" stroke-dasharray="2 2"/>'), actions: ACTIONS, printTitle: 'Psychrometric calculator', mount: PLB.mount('psy'), onClear: () => { PLB.clear('psy'); render(); }, refresh: () => render() },
+      { id: 'hv-affin', label: 'Fan & Pump Laws', icon: svg('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-6 4-6 1 3-1 5-4 6zM14 12c4 0 6 1 6 4-3 1-5-1-6-4zM12 14c0 4-1 6-4 6-1-3 1-5 4-6zM10 12c-4 0-6-1-6-4 3-1 5 1 6 4z"/>'), actions: ACTIONS, printTitle: 'Fan and pump affinity laws', mount: PLB.mount('affin'), onClear: () => { PLB.clear('affin'); render(); }, refresh: () => render() } ]) },
   { id: 'plumbing', label: 'Plumbing', color: '#1fa0e0', icon: ICON.plumbing, min: 4, tools: [
       { id: 'pipe-sizer', label: 'Pipe Sizer', icon: ICON.pipe, actions: ACTIONS, printTitle: 'Pipe sizing',
         mount: PIPE.mount, onUnits: (from, to) => PIPE.convert(from, to), onClear: () => PIPE.clear(), refresh: () => render() },
@@ -4420,6 +4614,7 @@ const SEARCH = (function () {
     'hv-airbal': 'air balancing balance report tab testing terminal diffuser grille measured design flow velocity round rectangular excel',
     'pipe-sizer': 'pipe size velocity friction head loss water', 'pipe-slope': 'manhole schedule drainage invert level il slope cover', 'rw-calci': 'rain water rwo outlet ipc storm',
     'chw-calci': 'chilled water chw pipe gpm', 'ff-spk': 'sprinkler fire fighting pipe',
+    'hv-cload': 'cooling load estimate tr ton refrigeration w/m2 sq ft per ton capacity chiller air conditioning rule of thumb', 'hv-fresh': 'fresh air outdoor air ventilation ashrae 62.1 rp ra vbz vot ez ev oa load', 'hv-psy': 'psychrometric psychrometrics wet bulb dry bulb dew point humidity ratio enthalpy rh coil sensible latent', 'hv-affin': 'fan law pump law affinity speed rpm vfd impeller trim flow pressure head power cube',
     'pl-wsfu': 'water supply fixture unit wsfu hunter curve gpm flush valve flush tank domestic cold hot pipe size ipc', 'pl-dfu': 'drain drainage fixture unit dfu soil waste stack branch building drain sewer pipe size slope ipc',
     'pl-tank': 'water tank storage underground roof capacity demand litre gallon', 'pl-pump': 'booster pump head kw motor power flow pressure', 'pl-heater': 'water heater geyser boiler kw storage hot water calorifier',
     'pl-grease': 'grease trap interceptor kitchen sink', 'ff-heads': 'sprinkler head count nfpa 13 hazard light ordinary extra coverage density design area fire fighting', 'ff-hyd': 'sprinkler hydraulic calculation hazen williams friction loss pressure flow k factor fire fighting', 'ff-pump': 'fire pump tank storage nfpa 20 rated flow gpm head motor fire fighting', 'pl-septic': 'septic tank sewage persons capacity soak',
@@ -4901,6 +5096,9 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['New', 'HVAC: Cooling Load Estimate (typical W/m² by space type with diversity, margin, supply air and chilled water flow), Fresh Air (ASHRAE 62.1 Table 6-1, Ez, Ev and the outdoor air load), Psychrometric Calculator (dry bulb with RH, wet bulb or dew point, plus the heat load between two states) and Fan & Pump Laws (speed, flow or diameter change), all with Metric / IP and Print'],
+  ] },
+  { v: 'v2026.11.26.4', date: '26 Nov 2026', items: [
     ['New', 'Plumbing: Drain Pipe Size (DFU) building drain slope as 1 : 100, 1 : 120, 1 : 50, 1 : 25 or a custom slope 1 : n in Metric (the next flatter table column is used)'],
     ['Fixed', 'Plumbing: Metric / IP now changes the names too in Drain Pipe Size, Water Supply and Sprinkler Hydraulic (DN or inch pipes, litre or gpf flush, slope in % or inch per foot)']
   ] },
