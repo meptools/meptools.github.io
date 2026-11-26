@@ -141,6 +141,13 @@ footer.ft{display:flex;justify-content:space-between;color:var(--ink2);font-size
 @media (max-width:420px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}}
 .box{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;cursor:pointer;padding:8px 4px;text-align:center;height:122px;box-shadow:var(--shadow);min-width:0}
 .box:active{transform:scale(.97)}
+.favb{position:absolute;top:2px;right:2px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;color:var(--ink2);border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.favb.on{color:#f5a623}
+.favb:active{background:var(--chip)}
+.favh{font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink2);margin:18px 2px 8px}
+.crumb .favc{margin-left:auto;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;background:none;border:0;color:var(--ink2);cursor:pointer;border-radius:10px}
+.crumb .favc.on{color:#f5a623}
+.crumb .favc:active{background:var(--chip)}
 .bicon{display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--tc,var(--accent));color:#fff;width:46px;height:46px;flex:0 0 auto}
 .bicon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .blabel{font-size:13px;line-height:1.2;font-weight:700;padding:0 2px;overflow-wrap:anywhere}
@@ -819,13 +826,14 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.6';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.26.7';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
 const STORE_KEY = 'meptools.v1';
 const WN_RAW = (() => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; } })();
 const S = { units: 'si', inputs: ['flow', 'hf'], vals: { flow: '', hf: '', v: '', d: '' }, duct: { w: '', h: '', auto: null, pending: null }, fluid: 'stp', mode: 'basic', theme: 'system', seen: '' };
+S.fav = [];
 (function load() {
   try {
     const r = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -840,6 +848,7 @@ const S = { units: 'si', inputs: ['flow', 'hf'], vals: { flow: '', hf: '', v: ''
     }
     if (r.theme === 'light' || r.theme === 'dark' || r.theme === 'system') S.theme = r.theme;
     if (typeof r.seen === 'string') S.seen = r.seen;
+    if (Array.isArray(r.fav)) S.fav = r.fav.filter(x => typeof x === 'string').slice(0, 60);
     if (FLUIDS.some(f => f.id === r.fluid)) S.fluid = r.fluid;
   } catch (e) {}
 })();
@@ -4903,9 +4912,26 @@ function currentTool() { const c = findCat(NAV.cat); return (c && c.tools.find(t
 function toolModes(t) { return t.modes || [{ id: 'main', label: t.label, mount: t.mount, soon: t.soon }]; }
 function activeMode(t) { const ms = toolModes(t); return ms.find(m => m.id === S.mode) || ms[0]; }
 
+/* ---------- Favourites: a star on a tool; starred tools also show on Home ---------- */
+const escH = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const isFav = id => S.fav.indexOf(id) >= 0;
+const favTools = () => S.fav.map(id => { const c = CATEGORIES.find(x => x.tools.some(t => t.id === id)); return c ? { c: c, t: c.tools.find(t => t.id === id) } : null; }).filter(Boolean);
+const favMark = id => isFav(id) ? '★' : '☆';
+const favBtn = (id, label) => '<span class="favb' + (isFav(id) ? ' on' : '') + '" role="button" tabindex="0" data-fav="' + id + '" aria-pressed="' + isFav(id) + '" aria-label="' + (isFav(id) ? 'Remove ' : 'Add ') + escH(label) + (isFav(id) ? ' from favourites' : ' to favourites') + '">' + favMark(id) + '</span>';
+function toggleFav(id) {
+  const i = S.fav.indexOf(id); if (i >= 0) S.fav.splice(i, 1); else S.fav.push(id);
+  save();
+  if (!NAV.cat) { render(); return; }                           // Home: the list changes
+  document.querySelectorAll('[data-fav="' + id + '"]').forEach(el => {
+    el.classList.toggle('on', isFav(id)); el.textContent = favMark(id); el.setAttribute('aria-pressed', String(isFav(id)));
+    el.setAttribute('aria-label', (isFav(id) ? 'Remove ' : 'Add ') + (el.dataset.name || 'this tool') + (isFav(id) ? ' from favourites' : ' to favourites'));
+  });
+}
 function homeHTML() {
+  const fv = favTools();
   return '<div class="grid">' + CATEGORIES.map(c =>
-    '<button type="button" class="box" data-cat="' + c.id + '" style="--tc:' + c.color + '"><span class="bicon">' + c.icon + '</span><span class="blabel">' + c.label + '</span></button>').join('') + '</div>';
+    '<button type="button" class="box" data-cat="' + c.id + '" style="--tc:' + c.color + '"><span class="bicon">' + c.icon + '</span><span class="blabel">' + c.label + '</span></button>').join('') + '</div>' +
+    (fv.length ? '<h2 class="favh">Favourites</h2><div class="grid">' + fv.map(x => '<button type="button" class="box" data-ftool="' + x.t.id + '" data-fcat="' + x.c.id + '" style="--tc:' + (x.t.color || x.c.color) + '"><span class="bicon">' + x.t.icon + '</span><span class="blabel">' + x.t.label + '</span>' + favBtn(x.t.id, x.t.label).replace('data-fav=', 'data-name="' + escH(x.t.label) + '" data-fav=') + '</button>').join('') + '</div>' : '');
 }
 function categoryHTML(c) {
   const n = c.tools.length, total = Math.max(c.min || 4, n);
@@ -4913,7 +4939,7 @@ function categoryHTML(c) {
   c.tools.forEach(t => {
     const todo = !toolModes(t).some(m => m.mount);
     h += '<button type="button" class="box' + (todo ? ' todo' : '') + '" data-tool="' + t.id + '" style="--tc:' + (t.color || c.color) + '">' +
-      (todo ? '<span class="badge">Soon</span>' : '') + '<span class="bicon">' + t.icon + '</span><span class="blabel">' + t.label + '</span></button>';
+      (todo ? '<span class="badge">Soon</span>' : favBtn(t.id, t.label).replace('data-fav=', 'data-name="' + escH(t.label) + '" data-fav=')) + '<span class="bicon">' + t.icon + '</span><span class="blabel">' + t.label + '</span></button>';
   });
   for (let i = n; i < total; i++) h += '<div class="box soonbox" aria-disabled="true"><span class="blabel">Soon...</span></div>';
   return h + '</div>';
@@ -4983,7 +5009,8 @@ function render() {
   else if (!tool) { crumb.innerHTML = link('home', 'Home') + sep + '<span class="cur">' + cat.label + '</span>'; view.innerHTML = categoryHTML(cat); }
   else {
     const subLabel = NAV.sub ? (tool.tiles ? tool.modes.find(m => m.id === NAV.sub).label : ADV.subLabel(NAV.sub)) : '';
-    crumb.innerHTML = link('home', 'Home') + sep + link('cat', cat.label) + sep + (NAV.sub ? link('tool', tool.label) + sep + '<span class="cur">' + subLabel + '</span>' : '<span class="cur">' + tool.label + '</span>');
+    crumb.innerHTML = link('home', 'Home') + sep + link('cat', cat.label) + sep + (NAV.sub ? link('tool', tool.label) + sep + '<span class="cur">' + subLabel + '</span>' : '<span class="cur">' + tool.label + '</span>') +
+      (NAV.sub ? '' : '<button type="button" class="favc' + (isFav(tool.id) ? ' on' : '') + '" data-fav="' + tool.id + '" data-name="' + escH(tool.label) + '" aria-pressed="' + isFav(tool.id) + '" aria-label="' + (isFav(tool.id) ? 'Remove from favourites' : 'Add to favourites') + '">' + favMark(tool.id) + '</button>');
     if (isTilePage(tool)) view.innerHTML = tilesHTML(tool);
     else {
       const mode = activeMode(tool);
@@ -5033,13 +5060,17 @@ window.addEventListener('popstate', e => {
 try { history.replaceState({ cat: null, tool: null, sub: null, i: 0 }, ''); } catch (e) {}
 $('#view').addEventListener('click', e => {
   if (e.target.closest('#float-units')) { $('#m-units').click(); return; }
+  const fv = e.target.closest('[data-fav]'); if (fv) { e.stopPropagation(); toggleFav(fv.dataset.fav); return; }
+  const ft = e.target.closest('[data-ftool]'); if (ft) { go(ft.dataset.fcat, ft.dataset.ftool); return; }
   const c = e.target.closest('[data-cat]'); if (c) { go(c.dataset.cat, null); return; }
   const ti = e.target.closest('[data-tile]'); if (ti) { go(NAV.cat, NAV.tool, true, ti.dataset.tile); return; }
   const t = e.target.closest('[data-tool]'); if (t) go(NAV.cat, t.dataset.tool);
 });
+$('#view').addEventListener('keydown', e => { const f = e.target.closest && e.target.closest('[data-fav]'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleFav(f.dataset.fav); } });
 $('#m-back').addEventListener('click', () => { if (NAV.sub) nav(NAV.cat, NAV.tool, null); else if (NAV.tool) nav(NAV.cat, null); else nav(null, null); });   // always one level up
 function goHome() { if (NAV.cat) nav(null, null); }
 $('#crumb').addEventListener('click', e => {
+  const f = e.target.closest('[data-fav]'); if (f) { toggleFav(f.dataset.fav); return; }
   const b = e.target.closest('[data-go]'); if (!b) return;
   if (b.dataset.go === 'home') goHome(); else if (b.dataset.go === 'tool') nav(NAV.cat, NAV.tool, null); else nav(NAV.cat, null);
 });
@@ -5290,6 +5321,9 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
   { v: VERSION, date: '26 Nov 2026', items: [
+    ['New', 'Favourites: tap the star on a tool tile or at the top of a tool, and the tool also shows under Favourites on the Home page']
+  ] },
+  { v: 'v2026.11.26.6', date: '26 Nov 2026', items: [
     ['New', 'Electrical: Cable Fill for conduit and cable tray (fill percentage and the smallest size) and Transformer & Generator sizing (running kVA, standard size, current, fault level and motor start)'],
     ['New', 'Plumbing: Pipe Support Spacing (steel and copper, hanger rod and number of hangers). HVAC: Duct Sheet Area & Weight (rectangular and round, thickness, wastage). Misc: Drawing Scale converter (metric and inch scales, real to drawing and back)']
   ] },
