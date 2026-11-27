@@ -826,7 +826,7 @@ const UN = {
 };
 const FIELDS = ['flow', 'hf', 'v', 'd'];
 const LABEL = { flow: 'Flow rate', hf: 'Head loss', v: 'Velocity', d: 'Equivalent diameter' };
-const VERSION = 'v2026.11.26.8';                    // build id: tells the phone an update is new (What's New, offline cache)
+const VERSION = 'v2026.11.27';                    // build id: tells the phone an update is new (What's New, offline cache)
 const VSHOW = VERSION.split('.').slice(0, 3).join('.');   // shown to the user: the release date only (vYYYY.MM.DD)
 
 /* ---------- state ---------- */
@@ -848,7 +848,7 @@ S.fav = [];
     }
     if (r.theme === 'light' || r.theme === 'dark' || r.theme === 'system') S.theme = r.theme;
     if (typeof r.seen === 'string') S.seen = r.seen;
-    if (Array.isArray(r.fav)) S.fav = r.fav.filter(x => typeof x === 'string').slice(0, 60);
+    if (Array.isArray(r.fav)) S.fav = r.fav.filter((x, i, a) => typeof x === 'string' && a.indexOf(x) === i).slice(0, 60);
     if (FLUIDS.some(f => f.id === r.fluid)) S.fluid = r.fluid;
   } catch (e) {}
 })();
@@ -3313,7 +3313,7 @@ const LIB = (function () {
     return card('Fluid properties (Duct Sizer)', table(['Fluid', 'Density ' + (si ? '(kg/m³)' : '(lb/ft³)'), 'Viscosity ' + (si ? '(kg/m·h)' : '(lb/ft·h)'), 'Specific heat ' + (si ? '(kJ/kg·°C)' : '(Btu/lb·°F)')],
       FLUIDS.map(f => [f[k].label, f[k].shown.rho, f[k].shown.mu, si ? num(f.cp, 4) : num(f.cp / 4.1868, 2)])));
   };
-  const DIFF = [['roundDuct', 'Round Duct'], ['square', '4-Way Square Diffuser'], ['perforated', '4-Way Perforated Square Diffuser'], ['disc', 'Round Disc Valve'], ['circular', 'Circular Diffuser']];
+  const DIFF = [['roundDuct', 'Flexible Duct'], ['square', '4-Way Square Diffuser'], ['perforated', '4-Way Perforated Square Diffuser'], ['disc', 'Round Disc Valve'], ['circular', 'Circular Diffuser']];
   const diffTables = () => {
     const si = isSI(), R = HVAC.refs();
     return DIFF.map(d => card(d[1] + ' - standard flow per unit', table(['Size (mm)', 'Flow ' + (si ? '(L/s)' : '(CFM)')],
@@ -4339,7 +4339,6 @@ const PLB = (function () {
     septic: (a, b) => { const k = P.septic; k.lpp = cv(k.lpp, b ? 1 / USG : USG); k.sludge = cv(k.sludge, b ? 1 / USG : USG); k.depth = cv(k.depth, b ? 1 / FT : FT); k.free = cv(k.free, b ? 1 / FT : FT); }
   };
   function convert(from, to) { if (from === to) return; Object.keys(CONV).forEach(k => CONV[k](from, to === 'ip')); }
-  if (!hadSaved && S.units === 'ip') convert('si', 'ip');
   /* ===== HVAC tools: cooling load, fresh air, psychrometrics, affinity laws ===== */
   const BTUFT = 3.15459, LS_CFM = 2.11888, PA_INWG = 249.0889, TR_KW = 3.51685;
   const ctF = c => c * 9 / 5 + 32;
@@ -4702,6 +4701,7 @@ const PLB = (function () {
   const MOUNT = { fillc: fillc, xfmr: xfmr, hang: hang, dsheet: dsheet, scale: scale, cload: cload, fresh: fresh, psy: psyTool, affin: affin, heads: heads, hyd: hyd, fpump: fpump, wsfu: wsfu, dfu: dfu, tank: tank, pump: pump, heater: heater, grease: grease, septic: septic };
   function mount(id) { return view => MOUNT[id](view); }
   function clear(id) { const d = DEF(); if (d[id]) { P[id] = d[id]; if (S.units === 'ip' && CONV[id]) CONV[id]('si', true); save(); } }
+  if (!hadSaved && S.units === 'ip') convert('si', 'ip');   // last, so that every constant above exists
   return { mount: mount, clear: clear, convert: convert };
 })();
 
@@ -4709,7 +4709,7 @@ const ACTIONS = ['units', 'clear', 'print'];
 
 const HVAC_TOOLS = [
   ['ach', 'Air Change / Hour', svg('<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8"/>')],
-  ['roundDuct', 'Round Duct Qty', svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>')],
+  ['roundDuct', 'Flexible Duct Qty', svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>')],
   ['square', '4-Way Square Diffuser Qty', svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 3l18 18M21 3L3 21"/>')],
   ['perforated', '4-Way Perforated Square Diffuser Qty', svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>')],
   ['disc', 'Round Disc Valve Qty', svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>')],
@@ -4817,7 +4817,7 @@ const NAV = { cat: null, tool: null, sub: null };   // sub = the tile open insid
 const SEARCH = (function () {
   const KW = {   // extra words people type for a tool (names of the tool and its category are searched too)
     duct: 'duct size sizing cfm l/s friction velocity head loss equal friction mcquay rectangular round advanced fan power air properties static pressure fittings',
-    'hv-ach': 'ach air change room volume ventilation', 'hv-roundDuct': 'round duct qty quantity', 'hv-square': 'four way square diffuser qty quantity',
+    'hv-ach': 'ach air change room volume ventilation', 'hv-roundDuct': 'flexible flex duct qty quantity round duct', 'hv-square': 'four way square diffuser qty quantity',
     'hv-perforated': 'four way perforated diffuser qty quantity', 'hv-disc': 'rdv round disc valve qty quantity', 'hv-circular': 'circular diffuser qty quantity',
     'hv-linear': 'linear slot diffuser length', 'hv-grill': 'grille grill size face velocity', 'hv-gravity': 'louver louvre gravity', 'hv-sand': 'sand trap louver louvre',
     'hv-ac': 'ton tr btu cfm kw cooling capacity eer cop electrical power', 'hv-ybranch': 'y branch', 'hv-area': 'area ratio flow split', 'hv-acarea': 'ac flow area thumb rule 15.75 cfm',
@@ -5329,7 +5329,11 @@ $('#m-excel').addEventListener('click', () => { const t = currentTool(); if (t &
 
 /* ---------- What's New (written for every update; shown once after an update) ---------- */
 const RELEASES = [
-  { v: VERSION, date: '26 Nov 2026', items: [
+  { v: VERSION, date: '27 Nov 2026', items: [
+    ['Fixed', 'The app could fail to open for a person who used it in IP mode before the new Plumbing tools were added. Fixed'],
+    ['Fixed', 'The tool is now named Flexible Duct Qty (it was Round Duct Qty)']
+  ] },
+  { v: 'v2026.11.26.8', date: '26 Nov 2026', items: [
     ['Fixed', 'Plumbing, Fire Fighting, HVAC: in IP mode the results now show the IP unit first (gpm, psi, ft, US gal, cfm) with the Metric value in brackets'],
     ['Fixed', 'Drain Pipe Size: the slope now follows the Metric / IP button, so the same load gives the same pipe size in both']
   ] },
@@ -5415,7 +5419,7 @@ const RELEASES = [
     ['New', 'Misc: Percentage (reverse %, add / less %), Car Average, Paper Size & Scale, TV Size and Symbols (Alt codes, tap to copy)']
   ] },
   { v: 'v2026.11.11.2', date: '11 Nov 2026', items: [
-    ['Better', 'Round Duct, 4-Way Square, 4-Way Perforated, Round Disc Valve and Circular Diffuser Qty: just type the Size (mm) and Flow to get the Qty; a size that is not in the table shows "Not Standard size"'],
+    ['Better', 'Flexible Duct, 4-Way Square, 4-Way Perforated, Round Disc Valve and Circular Diffuser Qty: just type the Size (mm) and Flow to get the Qty; a size that is not in the table shows "Not Standard size"'],
     ['Fixed', 'Linear Diffuser and Grill Size: velocity is in m/s in Metric and fpm in IP'],
     ['Better', 'AC Capacity Converter: new layout with Ton, BTU, CFM, L/S and Cooling kW, and Electrical Power in its own section'],
     ['Better', 'Area Ratio: results show in a table (Area, Ratio, Airflow) with a Total row'],
